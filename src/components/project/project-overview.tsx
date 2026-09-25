@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Archive,
   Box,
   CalendarDays,
   ChartNoAxesColumn,
@@ -8,6 +9,7 @@ import {
   ClipboardCheck,
   FileText,
   FlaskConical,
+  FolderOpen,
   Goal,
   History,
   Plus,
@@ -369,6 +371,13 @@ export function ProjectOverview({ slug, configure }: { slug: string; configure: 
             >
               Ajouter une activité
             </Button>
+            <Menu
+              label="Autres actions du projet"
+              items={[
+                ...(state.dossiers.some((d) => d.projectCode === project.code) ? [{ label: "Dossier du projet", icon: FolderOpen, href: `/dossiers/${slug}` }] : []),
+                { label: project.closedAt ? "Clôture du projet" : "Clôturer le projet", icon: Archive, href: `/projets/${slug}/cloture` },
+              ]}
+            />
           </>
         }
       />

@@ -28,6 +28,7 @@ const SECTION_LABELS: Record<string, string> = {
   planning: "Planning",
   lots: "Lots pilotes",
   deviations: "Déviations",
+  cloture: "Clôture",
 };
 
 /** Target of the section crumb when the section has no index page of its own. */
@@ -204,10 +205,11 @@ export function ProjectFrame({ slug, children }: { slug: string; children: React
       label: SECTION_LABELS[section] ?? section,
       href: sub ? (SECTION_HREF[section]?.(project.slug) ?? `/projets/${project.slug}/${section}`) : undefined,
     });
-  if (sub) crumbs.push({ label: SUB_LABELS[sub] ?? sub.toUpperCase() });
+  const docName = section === "documents" && sub ? state.documents.find((d) => d.id === sub)?.name : undefined;
+  if (sub) crumbs.push({ label: docName ?? SUB_LABELS[sub] ?? sub.toUpperCase() });
   const editingFormula = section === "formules" && sub === "nouvelle";
-  // Pilot lot and deviation pages render their own header (screens 35 → 39).
-  const ownHeader = Boolean(sub) && (section === "lots" || section === "deviations");
+  // Pilot lot, deviation and document pages (screens 35 → 39, 46) and the closure page (56) render their own header.
+  const ownHeader = (Boolean(sub) && (section === "lots" || section === "deviations" || section === "documents")) || section === "cloture";
 
   return (
     <>

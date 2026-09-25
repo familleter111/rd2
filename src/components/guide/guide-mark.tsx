@@ -224,7 +224,7 @@ export function GuideFloatingDot() {
         className={cn(FLOATING, "flex items-center gap-2 rounded-full bg-success-50 px-4 py-2 text-sm font-semibold text-success-700 shadow-card ring-1 ring-success-500/30")}
       >
         <Flag className="h-4 w-4" aria-hidden />
-        Fin des écrans livrés
+        {current === TOTAL_SCREENS ? "Fin du parcours" : "Fin des écrans livrés"}
       </motion.p>
     );
   }

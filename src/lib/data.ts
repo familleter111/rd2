@@ -4,6 +4,7 @@
  * `createSeed()` returns fresh objects so the demo can be reset at any time.
  */
 import { DEFAULT_FILTERS } from "./catalog";
+import { dossiers, enrichDocuments, notificationSettings, roles, templates, transfers } from "./data-dossier";
 import {
   analysisRequests,
   labActivities,
@@ -18,21 +19,27 @@ import type {
   Activity,
   Analysis,
   AnalysisRequest,
+  ConfigLogEntry,
   Deviation,
   DocVersion,
+  Dossier,
+  DossierReview,
   Formula,
   FormulaDecision,
   HistoryEvent,
   Lot,
   Method,
   Notification,
+  NotificationSetting,
   OverviewFilters,
+  PathTemplate,
   PendingDecision,
   Prerequisite,
   Priority,
   Project,
   ProjectDocument,
   ProjectDraft,
+  Reserve,
   Review,
   Sample,
   PilotLot,
@@ -41,8 +48,10 @@ import type {
   SavedView,
   StabilityStudy,
   SupplyRequest,
+  TeamRole,
   TestPlan,
   TestResult,
+  Transfer,
 } from "./types";
 
 export interface DemoState {
@@ -69,6 +78,15 @@ export interface DemoState {
   pilotLots: PilotLot[];
   deviations: Deviation[];
   studies: StabilityStudy[];
+  /* Dossier, reviews, transfer, configuration (screens 45–56) */
+  dossiers: Dossier[];
+  dossierReviews: DossierReview[];
+  reserves: Reserve[];
+  transfers: Transfer[];
+  roles: TeamRole[];
+  templates: PathTemplate[];
+  notificationSettings: NotificationSetting[];
+  configLog: ConfigLogEntry[];
   notifications: Notification[];
   filters: OverviewFilters;
   savedViews: SavedView[];
@@ -1010,14 +1028,17 @@ function history(): HistoryEvent[] {
       id: "h-2",
       projectCode: "CS-01",
       at: "2026-09-24T10:18",
-      title: "Rapport d'essai ajouté",
-      context: "CS-01 • F2 • Rapport d'essai F2 v2",
+      title: "Rapport d'essais F2 v2 ajouté",
+      context: "CS-01 • F2 • Rapport d'essais F2 v2",
       object: "Document",
-      objectLabel: "CS-01 • Document : Rapport d'essai F2",
+      objectLabel: "CS-01 • Document : Rapport d'essais F2",
+      docId: "doc-cs-rf2",
+      docBefore: { label: "Rapport F2 v1", status: "Approuvé", date: "2026-09-15" },
+      docAfter: { label: "Rapport F2 v2", status: "Brouillon", date: "2026-09-24" },
       type: "Ajout",
       author: "Chef de projet",
       motif: "Intégration des résultats du lot E-02",
-      description: "Nouvelle version (v2) du rapport d'essai F2 ajoutée au dossier du projet.",
+      description: "Nouvelle version (v2) du rapport d'essais F2 ajoutée au dossier du projet.",
       href: "/projets/cs-01/documents?doc=doc-cs-rf2",
       icon: "doc",
     },
@@ -1208,7 +1229,7 @@ export function createSeed(): DemoState {
     lots: lots(),
     samples: samples(),
     tests: tests(),
-    documents: documents(),
+    documents: enrichDocuments(documents()),
     history: history(),
     formulaDecisions: [],
     methods: methods(),
@@ -1220,6 +1241,14 @@ export function createSeed(): DemoState {
     pilotLots: pilotLots(),
     deviations: [],
     studies: studies(),
+    dossiers: dossiers(),
+    dossierReviews: [],
+    reserves: [],
+    transfers: transfers(),
+    roles: roles(),
+    templates: templates(),
+    notificationSettings: notificationSettings(),
+    configLog: [],
     notifications: notifications(),
     filters: { ...DEFAULT_FILTERS },
     savedViews: [

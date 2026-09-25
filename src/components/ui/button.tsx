@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import type { ComponentProps, MouseEvent, ReactNode } from "react";
-import { GuideDot } from "@/components/guide/guide-mark";
+import { GuideDot, useGuideNav } from "@/components/guide/guide-mark";
 import { cn } from "@/lib/cn";
-import { advanceTo, useGuideTarget } from "@/lib/guide";
+import { useGuideTarget } from "@/lib/guide";
 
 export type ButtonVariant = "primary" | "outline" | "secondary" | "ghost" | "danger" | "link";
 export type ButtonSize = "sm" | "md" | "lg";
@@ -99,13 +99,18 @@ export function LinkButton({
   ...rest
 }: LinkButtonProps) {
   const look = useGuideLook(variant, guide, guideHint);
+  const go = useGuideNav();
   return (
     <Link
       href={href}
       className={buttonClasses(look.variant, size, cn(look.ring, className))}
       onClick={(e: MouseEvent<HTMLAnchorElement>) => {
-        if (look.active && guide !== undefined) advanceTo(guide);
         onClick?.(e);
+        // Next step of the tour: open the exact screen of the mock-up (and play its story transition).
+        if (look.active && guide !== undefined) {
+          e.preventDefault();
+          go(guide);
+        }
       }}
       {...rest}
     >

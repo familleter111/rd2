@@ -76,6 +76,11 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 /* Guided tour: block (field, card) to act on before the next mock-up screen — the blue circle pulses */
+/* Anchored scrolls (route changes, "scroll to the circle") stop below the sticky top bar. */
+html {
+  scroll-padding-top: 92px;
+}
+
 .guide-ring {
   outline: 2px solid var(--color-brand-400);
   outline-offset: 3px;

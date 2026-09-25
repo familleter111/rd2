@@ -1,16 +1,8 @@
-import { Settings } from "lucide-react";
 import type { Metadata } from "next";
-import { ComingSoon } from "@/components/coming-soon";
+import { RolesView } from "@/components/config/roles-view";
 
-export const metadata: Metadata = { title: "Configuration" };
+export const metadata: Metadata = { title: "Configuration — rôles et accès" };
 
 export default function Page() {
-  return (
-    <ComingSoon
-      title="Configuration"
-      subtitle="Modèles de parcours, référentiels et droits"
-      icon={Settings}
-      items={["Modèles de parcours", "Référentiels produits", "Rôles et habilitations", "Circuits de validation"]}
-    />
-  );
+  return <RolesView />;
 }

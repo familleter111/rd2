@@ -8,7 +8,9 @@
  */
 import { useSyncExternalStore } from "react";
 import { createSeed, type DemoState } from "./data";
+import { DECISION_EXAMPLE, REVIEW_EXAMPLE } from "./data-dossier";
 import { MIXING_DEVIATION_EXAMPLE, PEOPLE_LAB, defaultTestPlan, mixerReservation } from "./data-lab";
+import { dossier, versionEventId } from "./dossier";
 import { DEMO_TODAY } from "./format";
 import { lab } from "./lab";
 import { applyState, replaceState } from "./store";
@@ -145,6 +147,92 @@ function deviationCreated(s: DemoState) {
   });
 }
 
+/* ---------------- Documents, dossier, transfer, closure (45–56) ---------------- */
+
+const RF2 = "doc-cs-rf2";
+const docOf = (s: DemoState, id: string) => s.documents.find((d) => d.id === id);
+const dossierOf = (s: DemoState) => s.dossiers.find((d) => d.projectCode === CS);
+const reviewOf = (s: DemoState) => s.dossierReviews.find((r) => r.projectCode === CS);
+
+/** The test report F2 v2 is approved (its v3 comes at screen 46). */
+function reportApproved(s: DemoState) {
+  const d = docOf(s, RF2);
+  return d && d.status !== "Approuvé" && d.version === 2 ? dossier.approveDocument(s, RF2) : s;
+}
+
+function reportV3(s: DemoState) {
+  const n = reportApproved(s);
+  const d = docOf(n, RF2);
+  if (!d || d.version >= 3) return n;
+  return dossier.addDocumentVersion(n, RF2, {
+    file: "rapport-essais-F2-v3.pdf",
+    size: "1,2 Mo",
+    motif: "Ajout des résultats complémentaires.",
+    status: "Brouillon",
+    reviewer: "Responsable développement",
+    notify: true,
+  });
+}
+
+/** Section 3.2.P.2 submitted, consolidated stability report added, synthesis approved. */
+function dossierCompleted(s: DemoState) {
+  let n = s;
+  const section = dossierOf(n)?.modules.flatMap((m) => m.sections).find((x) => x.id === "developpement");
+  if (section?.status === "À compléter") n = dossier.submitSection(n, CS, "developpement");
+  const stab = dossierOf(n)?.requirements.find((r) => r.id === "req-stab");
+  if (stab && !stab.docId) {
+    n = dossier.addDossierDocument(n, CS, { sectionId: stab.sectionId, name: stab.docName, type: stab.docType, file: "Rapport_stabilite_consolide_v1.pdf", size: "1,8 Mo", requirementId: stab.id });
+  }
+  const synth = docOf(n, "doc-cs-synth");
+  if (synth && synth.status !== "Approuvé") n = dossier.approveDocument(n, "doc-cs-synth", "Qualité");
+  return n;
+}
+
+function reviewSubmitted(s: DemoState) {
+  const n = dossierCompleted(s);
+  return reviewOf(n) ? n : dossier.submitDossierReview(n, CS, { ...REVIEW_EXAMPLE });
+}
+
+function reviewDecided(s: DemoState) {
+  const n = reviewSubmitted(s);
+  const r = reviewOf(n);
+  if (!r || r.status !== "En revue") return n;
+  return dossier.decideDossierReview(n, r.id, { decision: "reserves", justification: DECISION_EXAMPLE.justification, reserves: [DECISION_EXAMPLE.reserve] });
+}
+
+/** Blocking reserve lifted and documents handed over to Production. */
+function transferToReceive(s: DemoState) {
+  let n = reviewDecided(s);
+  for (const r of n.reserves.filter((x) => x.projectCode === CS && x.blocking && x.status === "Ouverte")) {
+    n = dossier.liftReserve(n, r.id, "Version approuvée de la synthèse jointe au dossier.");
+  }
+  const t = n.transfers.find((x) => x.projectCode === CS);
+  return t && (t.status === "À préparer" || t.status === "Complément demandé") ? dossier.transmitTransfer(n, CS) : n;
+}
+
+/** End of the project: reception confirmed, every action closed, deliverables approved or archived. */
+function readyToClose(s: DemoState) {
+  let n = transferToReceive(s);
+  if (n.transfers.find((x) => x.projectCode === CS)?.status === "À réceptionner") {
+    n = dossier.confirmReception(n, CS, "Documents examinés : dossier de transfert complet.");
+  }
+  for (const r of n.reserves.filter((x) => x.projectCode === CS && x.status === "Ouverte")) n = dossier.liftReserve(n, r.id, "Réserve traitée avant la clôture du projet.");
+  for (const d of n.deviations.filter((x) => x.projectCode === CS && x.status !== "Clôturée")) {
+    if (!d.analysis.doneAt) n = lab.saveDeviationAnalysis(n, d.id, { cause: "Équipement", rootCause: "Surcharge du moteur du mélangeur.", impact: "Impact mineur" }, true);
+    const current = n.deviations.find((x) => x.id === d.id);
+    for (const a of current?.actions.filter((x) => x.status !== "Terminée") ?? []) n = lab.saveDeviationAction(n, d.id, { ...a, status: "Terminée" });
+    n = lab.closeDeviation(lab.verifyEffectiveness(n, d.id), d.id);
+  }
+  n = {
+    ...n,
+    activities: n.activities.map((a) => (a.projectCode === CS && !a.done ? { ...a, done: true, state: "terminee", status: { label: "Terminée", tone: "success" } } : a)),
+  };
+  for (const d of n.documents.filter((x) => x.projectCode === CS && !x.archived && x.status !== "Approuvé")) {
+    n = d.status === "Brouillon" ? dossier.archiveDocument(n, d.id) : dossier.approveDocument(n, d.id, "Qualité");
+  }
+  return n;
+}
+
 /* ------------------------------------------------------------------ */
 /* Steps                                                               */
 /* ------------------------------------------------------------------ */
@@ -221,6 +309,59 @@ export const GUIDE_STEPS: GuideStep[] = [
   { n: 39, section: "Lot pilote LP-01", label: "Déviation — actions et efficacité", href: "/projets/cs-01/deviations/dev-01?onglet=actions", hint: "« Créer la déviation »", prepare: deviationCreated },
   { n: 40, section: "Stabilité", label: "Stabilité — études", href: "/stabilite", hint: "Menu « Stabilité »" },
   { n: 41, section: "Stabilité", label: "Stabilité — protocole", href: "/stabilite/st-01", hint: "« Préparer le protocole » de ST-01", prepare: (s) => lab.prepareStudyProtocol(s, "ST-01") },
+  {
+    n: 45,
+    section: "Documents & historique",
+    label: "Documents du projet",
+    href: "/projets/cs-01/documents?doc=doc-cs-rf2",
+    hint: "Onglet « Documents » du projet CS-01 (rapport d'essais F2 v2 approuvé)",
+    prepare: reportApproved,
+  },
+  {
+    n: 46,
+    section: "Documents & historique",
+    label: "Document — importer une nouvelle version",
+    href: "/projets/cs-01/documents/doc-cs-rf2?nouvelle-version=exemple",
+    hint: "« Nouvelle version » du rapport d'essais F2",
+  },
+  {
+    n: 47,
+    section: "Documents & historique",
+    label: "Projet — historique",
+    href: `/projets/cs-01/historique?evenement=${versionEventId(RF2, 3)}`,
+    hint: "« Enregistrer la version » (v3 en brouillon)",
+    prepare: reportV3,
+  },
+  { n: 48, section: "Dossiers & revues", label: "Dossiers & revues — structure CTD", href: "/dossiers/cs-01", hint: "Menu « Dossiers & revues »" },
+  { n: 49, section: "Dossiers & revues", label: "Dossier CTD — contenu d'une section", href: "/dossiers/cs-01/sections/developpement", hint: "Section « Développement pharmaceutique »" },
+  {
+    n: 50,
+    section: "Dossiers & revues",
+    label: "Préparer une revue de dossier",
+    href: "/dossiers/cs-01/revues/nouvelle",
+    hint: "« Soumettre la section » (le dossier est ensuite complété)",
+    prepare: dossierCompleted,
+  },
+  { n: 51, section: "Dossiers & revues", label: "Revue — décision et réserves", href: "/dossiers/cs-01/revues/rd-01", hint: "Justification puis « Soumettre la revue »", prepare: reviewSubmitted },
+  { n: 52, section: "Dossiers & revues", label: "Exporter le dossier", href: "/dossiers/cs-01/export", hint: "« Confirmer la décision » (approuvée avec réserves)", prepare: reviewDecided },
+  {
+    n: 53,
+    section: "Dossiers & revues",
+    label: "Transfert — préparation et réception",
+    href: "/dossiers/cs-01/transfert",
+    hint: "« Générer l'export » (réserve levée, documents transmis)",
+    prepare: transferToReceive,
+  },
+  { n: 54, section: "Configuration", label: "Configuration — rôles et accès", href: "/configuration", hint: "Menu « Configuration »" },
+  { n: 55, section: "Configuration", label: "Configuration — modèles de parcours", href: "/configuration/modeles", hint: "Onglet « Modèles de parcours »" },
+  {
+    n: 56,
+    section: "Clôture du projet",
+    label: "Clôture et archivage du projet",
+    href: "/projets/cs-01/cloture?confirmer=1",
+    hint: "Projet CS-01 → « Clôturer le projet » (transfert réceptionné, actions closes)",
+    prepare: readyToClose,
+  },
 ];
 
 export const TOTAL_SCREENS = 56;

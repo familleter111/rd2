@@ -9,6 +9,7 @@ import { useSyncExternalStore } from "react";
 import { FAMILY_LABEL, PREREQUISITE_TEMPLATES, TEAM_ROLES, kindForForm } from "./catalog";
 import { createSeed, type DemoState } from "./data";
 import { DEMO_TODAY, addDays } from "./format";
+import { dossier } from "./dossier";
 import { decisionCircuit, lab } from "./lab";
 import { nextNumber, pad2, projectLabel, stamp, uid, withEvent } from "./state-utils";
 import type {
@@ -838,6 +839,16 @@ type Bound = {
 export const labActions = Object.fromEntries(
   Object.entries(lab).map(([key, fn]) => [key, (...args: unknown[]) => commit((fn as (s: DemoState, ...a: unknown[]) => DemoState)(state, ...args))]),
 ) as Bound;
+
+type DossierReducers = typeof dossier;
+type DossierBound = {
+  [K in keyof DossierReducers]: DossierReducers[K] extends (s: DemoState, ...args: infer A) => DemoState ? (...args: A) => void : never;
+};
+
+/** Store-bound reducers of the documentation, dossier, transfer and configuration screens (45 → 56). */
+export const dossierActions = Object.fromEntries(
+  Object.entries(dossier).map(([key, fn]) => [key, (...args: unknown[]) => commit((fn as (s: DemoState, ...a: unknown[]) => DemoState)(state, ...args))]),
+) as DossierBound;
 
 /** Applies an arbitrary state transition (used by the guided tour). */
 export function applyState(transform: (s: DemoState) => DemoState) {

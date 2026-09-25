@@ -56,6 +56,9 @@ export interface Project {
   milestone: { title: string; detail: string; date: string; blocker?: string; owner: string };
   portfolioAction: { label: string; href: string; variant: "primary" | "outline" };
   archived: boolean;
+  /** Closure of the project (screen 56): the project is then archived, read-only. */
+  closedAt?: string;
+  closeReason?: string;
 }
 
 export type PrerequisiteStatus = "Satisfait" | "En attente" | "À planifier" | "Demandé";
@@ -294,6 +297,21 @@ export interface DocVersion {
   date: string;
   author: string;
   note: string;
+  /* Screens 45–47: status, file and review of each version. */
+  status?: DocStatus;
+  file?: string;
+  size?: string;
+  motif?: string;
+  reviewer?: string;
+  approvedAt?: string;
+  approvedBy?: string;
+}
+
+export interface DocComment {
+  id: string;
+  author: string;
+  at: string;
+  text: string;
 }
 
 export interface ProjectDocument {
@@ -312,6 +330,17 @@ export interface ProjectDocument {
   formula?: string;
   method?: string;
   versions: DocVersion[];
+  /* Screens 45–47 */
+  /** File of the current version ("Rapport_essais_F2_v2.pdf"). */
+  fileName?: string;
+  description?: string;
+  keywords?: string[];
+  createdAt?: string;
+  /** Version still in force while a newer one is under review (v2 approved, v3 draft). */
+  approvedVersion?: number;
+  archived?: boolean;
+  archivedAt?: string;
+  comments?: DocComment[];
 }
 
 export type HistoryObject =
@@ -327,7 +356,9 @@ export type HistoryObject =
   | "Activité"
   | "Réservation"
   | "Déviation"
-  | "Stabilité";
+  | "Stabilité"
+  | "Dossier"
+  | "Transfert";
 
 export interface HistoryEvent {
   id: string;
@@ -356,6 +387,16 @@ export interface HistoryEvent {
   lotCode?: string;
   /** Object/version chip shown in the method history ("ANA-01 • En revue"). */
   version?: Labelled;
+  /** Document concerned and "Avant / Après" cards of a new version (screen 47). */
+  docId?: string;
+  docBefore?: DocSnapshot;
+  docAfter?: DocSnapshot;
+}
+
+export interface DocSnapshot {
+  label: string;
+  status: DocStatus;
+  date: string;
 }
 
 export type DecisionChoice = "poursuivre" | "retenir" | "revoir";
@@ -826,4 +867,230 @@ export interface ProjectDraft {
   effort: string;
   prerequisites: string[];
   sourceProject?: string;
+}
+
+/* ------------------------------------------------------------------ */
+/* Dossier CTD, reviews, reserves, transfer (screens 48–53)            */
+/* ------------------------------------------------------------------ */
+
+export type SectionStatus = "À compléter" | "En revue" | "Approuvée" | "À évaluer";
+
+/** Paragraph of a dossier section ("Composition", "Choix de formule"…). */
+export interface DossierPart {
+  id: string;
+  title: string;
+  text: string;
+}
+
+/** Evidence supporting a section: a project document or the approved formula decision. */
+export interface DossierProof {
+  id: string;
+  label: string;
+  kind: string;
+  docId?: string;
+  decision?: boolean;
+}
+
+/** Link between a proof (and the part of it that is cited) and a paragraph of the section. */
+export interface DossierLink {
+  id: string;
+  proofId: string;
+  ref: string;
+  partId: string;
+}
+
+export type SectionIcon = "settings" | "factory" | "flask" | "chart" | "doc";
+
+export interface DossierSection {
+  id: string;
+  code: string;
+  title: string;
+  summary: string;
+  icon: SectionIcon;
+  status: SectionStatus;
+  heading: string;
+  intro: string;
+  parts: DossierPart[];
+  proofs: DossierProof[];
+  links: DossierLink[];
+  submittedAt?: string;
+}
+
+export interface DossierModule {
+  n: 1 | 2 | 3 | 4 | 5;
+  title: string;
+  description: string;
+  sections: DossierSection[];
+}
+
+/** Element the dossier still waits for ("Rapport de stabilité consolidé", "Synthèse à approuver"). */
+export interface DossierRequirement {
+  id: string;
+  module: number;
+  label: string;
+  detail: string;
+  kind: "document" | "approbation";
+  sectionId: string;
+  docName: string;
+  docType: string;
+  docId?: string;
+}
+
+export interface DossierExport {
+  id: string;
+  at: string;
+  format: "PDF" | "ZIP";
+  fileName: string;
+  sections: string[];
+  author: string;
+}
+
+export interface Dossier {
+  projectCode: string;
+  formula: string;
+  modules: DossierModule[];
+  requirements: DossierRequirement[];
+  checkedAt?: string;
+  exports: DossierExport[];
+  /** Review being prepared (screen 50), kept when leaving the page. */
+  reviewDraft?: ReviewDraft;
+}
+
+export type DossierReviewStatus = "En revue" | "Approuvée" | "Approuvée avec réserves" | "Correction demandée";
+export type ReviewDecisionChoice = "approuver" | "reserves" | "correction";
+
+export interface DossierReview {
+  id: string;
+  projectCode: string;
+  type: string;
+  date: string;
+  participants: string[];
+  objet: string;
+  documents: string[];
+  expected: string;
+  justification: string;
+  status: DossierReviewStatus;
+  submittedAt: string;
+  decision?: ReviewDecisionChoice;
+  decisionJustification?: string;
+  decidedAt?: string;
+  circuit: CircuitStep[];
+}
+
+export interface ReviewDraft {
+  type: string;
+  date: string;
+  participants: string[];
+  objet: string;
+  documents: string[];
+  expected: string;
+  justification: string;
+}
+
+export interface Reserve {
+  id: string;
+  projectCode: string;
+  reviewId: string;
+  description: string;
+  owner: string;
+  due: string;
+  blocking: boolean;
+  status: "Ouverte" | "Levée";
+  liftedAt?: string;
+  liftComment?: string;
+}
+
+export type TransferStatus = "À préparer" | "À réceptionner" | "Complément demandé" | "Réceptionné";
+
+export interface TransferDocument {
+  id: string;
+  title: string;
+  code: string;
+  version: string;
+  date: string;
+  docId?: string;
+}
+
+export interface Transfer {
+  projectCode: string;
+  status: TransferStatus;
+  sourceTeam: string;
+  targetTeam: string;
+  owner: string;
+  documents: TransferDocument[];
+  transmittedAt?: string;
+  receivedAt?: string;
+  comment?: string;
+  complementRequest?: string;
+}
+
+/* ------------------------------------------------------------------ */
+/* Configuration (screens 54–55)                                       */
+/* ------------------------------------------------------------------ */
+
+export interface RolePermission {
+  key: string;
+  label: string;
+  detail: string;
+  enabled: boolean;
+}
+
+export interface TeamRole {
+  id: string;
+  name: string;
+  description: string;
+  icon: "user" | "users" | "flask" | "shield" | "factory";
+  permissions: RolePermission[];
+  scope: "Projets assignés" | "Tous les projets";
+  members: Person[];
+}
+
+export type TemplateIcon = "doc" | "list" | "flask" | "settings" | "check" | "chart" | "users" | "arrow";
+
+export interface TemplateItem {
+  id: string;
+  label: string;
+  icon: TemplateIcon;
+}
+
+export interface TemplatePhase {
+  key: string;
+  title: string;
+  description: string;
+  activities: TemplateItem[];
+  proofs: TemplateItem[];
+}
+
+export type TemplateStatus = "Actif" | "Brouillon" | "Archivé";
+
+export interface TemplateVersion {
+  version: number;
+  status: TemplateStatus;
+  createdAt: string;
+  note: string;
+  phases: TemplatePhase[];
+}
+
+export interface PathTemplate {
+  id: string;
+  name: string;
+  family: Family;
+  /** Name stored on the projects created from it ("Modèle forme sèche"). */
+  projectTemplate: string;
+  versions: TemplateVersion[];
+}
+
+export interface NotificationSetting {
+  id: string;
+  label: string;
+  detail: string;
+  app: boolean;
+  email: boolean;
+}
+
+export interface ConfigLogEntry {
+  id: string;
+  at: string;
+  author: string;
+  text: string;
 }

@@ -1,17 +1,17 @@
 ===============================================================================================
   LABORATOIRES SIMED — ESPACE R&D
-  SCÉNARIO DE PARCOURS COMPLET — ÉCRANS 01 À 41
+  SCÉNARIO DE PARCOURS COMPLET — ÉCRANS 01 À 56
   Prototype (données de démonstration) — mis à jour le 25/09/2026
 ===============================================================================================
 
 Ce document explique, écran par écran, quoi regarder, quoi faire et quoi vérifier pour
-comprendre toutes les interfaces livrées (maquettes 01 à 41) et les tester de bout en bout.
+comprendre toutes les interfaces livrées (maquettes 01 à 56) et les tester de bout en bout.
 
 Sommaire
   0. Avant de commencer
   1. L'histoire racontée par les écrans
-  2. Passage complet, écran par écran (01 → 41)
-  3. Tests complémentaires (après l'écran 41)
+  2. Passage complet, écran par écran (01 → 56)
+  3. Tests complémentaires
   4. Liste des règles de blocage à vérifier
   5. Récapitulatif : où se trouve le cercle bleu à chaque écran
   6. En cas de problème
@@ -61,13 +61,13 @@ Sommaire
      terminés ») : un message bleu en haut à droite l'annonce.
 
 0.4 Trois façons de parcourir
-  A. Visite rapide (environ 10 min)
-     Cliquer uniquement sur les cercles bleus, de 01 jusqu'à 41.
+  A. Visite rapide (environ 15 min)
+     Cliquer uniquement sur les cercles bleus, de 01 jusqu'à 56.
      On voit chaque maquette dans son état, sans rien remplir.
-  B. Passage complet (recommandé, environ 1 h à 1 h 30)
+  B. Passage complet (recommandé, environ 2 h)
      Suivre la partie 2. À chaque écran : regarder, faire les actions, tester les blocages,
      puis cliquer sur le bouton qui porte le cercle bleu (ou sur le cercle lui-même).
-  C. Tests complémentaires (environ 30 min)
+  C. Tests complémentaires (environ 45 min)
      Partie 3 : ce qui va au-delà des maquettes mais fonctionne déjà
      (clôturer la déviation, valider les résultats, finir la fabrication, etc.).
 
@@ -98,14 +98,27 @@ Le fil rouge sur CS-01 :
   5. Le lot pilote LP-01 est fabriqué : préparation, mélange, contrôles, puis déviation
      DEV-01 sur le mélangeur.                                              (écrans 35–39)
   6. L'étude de stabilité ST-01 est préparée sur LP-01.                   (écrans 40–41)
+  7. Fin de projet : le rapport d'essais F2 v2 est approuvé ; une v3 est ajoutée en
+     brouillon (la v2 reste en vigueur) ; l'historique montre l'avant / après.  (écrans 45–47)
+  8. Le dossier CTD de CS-01 est préparé : structure, section 3.2.P.2 « Développement
+     pharmaceutique », puis revue de développement RD-01, approuvée avec une réserve
+     bloquante R-01.                                                       (écrans 48–51)
+  9. Le dossier est exporté (copie de revue), la réserve est levée, les documents sont
+     transmis à l'équipe Production qui confirme la réception.             (écrans 52–53)
+ 10. L'administrateur gère les rôles et les modèles de parcours ; le projet CS-01 est
+     enfin clôturé et archivé.                                             (écrans 54–56)
 
-Écrans absents du parcours : 12, 13 et 19 ne figuraient pas dans les captures reçues
-(le parcours passe directement de 11 à 14 et de 18 à 20) ; 42 à 56 sont les prochaines
-maquettes. Ils seront ajoutés au parcours dès réception des captures.
+Écrans absents du parcours : 12, 13, 19, 42, 43 et 44 ne figuraient pas dans les captures
+reçues (le parcours passe de 11 à 14, de 18 à 20 et de 41 à 45). Ils seront ajoutés au
+parcours dès réception des captures.
+
+Écrans 15 et 16 : les onglets « Documents » et « Historique » suivent désormais le dessin
+plus récent des maquettes 45 et 47 (même écran, même fonctionnement). Seul l'état des
+données change : début de projet pour 15 et 16, fin de projet pour 45 et 47.
 
 
 ===============================================================================================
-2. PASSAGE COMPLET, ÉCRAN PAR ÉCRAN (01 → 41)
+2. PASSAGE COMPLET, ÉCRAN PAR ÉCRAN (01 → 56)
 ===============================================================================================
 
 Pour chaque écran :
@@ -251,19 +264,24 @@ PARTIE C — PROJET CS-01 (écrans 11 à 20)
     SUITE    : menu « Projets » → CS-01 → onglet « Documents » (ou cercle 15 en bas à droite).
 
 [ ] 15 / 56 — Documents du projet (CS-01)
-    REGARDER : les catégories (Références, Formulation, Méthodes, Stabilité, CTD…),
-               les filtres type / version / statut, le tableau triable.
-    FAIRE    : « Importer un document » ; sur un brouillon : renommer, déplacer, supprimer ;
-               sur un document approuvé : « Créer une nouvelle version », « Télécharger » ;
-               cocher plusieurs lignes → téléchargement groupé.
-    BLOCAGE  : un document approuvé n'est pas modifiable (message explicatif).
+    REGARDER : même dessin que la maquette 45 : recherche, bouton « Filtres » (dossier, état,
+               documents archivés), catégories Tous · Protocoles · Rapports · Certificats ·
+               Autres, tableau (nom et fichier, catégorie, version, état, responsable, projet,
+               date) et, à droite, le panneau du document sélectionné.
+    FAIRE    : cliquer une ligne → le panneau change ; trier par nom ou par date ;
+               « Ajouter un document » ; menu ⋮ d'une ligne : Ouvrir, Télécharger (petit PDF),
+               Nouvelle version, Renommer, Déplacer, Archiver, Supprimer le brouillon.
+    BLOCAGE  : seul un brouillon peut être supprimé ; un document archivé passe en lecture
+               seule (« Restaurer » pour le réactiver).
     SUITE    : onglet « Historique » (cercle 16).
 
 [ ] 16 / 56 — Historique et traçabilité
-    REGARDER : la liste des événements, les filtres objet / auteur / période,
-               le détail d'un événement (champ modifié, ancienne / nouvelle valeur).
-    FAIRE    : filtrer ; sélectionner un événement → « Ouvrir la source ».
-               Retrouver les actions faites plus haut (demande, configuration…).
+    REGARDER : même dessin que la maquette 47 : frise des événements (date, auteur, objet),
+               filtres Type d'événement / Utilisateur / Période, « Exporter l'historique » ;
+               le dernier événement est déplié.
+    FAIRE    : déplier un événement → Avant / Après (champ modifié ou versions d'un document),
+               motif, « Ouvrir la source » ; filtrer ; exporter le CSV. Retrouver les actions
+               faites plus haut (demande, configuration…).
     SUITE    : onglet « Formules & lots » (cercle 17).
 
 [ ] 17 / 56 — Versions de formule
@@ -538,12 +556,175 @@ PARTIE G — STABILITÉ (écrans 40 et 41)
                choisie ; aucun essai coché → « Sélectionnez au moins un essai ».
     FAIRE    : « Ajouter une échéance » ; « Enregistrer le brouillon » ;
                choisir « 25 °C / 60 % HR (long terme) » → « Soumettre le protocole ».
-    FIN      : en haut s'affiche « Fin des écrans livrés ».
+    SUITE    : cercle 45 en bas à droite (documents du projet CS-01, en fin de projet).
+
+
+-----------------------------------------------------------------------------------------------
+PARTIE H — DOCUMENTS ET HISTORIQUE EN FIN DE PROJET (écrans 45 à 47)
+-----------------------------------------------------------------------------------------------
+
+[ ] 45 / 56 — Documents du projet
+    OÙ       : cercle 45 en bas à droite depuis l'écran 41, ou Projets → CS-01 → « Documents ».
+    REGARDER : le rapport d'essais F2 v2, désormais « Approuvé », est sélectionné ; panneau :
+               Aperçu, Télécharger, Nouvelle version, menu ⋮ (Archiver…), informations
+               générales, description, mots-clés.
+    FAIRE    : « Ajouter un mot-clé » (Entrée pour valider), retirer un mot-clé (×) ;
+               « Télécharger » ; filtrer par catégorie ; archiver un document (menu ⋮ →
+               Archiver), le retrouver avec Filtres → « Afficher les documents archivés »,
+               puis « Restaurer ».
+    SUITE    : « Nouvelle version » du rapport d'essais F2 (cercle 46).
+
+[ ] 46 / 56 — Document — importer une nouvelle version
+    REGARDER : la page du document (Informations générales · Historique des versions ·
+               Commentaires · Traçabilité, menu « Actions document ») et la fenêtre
+               « Ajouter une nouvelle version » : version actuelle v2 approuvée, fichier,
+               motif, statut, relecteur, notification, « Résumé des changements ».
+    BLOCAGE  : « Enregistrer la version » refusé sans fichier ou sans motif.
+    FAIRE    : retirer le fichier (×) puis « Utiliser le fichier d'exemple » ou choisir un
+               fichier du PC ; changer le relecteur. La v3 enregistrée se voit ensuite dans
+               « Historique des versions » (bouton « Ouvrir le document » de l'écran 47) :
+               v3 en brouillon, v2 « en vigueur », « Approuver la v3 » simule le relecteur ;
+               onglets Commentaires (publier) et Traçabilité.
+    SUITE    : « Enregistrer la version » (cercle 47).
+
+[ ] 47 / 56 — Projet — historique
+    REGARDER : l'événement « Rapport d'essais F2 v3 ajouté » déplié : Avant (v2 approuvée) →
+               Après (v3 brouillon), motif, « Ouvrir le document ».
+    FAIRE    : replier / déplier d'autres événements ; filtrer sur le type « Document » ;
+               « Exporter l'historique ».
+    SUITE    : menu de gauche « Dossiers & revues » (cercle 48).
+
+
+-----------------------------------------------------------------------------------------------
+PARTIE I — DOSSIER, REVUE, EXPORT ET TRANSFERT (écrans 48 à 53)
+-----------------------------------------------------------------------------------------------
+
+[ ] 48 / 56 — Dossiers & revues — structure CTD
+    REGARDER : onglets Dossier · Revues · Réserves · Transfert ; les 5 modules du CTD et leur
+               statut ; le module 3 Qualité et ses sections (développement pharmaceutique,
+               fabrication, contrôle du produit fini, stabilité) ; « Éléments manquants »
+               (rapport de stabilité consolidé, synthèse à approuver) ; bloc « Actions ».
+    FAIRE    : cliquer un autre module (ses sections s'affichent) ; « Vérifier la
+               complétude » (bilan module par module) ; « Ajouter un document ».
+    BLOCAGE  : « Préparer une revue » grisé tant que des éléments manquent (« Action
+               disponible lorsque le dossier est complet »). Pour le débloquer à la main :
+               « Ajouter le document » (rapport consolidé) et « Approuver (Qualité) »
+               (synthèse). Sinon, l'histoire le fait à l'écran 49.
+    SUITE    : section « Développement pharmaceutique » (cercle 49).
+
+[ ] 49 / 56 — Dossier CTD — contenu d'une section
+    REGARDER : la section 3.2.P et ses sous-sections à gauche ; « Comparaison des formules
+               F1 et F2 » et ses 4 paragraphes (composition, choix de formule, procédé,
+               justification) avec leurs preuves citées ; « Preuves associées » et
+               « Liaisons avec le contenu » ; onglets Contenu · Documents sources · Revue ·
+               Historique ; menu « Actions dossier ».
+    FAIRE    : « Éditer » un paragraphe puis « Enregistrer » ; « Lier une preuve » (document,
+               partie citée, paragraphe) ; retirer un lien (×) ; ouvrir une preuve.
+    BLOCAGE  : « Soumettre la section » grisé tant qu'un paragraphe est vide, sans preuve liée
+               ou appuyé sur une preuve non approuvée (le message indique quoi faire).
+    SUITE    : « Soumettre la section » (cercle 50) → message « quelques jours plus tard… » :
+               le rapport de stabilité consolidé est ajouté et la synthèse approuvée.
+
+[ ] 50 / 56 — Préparer une revue de dossier
+    REGARDER : type de revue, date (20/10/2026), participants ; 1 Objet, 2 Documents à
+               examiner, 3 Décision attendue ; « État de préparation » (documents accessibles,
+               participants définis, justification à compléter).
+    BLOCAGE  : « Soumettre la revue » grisé tant que la justification (20 caractères minimum)
+               manque, ou s'il n'y a plus aucun document ou participant.
+    FAIRE    : retirer / ajouter un document ; retirer un participant (l'état de préparation
+               réagit) ; « Enregistrer le brouillon ».
+    SUITE    : « Renseigner la justification », l'écrire, puis « Soumettre la revue »
+               (cercle 51) → la revue RD-01 est créée.
+
+[ ] 51 / 56 — Revue — décision et réserves
+    REGARDER : statut « En revue » et date de revue ; décision (Approuver / Approuver avec
+               réserves / Demander une correction) ; justification ; réserve R-01
+               (description, responsable, échéance, « Bloquante pour le transfert ») ;
+               circuit de validation ; « Mon rôle dans cette décision » (Qualité).
+    BLOCAGE  : réserve sans description ou avec une échéance passée → refus ; justification
+               trop courte → refus.
+    FAIRE    : « Ajouter une réserve » puis « Retirer » ; décocher « Bloquante pour le
+               transfert » (le bandeau d'alerte disparaît) puis la recocher.
+    SUITE    : « Confirmer la décision » (cercle 52) → revue « Approuvée avec réserves »,
+               réserve R-01 ouverte.
+
+[ ] 52 / 56 — Exporter le dossier
+    REGARDER : format (PDF de revue / archive ZIP), périmètre (4 sections), options (table des
+               matières, références des preuves, versions approuvées uniquement), aperçu (nom
+               du fichier, statut « Copie de revue », alerte « Des réserves restent
+               ouvertes »), mention « ne constitue pas un paquet eCTD validé ».
+    FAIRE    : décocher des sections (l'aperçu suit) ; « Générer l'export » en PDF puis en
+               ZIP : les fichiers sont réellement téléchargés et s'ouvrent.
+    BLOCAGE  : sans section cochée, « Générer l'export » est grisé.
+    SUITE    : « Générer l'export » (cercle 53) → message : réserve R-01 levée, documents
+               transmis à l'équipe Production.
+
+[ ] 53 / 56 — Transfert — préparation et réception
+    REGARDER : statut « À réceptionner », date de mise à disposition, équipes, responsable ;
+               4 documents remis (formule, mode opératoire, rapport du lot pilote, méthodes de
+               contrôle) ; avancement (réserves levées ✓, documents transmis ✓, réception en
+               attente) ; bloc « Confirmer la réception ».
+    BLOCAGE  : « Demander un complément » et « Confirmer la réception » grisés tant que
+               « J'ai examiné l'ensemble des documents transmis. » n'est pas coché ;
+               un complément exige un commentaire.
+    FAIRE    : cocher, écrire un commentaire, « Confirmer la réception » → « Transfert
+               réceptionné » (avec le lien « Préparer la clôture du projet »).
+    SUITE    : menu de gauche « Configuration » (cercle 54).
+
+
+-----------------------------------------------------------------------------------------------
+PARTIE J — CONFIGURATION (écrans 54 et 55)
+-----------------------------------------------------------------------------------------------
+
+[ ] 54 / 56 — Configuration — rôles et accès
+    REGARDER : onglets Équipe & rôles · Modèles de parcours · Ressources · Notifications ;
+               les 5 rôles ; pour « Analyste laboratoire » : droits (interrupteurs), périmètre
+               d'accès, membres ; « Rôle actuel : Administrateur ».
+    FAIRE    : activer « Gérer les rôles » → « Enregistrer les droits » (modification tracée) ;
+               « Annuler » ; « Ajouter un membre » ; retirer un membre (×) ; changer le
+               périmètre d'accès ; choisir un autre rôle.
+    BLOCAGE  : « Enregistrer les droits » grisé sans modification ; activer « Approuver ses
+               propres résultats » affiche un avertissement (principe des quatre yeux).
+    SUITE    : onglet « Modèles de parcours » (cercle 55).
+
+[ ] 55 / 56 — Configuration — modèles de parcours
+    REGARDER : liste des modèles (forme sèche orale actif, semi-solide actif, liquide
+               brouillon) ; les 4 étapes (Cadrer, Développer, Confirmer, Déposer & transférer)
+               avec leurs activités et preuves requises ; les deux règles en bas de page.
+    FAIRE    : cliquer une étape ; « Ajouter une activité » sur la version active → une
+               version 2 est créée en brouillon (la v1 reste utilisée par les projets) ;
+               « Activer la version » ; « Dupliquer le modèle » ; « Nouveau modèle ».
+    BLOCAGE  : une version active n'est jamais modifiée directement ; « Créer une version »
+               grisé tant qu'un brouillon existe ; seules les versions brouillon permettent
+               de retirer une activité.
+    SUITE    : cercle 56 en bas à droite (clôture du projet CS-01).
+
+
+-----------------------------------------------------------------------------------------------
+PARTIE K — CLÔTURE DU PROJET (écran 56)
+-----------------------------------------------------------------------------------------------
+
+[ ] 56 / 56 — Clôture et archivage du projet
+    OÙ       : Projets → CS-01 → menu ⋮ de la vue projet → « Clôturer le projet », ou lien
+               « Préparer la clôture du projet » de l'onglet Transfert.
+    REGARDER : les 4 conditions (décisions approuvées, livrables archivables, actions closes,
+               transfert réceptionné) ; la fenêtre « Clôturer et archiver le projet ? »
+               (motif, case de confirmation).
+    BLOCAGE  : « Clôturer le projet » grisé tant qu'une condition manque (chaque carte indique
+               les points à traiter, avec un lien) ; dans la fenêtre, motif (10 caractères
+               minimum) et case de confirmation obligatoires.
+    FAIRE    : « Clôturer et archiver » → le projet passe dans Projets → onglet « Archivés »,
+               en lecture seule (bouton « Restaurer » disponible).
+    FIN      : en bas à droite s'affiche « Fin du parcours ».
 
 
 ===============================================================================================
-3. TESTS COMPLÉMENTAIRES (après l'écran 41, sans recharger la page)
+3. TESTS COMPLÉMENTAIRES (sans recharger la page)
 ===============================================================================================
+
+Les tests T2 à T9 partent de l'état de l'écran 41 : « Parcours des écrans » → écran 41.
+(Après l'écran 56, le projet CS-01 est clôturé : ses actions sont toutes closes.)
+
 
 T1. Blocages depuis l'état de départ
     « Démonstration » → « Réinitialiser les données » → « Réinitialiser », puis :
@@ -603,8 +784,32 @@ T9. Vue d'ensemble
     - Mes priorités : clôturer « Résultats F2 disponibles » (accepté maintenant).
     - Revues : « Planifier une revue » puis la retrouver dans la liste.
 
-T10. Écrans pas encore maquettés
-    Configuration, Profil et « Dossiers & revues » affichent « prévu dans une prochaine étape ».
+T10. Écran pas encore maquetté
+    « Profil » (menu en bas à gauche) affiche « prévu dans une prochaine étape ».
+
+T11. Documents (« Parcours des écrans » → écran 45)
+    - Archiver un brouillon, le retrouver avec Filtres → « Afficher les documents archivés »,
+      le restaurer.
+    - Ouvrir un document → « Actions document » → « Nouvelle version » avec un vrai fichier
+      du PC ; statut « En revue » ; puis « Approuver la v… » dans « Historique des versions ».
+
+T12. Dossier complété à la main (« Parcours des écrans » → écran 48)
+    - « Ajouter le document » (rapport de stabilité consolidé) puis « Approuver (Qualité) » :
+      « Préparer une revue » devient disponible.
+    - Section « Fabrication » (en revue) → onglet « Revue » → « Approuver la section ».
+
+T13. Réserves et complément (« Parcours des écrans » → écran 52)
+    - Onglet « Réserves » → « Lever la réserve » (traitement de 10 caractères minimum).
+    - Onglet « Transfert » → « Transmettre à l'équipe production » → cocher l'examen →
+      « Demander un complément » avec un commentaire → « Retransmettre les documents ».
+
+T14. Clôture bloquée
+    « Démonstration » → « Réinitialiser les données » → « Réinitialiser », puis Projets →
+    CS-01 → menu ⋮ → « Clôturer le projet » : les cartes orange listent les points à traiter.
+
+T15. Configuration
+    Onglets « Ressources » (qualification des équipements) et « Notifications »
+    (interrupteurs application / e-mail).
 
 
 ===============================================================================================
@@ -637,6 +842,21 @@ T10. Écrans pas encore maquettés
   [ ] 39  Analyse non terminée sans causes ni impact ; efficacité non confirmée tant que
           les actions ne sont pas terminées ; déviation non clôturée avant l'efficacité.
   [ ] 41  Protocole de stabilité non soumis sans condition de stockage ni essai coché.
+  [ ] 45  Seul un brouillon peut être supprimé ; un document archivé est en lecture seule.
+  [ ] 46  Nouvelle version refusée sans fichier ni motif ; la version approuvée reste en
+          vigueur tant que la nouvelle n'est pas approuvée.
+  [ ] 48  « Préparer une revue » indisponible tant que des éléments manquent.
+  [ ] 49  Section non soumise si un paragraphe est vide, sans preuve ou appuyé sur une
+          preuve non approuvée.
+  [ ] 50  Revue non soumise sans justification (20 caractères), document ou participant.
+  [ ] 51  Réserve incomplète ou échéance passée refusée ; justification obligatoire.
+  [ ] 52  Export impossible sans section cochée.
+  [ ] 53  Transmission bloquée tant qu'une réserve bloquante est ouverte ; réception
+          impossible sans examen des documents ; complément sans commentaire refusé.
+  [ ] 54  Droits non enregistrés sans modification ; avertissement sur l'auto-approbation.
+  [ ] 55  Une version active n'est jamais modifiée : une version brouillon est créée.
+  [ ] 56  Clôture impossible tant qu'une des 4 conditions manque ; motif et confirmation
+          obligatoires.
 
 
 ===============================================================================================
@@ -685,9 +905,21 @@ T10. Écrans pas encore maquettés
   38     Déclarer une déviation de lot               « Créer la déviation »
   39     Déviation — actions et efficacité           Menu « Stabilité »
   40     Stabilité — études                          « Préparer le protocole » (ST-01)
-  41     Stabilité — protocole                       « Fin des écrans livrés » en bas à droite
+  41     Stabilité — protocole                       En bas à droite (documents CS-01)
+  45     Documents du projet                         « Nouvelle version » (rapport d'essais F2)
+  46     Document — importer une nouvelle version    « Enregistrer la version »
+  47     Projet — historique                         Menu « Dossiers & revues »
+  48     Dossiers & revues — structure CTD           Section « Développement pharmaceutique »
+  49     Dossier CTD — contenu d'une section         « Soumettre la section »
+  50     Préparer une revue de dossier               Justification → « Soumettre la revue »
+  51     Revue — décision et réserves                « Confirmer la décision »
+  52     Exporter le dossier                         « Générer l'export »
+  53     Transfert — préparation et réception        Menu « Configuration »
+  54     Configuration — rôles et accès              Onglet « Modèles de parcours »
+  55     Configuration — modèles de parcours         En bas à droite (clôture CS-01)
+  56     Clôture et archivage du projet              « Fin du parcours » en bas à droite
 
-  Sur mobile, les cercles du menu de gauche (écrans 06, 29, 40) sont remplacés par le cercle
+  Sur mobile, les cercles du menu de gauche (écrans 06, 29, 40, 48, 54) sont remplacés par le cercle
   en bas à droite. Un cercle avec une flèche en bas à droite = le cercle de la page est hors
   de l'écran : cliquer dessus pour y descendre.
 

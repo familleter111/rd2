@@ -421,3 +421,40 @@ export function MultiSelect({
     </div>
   );
 }
+
+/** On / off switch (permissions, notification channels). */
+export function Toggle({
+  checked,
+  onChange,
+  label,
+  disabled,
+  className,
+}: {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  /** Accessible name (the visible label is usually rendered next to it). */
+  label: string;
+  disabled?: boolean;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={cn(
+        "relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full transition-colors focus-visible:ring-3 focus-visible:ring-brand-200 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+        checked ? "bg-brand-600" : "bg-slate-300",
+        className,
+      )}
+    >
+      <span
+        aria-hidden
+        className={cn("inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform", checked ? "translate-x-6" : "translate-x-1")}
+      />
+    </button>
+  );
+}

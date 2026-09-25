@@ -16,10 +16,10 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { GuideDot } from "@/components/guide/guide-mark";
+import { GuideDot, useGuideNav } from "@/components/guide/guide-mark";
 import { CURRENT_USER } from "@/lib/catalog";
 import { cn } from "@/lib/cn";
-import { advanceTo, useGuideTarget } from "@/lib/guide";
+import { useGuideTarget } from "@/lib/guide";
 
 interface NavItem {
   href: string;
@@ -38,7 +38,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/planning", label: "Planning", icon: CalendarDays },
   { href: "/methodes", label: "Méthodes & essais", icon: FlaskConical },
   { href: "/stabilite", label: "Stabilité", icon: ChartNoAxesColumn, guide: 40 },
-  { href: "/dossiers", label: "Dossiers & revues", icon: FileText },
+  { href: "/dossiers", label: "Dossiers & revues", icon: FileText, guide: 48 },
 ];
 
 function isActive(pathname: string, item: NavItem) {
@@ -48,17 +48,22 @@ function isActive(pathname: string, item: NavItem) {
 function NavLink({ item, pathname, onNavigate }: { item: NavItem; pathname: string; onNavigate?: () => void }) {
   const active = isActive(pathname, item);
   const guided = useGuideTarget(item.guide) && !active;
+  const go = useGuideNav();
   const Icon = item.icon;
   return (
     <Link
       href={item.href}
-      onClick={() => {
-        if (guided && item.guide !== undefined) advanceTo(item.guide);
+      onClick={(e) => {
+        // Next step of the tour: open the exact screen of the mock-up (e.g. the dossier of CS-01).
+        if (guided && item.guide !== undefined) {
+          e.preventDefault();
+          go(item.guide);
+        }
         onNavigate?.();
       }}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "relative mr-3 flex h-12 items-center gap-3.5 rounded-r-xl pl-7 pr-4 text-[15.5px] transition-colors",
+        "relative mr-3 flex h-12 items-center gap-3.5 rounded-r-xl pl-7 pr-3 text-[15.5px] transition-colors",
         active
           ? "bg-brand-100/80 font-semibold text-brand-700 before:absolute before:inset-y-0 before:left-0 before:w-1 before:rounded-r-full before:bg-brand-600"
           : "font-medium text-ink-800 hover:bg-brand-50 hover:text-brand-700",
@@ -66,7 +71,7 @@ function NavLink({ item, pathname, onNavigate }: { item: NavItem; pathname: stri
       )}
     >
       <Icon className="h-[22px] w-[22px] shrink-0" strokeWidth={1.7} aria-hidden />
-      {item.label}
+      <span className="whitespace-nowrap">{item.label}</span>
       {guided && item.guide !== undefined && <GuideDot step={item.guide} inline className="ml-auto" />}
     </Link>
   );
@@ -74,6 +79,8 @@ function NavLink({ item, pathname, onNavigate }: { item: NavItem; pathname: stri
 
 export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
+  const guideConfig = useGuideTarget(54) && !pathname.startsWith("/configuration");
+  const go = useGuideNav();
   return (
     <div className="flex h-full flex-col">
       <Link
@@ -95,14 +102,22 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       <div className="mx-4 space-y-1 border-t border-line pb-5 pt-4">
         <Link
           href="/configuration"
-          onClick={onNavigate}
+          onClick={(e) => {
+            if (guideConfig) {
+              e.preventDefault();
+              go(54);
+            }
+            onNavigate?.();
+          }}
           className={cn(
             "flex h-11 items-center gap-3.5 rounded-lg px-3 text-[15px] font-medium transition-colors",
             pathname.startsWith("/configuration") ? "bg-brand-100/80 text-brand-700" : "text-ink-800 hover:bg-brand-50",
+            guideConfig && "bg-brand-50 font-semibold text-brand-700 ring-2 ring-inset ring-brand-400",
           )}
         >
           <Settings className="h-[22px] w-[22px]" strokeWidth={1.7} aria-hidden />
           Configuration
+          {guideConfig && <GuideDot step={54} inline className="ml-auto" />}
         </Link>
         <Link
           href="/profil"

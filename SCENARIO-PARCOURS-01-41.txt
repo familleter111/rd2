@@ -1,0 +1,709 @@
+===============================================================================================
+  LABORATOIRES SIMED — ESPACE R&D
+  SCÉNARIO DE PARCOURS COMPLET — ÉCRANS 01 À 41
+  Prototype (données de démonstration) — mis à jour le 25/09/2026
+===============================================================================================
+
+Ce document explique, écran par écran, quoi regarder, quoi faire et quoi vérifier pour
+comprendre toutes les interfaces livrées (maquettes 01 à 41) et les tester de bout en bout.
+
+Sommaire
+  0. Avant de commencer
+  1. L'histoire racontée par les écrans
+  2. Passage complet, écran par écran (01 → 41)
+  3. Tests complémentaires (après l'écran 41)
+  4. Liste des règles de blocage à vérifier
+  5. Récapitulatif : où se trouve le cercle bleu à chaque écran
+  6. En cas de problème
+
+
+===============================================================================================
+0. AVANT DE COMMENCER
+===============================================================================================
+
+0.1 Lancer le prototype
+  1. Ouvrir un terminal dans le dossier « R & D new vision ».
+  2. Taper :  npm run dev
+  3. Ouvrir le navigateur à l'adresse affichée dans le terminal (en principe http://localhost:3000).
+  4. L'application s'ouvre sur « Vue d'ensemble » (écran 01).
+
+0.2 Les repères à l'écran
+  - Bas de chaque page : « NN / 56 — nom de l'écran » = numéro de la maquette affichée,
+    avec des liens vers l'écran précédent et l'écran suivant.
+  - LE CERCLE BLEU NUMÉROTÉ (il clignote doucement) : il est posé sur l'élément à cliquer pour
+    passer à l'écran suivant (bouton, onglet, menu, champ). Son numéro = l'écran qu'il ouvre.
+      • Survoler le cercle : une bulle affiche l'étape suivante (numéro, nom, section) et,
+        si besoin, ce qu'il faut faire d'abord (ex. « confirmer l'applicabilité »).
+      • Cliquer sur le cercle : ouvre directement l'écran suivant.
+      • Cliquer sur l'élément lui-même (le bouton bleu) : fait la vraie action de la page,
+        qui mène aussi à l'écran suivant.
+    Un cercle posé sur un champ ou un bloc entouré de bleu = action à faire d'abord.
+  - Cercle bleu en bas à droite de l'écran :
+      • avec un numéro seul : l'étape suivante ne passe pas par un bouton de la page
+        (changement de projet, variante de maquette) → cliquer dessus ouvre l'écran suivant ;
+      • avec une petite flèche ↓ ou ↑ : le cercle à cliquer est plus bas (ou plus haut) dans
+        la page → cliquer dessus fait défiler la page jusqu'à lui.
+  - Bouton « Écran NN / 56 » en haut à droite (icône liste), ou menu « Démonstration » →
+    « Parcours des écrans » : liste de tous les écrans livrés. Cliquer sur un écran y va
+    directement ET remet les données dans l'état de la maquette. On y trouve aussi la case
+    pour afficher / masquer les cercles bleus.
+  - Menu « Démonstration » → « Réinitialiser les données » → confirmer « Réinitialiser » :
+    retour à l'état de départ.
+
+0.3 Trois règles importantes
+  1) Ne pas recharger la page (F5) et ne pas taper d'adresse à la main pendant le parcours :
+     les données sont gardées en mémoire et repartent à zéro au rechargement.
+     Naviguer uniquement avec le menu de gauche, les onglets et les boutons.
+  2) Si les données ne correspondent plus (ou après une erreur de manipulation) :
+     « Parcours des écrans » → cliquer sur l'écran voulu → tout est remis en place.
+  3) Garder les cercles bleus affichés (c'est le cas par défaut). Certaines étapes font
+     « passer le temps » dans l'histoire (ex. : « quelques jours plus tard, les essais F2 sont
+     terminés ») : un message bleu en haut à droite l'annonce.
+
+0.4 Trois façons de parcourir
+  A. Visite rapide (environ 10 min)
+     Cliquer uniquement sur les cercles bleus, de 01 jusqu'à 41.
+     On voit chaque maquette dans son état, sans rien remplir.
+  B. Passage complet (recommandé, environ 1 h à 1 h 30)
+     Suivre la partie 2. À chaque écran : regarder, faire les actions, tester les blocages,
+     puis cliquer sur le bouton qui porte le cercle bleu (ou sur le cercle lui-même).
+  C. Tests complémentaires (environ 30 min)
+     Partie 3 : ce qui va au-delà des maquettes mais fonctionne déjà
+     (clôturer la déviation, valider les résultats, finir la fabrication, etc.).
+
+
+===============================================================================================
+1. L'HISTOIRE RACONTÉE PAR LES ÉCRANS
+===============================================================================================
+
+Date du jour fixée dans le prototype : jeudi 24 septembre 2026.
+Toutes les personnes et tous les projets sont fictifs.
+
+Projets de démonstration :
+  - CS-01  Comprimé (forme sèche orale)   ← fil rouge de tout le scénario
+  - CR-01  Crème
+  - SL-01  Solution
+
+Le fil rouge sur CS-01 :
+  1. Deux formules sont en essai, F1 et F2 (lots d'essai E-01 et E-02).
+  2. Le chef de projet prépare une décision ; les essais F2 se terminent ; la décision
+     « Retenir F2 » reçoit l'avis du responsable développement puis l'approbation du
+     pharmacien responsable. Cela autorise le lot pilote LP-01.            (écrans 20–21)
+  3. La méthode de dosage M-01 est mise en place : référence, protocole, essais sur les
+     échantillons ECH-01 à ECH-03 du lot E-02, saisie des résultats, revue avec demande
+     de correction.                                                        (écrans 22–28)
+  4. La correction crée une activité. L'équipe prépare le lot pilote LP-01 : réservation
+     du mélangeur MEL-01, planning, réservation de l'HPLC-01 et conflit de créneau.
+                                                                           (écrans 29–34)
+  5. Le lot pilote LP-01 est fabriqué : préparation, mélange, contrôles, puis déviation
+     DEV-01 sur le mélangeur.                                              (écrans 35–39)
+  6. L'étude de stabilité ST-01 est préparée sur LP-01.                   (écrans 40–41)
+
+Écrans absents du parcours : 12, 13 et 19 ne figuraient pas dans les captures reçues
+(le parcours passe directement de 11 à 14 et de 18 à 20) ; 42 à 56 sont les prochaines
+maquettes. Ils seront ajoutés au parcours dès réception des captures.
+
+
+===============================================================================================
+2. PASSAGE COMPLET, ÉCRAN PAR ÉCRAN (01 → 41)
+===============================================================================================
+
+Pour chaque écran :
+  OÙ        = comment y arriver
+  REGARDER  = ce qu'il faut remarquer
+  FAIRE     = actions à essayer (elles fonctionnent toutes)
+  BLOCAGE   = règle métier à vérifier
+  SUITE     = comment passer à l'écran suivant
+
+Point de départ : navigateur ouvert sur l'application (ou « Démonstration » →
+« Réinitialiser les données » → « Réinitialiser »). Cocher les cases [ ] au fur et à mesure.
+
+
+-----------------------------------------------------------------------------------------------
+PARTIE A — VUE D'ENSEMBLE (écrans 01 à 05)
+-----------------------------------------------------------------------------------------------
+
+[ ] 01 / 56 — Vue d'ensemble — Portefeuille
+    OÙ       : menu de gauche « Vue d'ensemble ».
+    REGARDER : les cartes des projets (phase actuelle, objectif, prochaine action),
+               le bloc « À décider », « Mes raccourcis », le schéma « Parcours R&D »,
+               le sélecteur de périmètre, le bouton « Nouveau projet ».
+    FAIRE    : changer le périmètre ; survoler les cartes.
+    SUITE    : onglet « Mes priorités » (cercle 2).
+
+[ ] 02 / 56 — Mes priorités
+    REGARDER : les activités classées par horizon, le filtre « Responsable »,
+               le panneau de détail à droite (projet, responsable, échéance, prérequis,
+               lot lié, source, bouton « Ouvrir l'activité »).
+    FAIRE    : cliquer sur une priorité pour afficher son détail ;
+               cocher la case d'une priorité → elle passe « Clôturée » (recocher pour annuler).
+    BLOCAGE  : cocher « Résultats F2 disponibles » (CS-01) → refus : « Cette activité ne peut
+               pas être clôturée sans document de décision associé. »
+               (elle deviendra clôturable après la décision de l'écran 20).
+    SUITE    : onglet « Revues » (cercle 3).
+
+[ ] 03 / 56 — Revues à préparer
+    REGARDER : les revues « À préparer », la liste de points à préparer (checklist),
+               les participants, « Voir les revues clôturées ».
+    FAIRE    : cliquer sur les points « Justification à rédiger » et « Décisions à consigner »
+               → le bouton « Soumettre la revue » s'active → le cliquer.
+               « Gérer les participants » ; « Planifier une revue » (formulaire complet).
+    BLOCAGE  : « Soumettre la revue » reste grisé tant que la checklist n'est pas complète ;
+               dans « Gérer les participants », il faut au moins un organisateur.
+    SUITE    : onglet « Portefeuille » (cercle 4) : il ouvre le portefeuille avec le
+               panneau Filtres.
+
+[ ] 04 / 56 — Filtres et vue enregistrée
+    OÙ       : Portefeuille → bouton « Filtres ».
+    REGARDER : le panneau Filtres : famille pharmaceutique, phase, responsable, statut,
+               date du jalon (du / au), « Uniquement les blocages ».
+    FAIRE    : choisir des filtres → « Appliquer » → les étiquettes « Filtres appliqués »
+               apparaissent au-dessus des projets ; « Effacer les filtres ».
+               Donner un nom à la vue → « Enregistrer cette vue » → la retrouver dans le menu
+               « Vues enregistrées ».
+    BLOCAGE  : date « Au » avant la date « Du » → « La date de fin précède la date de début. »
+    SUITE    : « Appliquer » (cercle 5) ferme le panneau ; puis barre de recherche en haut
+               (cercle 5) : taper CS-01 puis Entrée.
+
+[ ] 05 / 56 — Recherche et accès direct
+    REGARDER : les résultats classés par catégorie (Projets, Lots, Documents, Essais),
+               la mention « Seulement les éléments accessibles à votre rôle ».
+    FAIRE    : changer de catégorie ; sélectionner un document → panneau « Document
+               sélectionné » → « Ouvrir le document » / « Télécharger ».
+               Essayer aussi une recherche sans résultat (ex. « XYZ »).
+    SUITE    : menu de gauche « Projets » (cercle 6).
+
+
+-----------------------------------------------------------------------------------------------
+PARTIE B — PROJETS ET CRÉATION D'UN PROJET (écrans 06 à 10)
+-----------------------------------------------------------------------------------------------
+
+[ ] 06 / 56 — Liste des projets
+    REGARDER : le tableau (projet, phase actuelle, chef de projet, prochaine étape, date cible,
+               statut), le filtre « Statut global », les projets archivés, « Reprendre un
+               brouillon » (s'il existe), « Importer un modèle ».
+    FAIRE    : « Importer un modèle » (fenêtre de modèles) ; archiver puis « Restaurer »
+               un projet depuis le menu de sa ligne.
+    SUITE    : bouton « Nouveau projet » (cercle 7).
+
+[ ] 07 / 56 — Créer un projet — Produit (étape 1 de l'assistant)
+    REGARDER : l'assistant en 3 étapes (Produit → Parcours & équipe → Vérification),
+               les champs : code projet, nom, DCI, famille, forme, dosage, pays cible,
+               produit de référence, pièces initiales.
+    FAIRE    : d'abord tester les erreurs (c'est l'écran 10) :
+               1. Cliquer « Continuer » sans rien remplir → le bas de page passe à « 10 / 56 »,
+                  la liste des champs manquants s'affiche.
+               2. Saisir le code CS-01 → message « code déjà utilisé ».
+               Puis remplir correctement, par exemple :
+                  Code CS-02 • Nom « Comprimé 200 mg » • DCI « Principe actif D » •
+                  Dosage 200 • Pays cible : Maroc • un produit de référence.
+               « Enregistrer le brouillon » est aussi possible (repris depuis « Projets »).
+    SUITE    : « Continuer » (cercle 8).
+
+[ ] 08 / 56 — Créer un projet — Parcours & équipe (étape 2)
+    REGARDER : famille et modèle, parcours de développement (galénique, analytique),
+               études optionnelles, équipe projet, calendrier, estimation et prérequis ;
+               à droite l'« Aperçu du projet » qui se met à jour.
+    BLOCAGE  : « Continuer » sans l'équipe → « 4 champs à corriger ».
+    FAIRE    : choisir les 4 membres de l'équipe (chef de projet, développement, qualité,
+               production), cocher / décocher des études et observer l'aperçu.
+    SUITE    : « Continuer » (cercle 9).
+
+[ ] 09 / 56 — Créer un projet — Vérification (étape 3, écran non maquetté)
+    REGARDER : « Ce qui sera créé » (récapitulatif) et « Tâches issues du modèle ».
+    FAIRE    : « Modifier » pour revenir à une étape ; « Précédent ».
+    SUITE    : deux possibilités :
+               - « Créer le projet » → le projet CS-02 est créé et s'ouvre (il apparaît
+                 ensuite dans le portefeuille et la liste des projets) ;
+               - ou le cercle 10 en bas à droite pour rester dans l'ordre des maquettes.
+
+[ ] 10 / 56 — Champs manquants et code déjà utilisé
+    Déjà vu à l'écran 07 (clic sur « Continuer » avec un formulaire incomplet).
+    Avec le cercle 10, il s'affiche avec un exemple : code CS-01 déjà utilisé et
+    champs obligatoires signalés en rouge.
+    SUITE    : menu « Projets » → projet CS-01 (ou cercle 11 en bas à droite).
+
+
+-----------------------------------------------------------------------------------------------
+PARTIE C — PROJET CS-01 (écrans 11 à 20)
+-----------------------------------------------------------------------------------------------
+
+[ ] 11 / 56 — Vue d'un projet (CS-01)
+    REGARDER : l'en-tête (équipe, chef de projet, dates), les onglets
+               Vue projet · Prérequis · Formules & lots · Essais · Documents · Planning ·
+               Historique ; les activités, le prochain jalon, le prérequis bloquant,
+               le « Journal récent ».
+    FAIRE    : « Configurer » (modifier phase, prochaine étape… : tracé dans l'historique) ;
+               « Ajouter une activité » ; « Voir le planning ».
+    SUITE    : l'écran 14 porte sur le projet CR-01 : menu « Projets » → CR-01 → onglet
+               « Prérequis » → ligne « Certificat GMP fournisseur » → « Demander »
+               (ou cercle 14 en bas à droite, qui ouvre directement le formulaire).
+
+[ ] 14 / 56 — Demander un document ou une matière (projet CR-01)
+    REGARDER : la fenêtre « Créer une demande » : type de demande, objet, destinataire
+               interne, fournisseur, date souhaitée, justification, prérequis associé.
+    FAIRE    : choisir le fournisseur « Fournisseur A » → « Créer la demande »
+               → « Demande créée • À traiter » avec la référence interne DEM-01 → Fermer.
+               La ligne du prérequis passe à « Demandé ».
+               Menu de la ligne → « Marquer comme satisfait » → le badge
+               « Prérequis incomplets » du projet disparaît.
+    BLOCAGE  : « Créer la demande » avec des champs vides → erreurs sous les champs.
+    SUITE    : menu « Projets » → CS-01 → onglet « Documents » (ou cercle 15 en bas à droite).
+
+[ ] 15 / 56 — Documents du projet (CS-01)
+    REGARDER : les catégories (Références, Formulation, Méthodes, Stabilité, CTD…),
+               les filtres type / version / statut, le tableau triable.
+    FAIRE    : « Importer un document » ; sur un brouillon : renommer, déplacer, supprimer ;
+               sur un document approuvé : « Créer une nouvelle version », « Télécharger » ;
+               cocher plusieurs lignes → téléchargement groupé.
+    BLOCAGE  : un document approuvé n'est pas modifiable (message explicatif).
+    SUITE    : onglet « Historique » (cercle 16).
+
+[ ] 16 / 56 — Historique et traçabilité
+    REGARDER : la liste des événements, les filtres objet / auteur / période,
+               le détail d'un événement (champ modifié, ancienne / nouvelle valeur).
+    FAIRE    : filtrer ; sélectionner un événement → « Ouvrir la source ».
+               Retrouver les actions faites plus haut (demande, configuration…).
+    SUITE    : onglet « Formules & lots » (cercle 17).
+
+[ ] 17 / 56 — Versions de formule
+    REGARDER : les versions F1, F2… avec aperçu de la composition, les lots liés,
+               les derniers résultats d'essais ; sous-onglets Versions · Comparaison · Lots.
+    FAIRE    : « Voir les détails » ; « Dupliquer en nouvelle version » ;
+               sélectionner 2 versions → « Comparer ».
+    SUITE    : bouton « Nouvelle version » (cercle 18).
+
+[ ] 18 / 56 — Éditer une nouvelle formule
+    REGARDER : version F3 basée sur F2, statut Brouillon, tableau de composition avec
+               contrôle du total, procédé (étapes), motif de modification, sources associées,
+               case « Créer un lot d'essai après enregistrement ».
+    FAIRE    : modifier une quantité (le contrôle du total réagit), « Ajouter un composant »,
+               « Ajouter une étape », « Ajouter une source ».
+    BLOCAGE  : enregistrer sans motif de modification → erreur.
+    SUITE    : « Annuler » (ou « Enregistrer le brouillon », ce qui crée F3), puis
+               sous-onglet « Comparaison » → bouton « Préparer la décision »
+               (ou cercle 20 en bas à droite).
+
+[ ] 20 / 56 — Décision sur une formule
+    REGARDER : la fenêtre « Préparer la décision » : formule concernée, choix
+               (Poursuivre les essais / Retenir une formule / Revoir les hypothèses),
+               justification, documents joints, circuit de validation à droite.
+    BLOCAGE  : choisir « Retenir une formule » → « Soumettre pour avis » est grisé :
+               « La décision « Retenir une formule » pourra être soumise une fois tous
+               les essais requis disponibles. » (la friabilité F2 est encore attendue).
+               Justification de moins de 20 caractères → erreur.
+    FAIRE    : « Enregistrer le brouillon » (message de confirmation).
+    SUITE    : choisir « Poursuivre les essais », écrire une justification, par exemple :
+               « Les résultats disponibles sont conformes ; la friabilité est encore attendue. »
+               puis « Soumettre pour avis » (cercle 21).
+               → Message « Parcours : quelques jours plus tard… » : les essais F2 sont
+                 terminés et la décision « Retenir F2 » a reçu l'avis favorable.
+    À REVOIR : l'onglet « Mes priorités » (écran 02) accepte maintenant de clôturer
+               « Résultats F2 disponibles ».
+
+
+-----------------------------------------------------------------------------------------------
+PARTIE D — DÉCISION APPROUVÉE ET MÉTHODE M-01 (écrans 21 à 28)
+-----------------------------------------------------------------------------------------------
+
+[ ] 21 / 56 — Décision — examen et approbation
+    REGARDER : la fenêtre « Examiner la décision — F2 » : justification, documents joints,
+               circuit de validation (chef de projet → responsable développement : avis
+               favorable → pharmacien responsable : en attente), lien vers le lot pilote LP-01.
+    FAIRE    : ouvrir « Demander une correction » pour voir le formulaire (motif obligatoire,
+               10 caractères minimum), puis « Annuler » pour ne pas renvoyer la décision.
+    SUITE    : « Approuver la décision » (cercle 22)
+               → « Décision approuvée : la préparation du lot pilote LP-01 est autorisée ».
+
+[ ] 22 / 56 — Méthodes & essais — catalogue
+    REGARDER : onglets Méthodes · Demandes d'analyse · Résultats ; filtres statut / type ;
+               cartes M-01 à M-12 (projet, équipement, responsable, prochaine action) ;
+               panneau « À traiter ».
+    FAIRE    : filtrer par statut / type ; « Nouvelle méthode » (formulaire) ;
+               onglet « Demandes d'analyse » → « Nouvelle demande ».
+    SUITE    : carte « M-01 • Dosage PA » (cercle 23).
+
+[ ] 23 / 56 — Méthode — référence (M-01)
+    REGARDER : onglets Référence · Protocole · Essais · Validation · Historique ;
+               informations de référence (dossier source, référence, édition, titre,
+               document source), applicabilité, ressources (HPLC-01, colonne, réactifs),
+               documents associés, « État d'avancement ».
+    BLOCAGE  : « Préparer le protocole » est grisé (« Action indisponible ») tant que
+               l'applicabilité n'est pas confirmée.
+    FAIRE    : champ « Applicabilité » (cercle 24 : à faire d'abord) → « Confirmée ».
+    SUITE    : « Préparer le protocole » (cercle 24) → protocole v1 créé.
+
+[ ] 24 / 56 — Méthode — protocole
+    REGARDER : objectif, préparation des échantillons, paramètres de méthode,
+               critères d'acceptation (vides), étapes complémentaires ; à droite :
+               informations générales, versions, relecteurs, « Critères à compléter ».
+    BLOCAGE  : « Soumettre le protocole » grisé tant qu'un critère est vide
+               (« Compléter tous les critères pour pouvoir soumettre »).
+    FAIRE    : « Pré-remplir depuis le dossier source » (cercle 25 : à faire d'abord) ou saisir
+               les 4 critères à la main ; « Ajouter un relecteur » ; « Enregistrer le brouillon ».
+    SUITE    : « Soumettre le protocole » → statut « En revue »
+               → « Simuler l'approbation des relecteurs » (cercle 25).
+
+[ ] 25 / 56 — Méthode — préparer les essais
+    REGARDER : les 3 étapes (Échantillons → Ressources → Vérification) et le récapitulatif :
+               projet CS-01, lot E-02, formule F2, échantillons ECH-01 à ECH-03,
+               3 répétitions, équipement HPLC-01, analyste Marie Dupont.
+    FAIRE    : retirer / ajouter un échantillon ; à l'étape Ressources : « Réserver ».
+    BLOCAGE  : retirer tous les échantillons puis « Continuer » →
+               « Sélectionnez au moins un échantillon ».
+    SUITE    : « Continuer » deux fois puis « Lancer les essais » (cercle 26)
+               → l'essai ANA-01 est créé ; message « l'analyste a déjà saisi 2 résultats sur 3 ».
+
+[ ] 26 / 56 — Essai — saisir les résultats (ANA-01)
+    REGARDER : informations sur l'essai (méthode, projet, protocole v1 approuvé, lot E-02,
+               formule, date), résultats ECH-01 = 99,2 et ECH-02 = 99,5, ECH-03 vide
+               (cercle 27 : à saisir), contrôle de saisie, conformité globale,
+               pièce jointe « données-brutes.csv ».
+    BLOCAGE  : « Soumettre pour revue » grisé tant qu'un résultat manque.
+    FAIRE    : saisir 90 dans ECH-03 → « Hors critère (95,0 – 105,0) » s'affiche ;
+               « Ajouter une pièce » ; « Enregistrer ».
+    SUITE    : saisir 99,3 dans ECH-03 → « Soumettre pour revue » (cercle 27).
+
+[ ] 27 / 56 — Validation — demande de correction
+    REGARDER : la fenêtre « Demander une correction » : destinataire Marie Dupont,
+               motif pré-rempli « Joindre le chromatogramme de l'échantillon ECH-03. »,
+               échéance 02/10/2026, « Notifier le responsable ».
+               Derrière la fenêtre : résultats (Conforme / Hors critère), documents,
+               circuit de validation, commentaires.
+    BLOCAGE  : motif trop court ou échéance passée → refus.
+    FAIRE    : fermer la fenêtre pour voir la page ; « Ajouter un commentaire » → « Publier » ;
+               rouvrir avec « Demander une correction ».
+    ATTENTION: ne pas cliquer sur « Valider les résultats » maintenant (sinon la correction
+               n'existe pas dans la suite de l'histoire) : ce test est en partie 3.
+    SUITE    : « Renvoyer pour correction » (cercle 28).
+
+[ ] 28 / 56 — Méthode — historique et versions
+    REGARDER : la frise des événements de M-01 (applicabilité, protocole, approbation,
+               essais, demande de correction…), le détail de chaque événement (modification,
+               motif, date, utilisateur), filtres période / utilisateur, « Versions de la méthode ».
+    FAIRE    : menu « Actions méthode » → « Créer une version » → puis « Comparer les
+               versions » ; « Exporter l'historique (CSV) ».
+    SUITE    : menu de gauche « Mes activités » (cercle 29).
+
+
+-----------------------------------------------------------------------------------------------
+PARTIE E — ACTIVITÉS ET PLANNING (écrans 29 à 34)
+-----------------------------------------------------------------------------------------------
+
+[ ] 29 / 56 — Mes activités — liste et priorités
+    REGARDER : les onglets À faire · En cours · En revue · Terminées ;
+               en tête, l'activité urgente « Joindre le chromatogramme ECH-03 » (créée par la
+               correction de l'écran 28) ; les filtres projet / responsable / échéance
+               (en retard, aujourd'hui, 7 prochains jours…) ; affichage Liste / Calendrier ;
+               le panneau de détail (description, responsable, échéance, statut, prérequis).
+    FAIRE    : passer en « Calendrier » puis revenir en « Liste » ; filtrer ;
+               « Nouvelle activité » ; sur une activité : Démarrer / Terminer / Réaffecter.
+    SUITE    : « Ouvrir » sur l'activité « Préparer le lot pilote LP-01 » (cercle 30).
+
+[ ] 30 / 56 — Activité — détails et clôture bloquée
+    REGARDER : activité de Julie Bernard, échéance 05/10/2026 ; informations générales
+               (projet, formule F2, lot LP-01, priorité, statut, avancement 3/4) ;
+               « Étapes et prérequis » : formule F2 approuvée ✓, matières disponibles ✓,
+               mode opératoire approuvé ✓, réservation du mélangeur MEL-01 → « Action requise ».
+    BLOCAGE  : « Terminer l'activité » grisé : « Impossible de terminer : réservation du
+               mélangeur en attente. »
+    FAIRE    : publier un commentaire ; « Joindre un document » ; « Réaffecter ».
+    SUITE    : « Réserver une ressource » (cercle 31) → fenêtre « Réserver le mélangeur »
+               (06/10/2026, 09:00 – 11:00) → « Confirmer la réservation ».
+               (Dans la fenêtre : une fin avant le début → « La fin doit suivre le début. »)
+
+[ ] 31 / 56 — Planning — agenda de l'équipe
+    REGARDER : la semaine du 5 au 9 octobre 2026 ; la réservation « Mélange LP-01 » le mardi
+               06/10 de 9 h à 11 h ; la maintenance du mélangeur, les essais HPLC, les revues ;
+               les couleurs par type d'événement.
+    FAIRE    : cliquer un créneau → détail → « Modifier » / « Ouvrir l'activité » ;
+               changer de période ; « Filtres » ; « Planifier une activité ».
+    SUITE    : onglet « Ressources » (cercle 32).
+
+[ ] 32 / 56 — Planning — ressources et disponibilités
+    REGARDER : la frise par ressource (HPLC-01, HPLC-02, MEL-01, étuves…), la légende
+               Disponible / Réservé / Indisponible, les filtres type / équipe / projet ;
+               pour la ressource sélectionnée : propriétaire, statut de qualification,
+               prochaine disponibilité.
+    FAIRE    : changer de jour ; sélectionner d'autres ressources ; « Voir les réservations ».
+    SUITE    : ressource HPLC-01 → « Réserver » (cercle 33).
+
+[ ] 33 / 56 — Réserver une ressource
+    REGARDER : le formulaire (ressource HPLC-01, projet, lot, activité, analyste, date,
+               heures, « Notifier les participants ») et le résumé à droite (durée,
+               « Disponibilité vérifiée », vérification de la ressource).
+    BLOCAGE  : heure de fin avant l'heure de début → message d'erreur.
+    FAIRE    : pour voir l'écran 34 : mettre le 07/10/2026 de 10:00 à 12:00 puis
+               « Confirmer la réservation » → la fenêtre « Conflit de réservation » s'ouvre
+               (le bas de page passe à « 34 / 56 »).
+    SUITE    : le cercle 34 est posé sur les champs d'heure ; une fois 10:00 – 12:00 choisi,
+               il passe sur « Confirmer la réservation ».
+
+[ ] 34 / 56 — Conflit de réservation
+    REGARDER : « Ce créneau est déjà réservé » ; créneau demandé (HPLC-01, 10:00 – 12:00) ;
+               réservation existante ; créneaux alternatifs proposés ;
+               « Aucune réservation créée pour le créneau en conflit ».
+    FAIRE    : choisir un créneau alternatif → « Utiliser ce créneau » → le formulaire est
+               mis à jour → « Confirmer la réservation ».
+               Dans l'onglet « Planning » du projet CS-01 : cliquer une heure libre ouvre le
+               formulaire de réservation (2 h) ; cliquer une heure occupée ouvre le conflit.
+    SUITE    : ouvrir le lot pilote : menu « Projets » → CS-01 → « Formules & lots » →
+               sous-onglet « Lots » → filtre « Lots pilotes » → LP-01 → « Ouvrir le lot »
+               (ou cercle 35 en bas à droite).
+
+
+-----------------------------------------------------------------------------------------------
+PARTIE F — LOT PILOTE LP-01 ET DÉVIATION (écrans 35 à 39)
+-----------------------------------------------------------------------------------------------
+
+[ ] 35 / 56 — Lot pilote — préparation
+    REGARDER : bandeau « Prêt à démarrer » ; onglets Préparation · Exécution · Contrôles ·
+               Déviations · Documents · Historique ; conditions préalables (4 cochées) ;
+               matières pour le lot pilote (principe actif, excipients A et B avec leurs lots) ;
+               détails de préparation (date, MEL-01, responsable, mode opératoire MO-LP-01 v1,
+               méthode de contrôle).
+    FAIRE    : « Modifier la préparation » ; « Voir le mode opératoire ».
+    BLOCAGE  : « Démarrer le lot » n'est actif que si les 4 conditions sont remplies
+               (test en partie 3, T1).
+    SUITE    : « Démarrer le lot » (cercle 36). L'activité « Préparer le lot pilote LP-01 »
+               (écran 30) est alors clôturée automatiquement.
+
+[ ] 36 / 56 — Lot pilote — exécution du mélange
+    REGARDER : les 4 étapes (Pesée terminée, Mélange en cours depuis 09:00, Compression,
+               Conditionnement) ; pour l'étape en cours : équipement, mode opératoire,
+               heure de début / fin, paramètres observés, observations, photo ou document ;
+               responsable de l'étape, dernière sauvegarde.
+    BLOCAGE  : « Terminer l'étape » grisé sans heure de fin, ou quand l'étape est en pause ;
+               fin avant le début → « L'heure de fin doit suivre l'heure de début. »
+    FAIRE    : « Pause » puis « Reprendre » ; saisir des observations → « Enregistrer ».
+    CONSEIL  : ne pas terminer le mélange maintenant : la déviation de l'écran 38 porte sur
+               le mélangeur (la fin de fabrication est testée en partie 3).
+    SUITE    : onglet « Contrôles » (cercle 37).
+
+[ ] 37 / 56 — Lot pilote — contrôles
+    REGARDER : la liste des contrôles : Aspect (validé), Masse unitaire (validée, 301 mg),
+               Dureté (à saisir), Friabilité (en attente) ; pour le contrôle sélectionné :
+               résultat, méthode d'analyse, spécification approuvée, fichiers.
+    BLOCAGE  : « Soumettre pour revue » → « Soumission impossible — Résultats manquants ».
+    FAIRE    : Dureté : saisir 65 → « Enregistrer le résultat » ; « Voir la spécification
+               approuvée » ; « Voir les données sources » (télécharge un fichier CSV).
+    SUITE    : onglet « Déviations » (cercle 38).
+
+[ ] 38 / 56 — Déclarer une déviation de lot
+    REGARDER : le contexte (CS-01, lot pilote LP-01 formule F2, étape Mélange, MEL-01) ;
+               le formulaire pré-rempli comme la maquette : « Interruption imprévue du
+               mélange », catégorie Équipement, criticité À évaluer, description,
+               mesure immédiate « Étape mise en pause. », 2 pièces jointes ;
+               à droite « Impact sur le lot » (pas de libération automatique).
+               (Si le mélange a été terminé à l'écran 36, le formulaire est vide : le remplir.)
+    BLOCAGE  : vider le titre puis « Créer la déviation » → « Renseignez le titre de la
+               déviation. » ; description ou mesure immédiate vide → erreur.
+    FAIRE    : changer la criticité en « Majeure » → l'impact indique que le lot est bloqué ;
+               remettre « À évaluer » ; « Enregistrer le brouillon ».
+    SUITE    : « Créer la déviation » (cercle 39) → DEV-01 créée, l'étape de mélange est
+               mise en pause.
+
+[ ] 39 / 56 — Déviation — actions et efficacité (DEV-01)
+    REGARDER : onglets Constat · Analyse · Actions · Efficacité · Historique ;
+               « Avancement de la déviation » (constat → analyse → actions → efficacité) ;
+               les informations (projet, lot, étape, formule, date, créée par) ;
+               onglet Actions : A-01 « Vérifier le mélangeur » (Service Maintenance, en cours)
+               et A-02 « Évaluer l'impact sur le lot » (Assurance qualité, à faire).
+    FAIRE    : sélectionner une action → modifier son détail → « Enregistrer l'action » ;
+               « Ajouter une action ».
+    BLOCAGE  : « Clôturer la déviation » grisé tant que l'efficacité n'est pas vérifiée ;
+               l'efficacité ne peut pas être confirmée tant que les actions ne sont pas
+               terminées (clôture complète en partie 3, T4).
+    SUITE    : menu de gauche « Stabilité » (cercle 40).
+
+
+-----------------------------------------------------------------------------------------------
+PARTIE G — STABILITÉ (écrans 40 et 41)
+-----------------------------------------------------------------------------------------------
+
+[ ] 40 / 56 — Stabilité — études
+    REGARDER : onglets Études · Échéances · Alertes ; filtres projet / lot / statut, tri ;
+               ST-01 (lot LP-01, à préparer, Sophie Martin), ST-02 (E-02, en cours),
+               ST-03 (E-01, en revue), ST-04 (SL-01) ; pour chaque étude : protocole et
+               prochaine tâche.
+    FAIRE    : filtrer ; onglets Échéances et Alertes ; « Nouvelle étude ».
+    SUITE    : « Préparer le protocole » sur ST-01 (cercle 41).
+
+[ ] 41 / 56 — Stabilité — protocole (ST-01)
+    REGARDER : onglets Protocole · Échéancier · Résultats · Documents · Historique ;
+               informations générales (projet, responsable, formule, date de mise en
+               stabilité = T0, condition de stockage, conditionnement) ; essais à réaliser ;
+               échéances T0, M3, M6, M12 ; documents associés.
+    BLOCAGE  : « Soumettre le protocole » grisé tant que la condition de stockage n'est pas
+               choisie ; aucun essai coché → « Sélectionnez au moins un essai ».
+    FAIRE    : « Ajouter une échéance » ; « Enregistrer le brouillon » ;
+               choisir « 25 °C / 60 % HR (long terme) » → « Soumettre le protocole ».
+    FIN      : en haut s'affiche « Fin des écrans livrés ».
+
+
+===============================================================================================
+3. TESTS COMPLÉMENTAIRES (après l'écran 41, sans recharger la page)
+===============================================================================================
+
+T1. Blocages depuis l'état de départ
+    « Démonstration » → « Réinitialiser les données » → « Réinitialiser », puis :
+    - Projets → CS-01 → Formules & lots → Lots → « Lots pilotes » → LP-01 → « Ouvrir le lot » :
+      bandeau « Conditions préalables incomplètes », « Démarrer le lot » grisé
+      (formule non approuvée, mélangeur non réservé).
+    - Méthodes & essais → M-01 → onglet Protocole : « Aucun protocole pour le moment »
+      avec le bouton « Confirmer l'applicabilité ».
+    Ensuite : « Parcours des écrans » → écran 41 pour retrouver l'histoire complète.
+
+T2. Correction puis validation des résultats de M-01
+    - Mes activités → « Joindre le chromatogramme ECH-03 » → Ouvrir → « Terminer l'activité »
+      → le chromatogramme est joint et l'essai ANA-01 est à nouveau soumis.
+    - Méthodes & essais → M-01 → onglet Validation → « Valider les résultats ».
+    - Onglet Historique : la correction et la validation sont tracées.
+
+T3. Activité « Préparer le lot pilote LP-01 »
+    - Après l'écran 35, elle se trouve dans Mes activités → onglet « Terminées »
+      (le démarrage du lot l'a clôturée).
+    - Pour tester la clôture à la main : « Parcours des écrans » → écran 31, puis
+      Mes activités → onglet « En cours » → « Préparer le lot pilote LP-01 » → « Ouvrir »
+      → « Terminer l'activité » (possible, car le mélangeur est réservé).
+      Revenir ensuite à l'écran 41 avec « Parcours des écrans » pour la suite des tests.
+
+T4. Clôturer la déviation DEV-01
+    Lot LP-01 → onglet « Déviations » → DEV-01, puis :
+    1. Onglet Analyse : famille de cause, impact (autre que « À évaluer »), analyse des causes
+       (10 caractères minimum) → « Terminer l'analyse ».
+    2. Onglet Actions : A-01 → statut « Terminée » → « Enregistrer l'action » ; idem pour A-02.
+    3. Onglet Efficacité → « Confirmer l'efficacité des actions ».
+    4. « Clôturer la déviation » (désormais actif).
+
+T5. Finir la fabrication et soumettre les contrôles de LP-01
+    - Onglet Exécution : si l'étape Mélange est en pause, « Reprendre » → heure de fin
+      → « Terminer l'étape » ; recommencer pour Compression puis Conditionnement
+      (heure de début et heure de fin) → bandeau « Fabrication terminée ».
+    - Onglet Contrôles : saisir Dureté (ex. 65) et Friabilité (ex. 0,4) → « Soumettre pour revue ».
+    - Onglets Documents et Historique du lot.
+
+T6. Planning
+    - Agenda : « Planifier une activité » sur une ressource déjà prise → conflit signalé.
+    - Onglet « Charge » : charge de l'équipe (écran hors maquette).
+
+T7. Méthodes
+    - « Nouvelle méthode » (création d'une M-13) ; menu d'une méthode : Dupliquer,
+      Archiver la méthode, puis restaurer.
+    - Onglet « Résultats » du catalogue : les essais et leur statut.
+
+T8. Projets, formules, documents
+    - Terminer la création du projet CS-02 si ce n'est pas fait ; l'ouvrir depuis le
+      portefeuille. « Enregistrer le brouillon » dans l'assistant puis « Reprendre ».
+    - Formules & lots → Lots → « Créer un lot » (lot E-03) ; il apparaît dans la recherche
+      (taper E-03) et dans l'historique du projet.
+    - Onglet « Essais » du projet (écran hors maquette) : liens vers les méthodes M-0x.
+
+T9. Vue d'ensemble
+    - Mes priorités : clôturer « Résultats F2 disponibles » (accepté maintenant).
+    - Revues : « Planifier une revue » puis la retrouver dans la liste.
+
+T10. Écrans pas encore maquettés
+    Configuration, Profil et « Dossiers & revues » affichent « prévu dans une prochaine étape ».
+
+
+===============================================================================================
+4. LISTE DES RÈGLES DE BLOCAGE À VÉRIFIER
+===============================================================================================
+
+  [ ] 02  Priorité liée à une décision : non clôturable avant la soumission de la décision.
+  [ ] 03  « Soumettre la revue » : seulement quand la checklist est complète.
+  [ ] 04  Filtre de dates : la date de fin ne peut pas précéder la date de début.
+  [ ] 07/10  Assistant : champs obligatoires signalés, code projet déjà utilisé refusé.
+  [ ] 08  Équipe projet incomplète : « 4 champs à corriger ».
+  [ ] 14  Demande incomplète refusée.
+  [ ] 15  Document approuvé non modifiable (nouvelle version obligatoire).
+  [ ] 18  Nouvelle formule sans motif de modification refusée.
+  [ ] 20  « Retenir une formule » impossible tant que des essais sont attendus ;
+          justification de 20 caractères minimum.
+  [ ] 21  Demande de correction de la décision : motif de 10 caractères minimum.
+  [ ] 23  Protocole impossible tant que l'applicabilité n'est pas confirmée.
+  [ ] 24  Protocole non soumis tant qu'un critère d'acceptation est vide.
+  [ ] 25  Essais non lancés sans échantillon.
+  [ ] 26  Résultats non soumis tant qu'un résultat manque ; valeur hors critère signalée.
+  [ ] 27  Correction : motif obligatoire, échéance non passée.
+  [ ] 30  Activité non terminée tant que le mélangeur n'est pas réservé.
+  [ ] 30/33  Réservation : l'heure de fin doit suivre l'heure de début.
+  [ ] 33/34  Créneau déjà pris : conflit, aucune réservation créée, créneaux alternatifs.
+  [ ] 35  Lot non démarrable tant qu'une condition préalable manque.
+  [ ] 36  Étape non terminable sans heure de fin ou quand elle est en pause.
+  [ ] 37  Contrôles non soumis tant qu'un résultat manque.
+  [ ] 38  Déviation refusée sans titre, description ou mesure immédiate.
+  [ ] 39  Analyse non terminée sans causes ni impact ; efficacité non confirmée tant que
+          les actions ne sont pas terminées ; déviation non clôturée avant l'efficacité.
+  [ ] 41  Protocole de stabilité non soumis sans condition de stockage ni essai coché.
+
+
+===============================================================================================
+5. RÉCAPITULATIF : OÙ SE TROUVE LE CERCLE BLEU À CHAQUE ÉCRAN
+===============================================================================================
+
+  Écran  Nom                                         Cercle bleu (écran suivant)
+  -----  ------------------------------------------  ------------------------------------------
+  01     Vue d'ensemble — Portefeuille               Onglet « Mes priorités »
+  02     Mes priorités                               Onglet « Revues »
+  03     Revues à préparer                           Onglet « Portefeuille » (ouvre les Filtres)
+  04     Filtres et vue enregistrée                  « Appliquer », puis recherche « CS-01 »
+  05     Recherche et accès direct                   Menu « Projets »
+  06     Liste des projets                           « Nouveau projet »
+  07     Créer un projet — Produit                   « Continuer »
+  08     Créer un projet — Parcours & équipe         « Continuer »
+  09     Créer un projet — Vérification              En bas à droite
+  10     Champs manquants et code déjà utilisé       En bas à droite (projet CS-01)
+  11     Vue d'un projet                             En bas à droite (demande sur CR-01)
+  14     Demander un document ou une matière         En bas à droite (documents CS-01)
+  15     Documents du projet                         Onglet « Historique »
+  16     Historique et traçabilité                   Onglet « Formules & lots »
+  17     Versions de formule                         « Nouvelle version »
+  18     Éditer une nouvelle formule                 En bas à droite (décision)
+  20     Décision sur une formule                    « Soumettre pour avis »
+  21     Décision — examen et approbation            « Approuver la décision »
+  22     Méthodes & essais — catalogue               Carte « M-01 • Dosage PA »
+  23     Méthode — référence                         Champ « Applicabilité », puis
+                                                     « Préparer le protocole »
+  24     Méthode — protocole                         « Pré-remplir… », « Soumettre le protocole »,
+                                                     « Simuler l'approbation des relecteurs »
+  25     Méthode — préparer les essais               « Continuer » ×2 → « Lancer les essais »
+  26     Essai — saisir les résultats                Champ ECH-03, puis « Soumettre pour revue »
+  27     Validation — demande de correction          « Renvoyer pour correction »
+  28     Méthode — historique et versions            Menu « Mes activités »
+  29     Mes activités — liste et priorités          « Ouvrir » (Préparer le lot pilote LP-01)
+  30     Activité — détails et clôture bloquée       « Réserver une ressource » →
+                                                     « Confirmer la réservation »
+  31     Planning — agenda de l'équipe               Onglet « Ressources »
+  32     Planning — ressources et disponibilités     HPLC-01 → « Réserver »
+  33     Réserver une ressource                      Champs d'heure, puis « Confirmer la réservation »
+  34     Conflit de réservation                      En bas à droite (lot pilote LP-01)
+  35     Lot pilote — préparation                    « Démarrer le lot »
+  36     Lot pilote — exécution du mélange           Onglet « Contrôles »
+  37     Lot pilote — contrôles                      Onglet « Déviations »
+  38     Déclarer une déviation de lot               « Créer la déviation »
+  39     Déviation — actions et efficacité           Menu « Stabilité »
+  40     Stabilité — études                          « Préparer le protocole » (ST-01)
+  41     Stabilité — protocole                       « Fin des écrans livrés » en bas à droite
+
+  Sur mobile, les cercles du menu de gauche (écrans 06, 29, 40) sont remplacés par le cercle
+  en bas à droite. Un cercle avec une flèche en bas à droite = le cercle de la page est hors
+  de l'écran : cliquer dessus pour y descendre.
+
+
+===============================================================================================
+6. EN CAS DE PROBLÈME
+===============================================================================================
+
+  - La page ne s'ouvre pas : vérifier que « npm run dev » tourne toujours dans le terminal
+    et utiliser l'adresse qu'il affiche.
+  - Les données ne correspondent plus à la maquette (page rechargée, mauvaise manipulation) :
+    « Parcours des écrans » → cliquer sur l'écran voulu.
+  - Aucun cercle bleu : les cercles sont masqués → cocher « Afficher les cercles bleus de
+    l'étape suivante » dans « Parcours des écrans ». Sur un écran sans numéro (écran hors
+    maquette), il n'y a pas d'étape suivante : revenir sur un écran numéroté.
+  - Tout recommencer : « Démonstration » → « Réinitialiser les données » → « Réinitialiser »,
+    puis menu « Vue d'ensemble » (écran 01).
+  - Les données ne sont jamais enregistrées ailleurs que dans le navigateur ouvert :
+    fermer l'onglet efface tout.

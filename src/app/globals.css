@@ -1,0 +1,111 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* Design tokens — Espace R&D Laboratoires SIMED */
+@theme {
+  --color-ink-900: #0a1a38;
+  --color-ink-800: #15284b;
+  --color-ink-700: #2b3b5c;
+  --color-ink-600: #45557a;
+  --color-ink-500: #5c6a85;
+  --color-ink-400: #8a96ad;
+  --color-ink-300: #b7c1d2;
+
+  --color-line: #e3eaf3;
+  --color-line-strong: #cfdae8;
+  --color-canvas: #f3f7fc;
+  --color-subtle: #f7fafe;
+
+  --color-brand-50: #edf5fe;
+  --color-brand-100: #ddebfc;
+  --color-brand-200: #bfd9f8;
+  --color-brand-300: #93bff3;
+  --color-brand-400: #5a9ded;
+  --color-brand-500: #1f7ae6;
+  --color-brand-600: #0b69d4;
+  --color-brand-700: #0a57b0;
+  --color-brand-800: #0c4689;
+
+  --color-warn-50: #fff5e9;
+  --color-warn-100: #ffe8cc;
+  --color-warn-200: #fdd3a0;
+  --color-warn-500: #f28a1d;
+  --color-warn-600: #e0700c;
+  --color-warn-700: #b3560a;
+
+  --color-danger-50: #fdefef;
+  --color-danger-100: #fbdddd;
+  --color-danger-200: #f5b8ba;
+  --color-danger-500: #e5484d;
+  --color-danger-600: #d32f35;
+  --color-danger-700: #a9252b;
+
+  --color-success-50: #eaf8f0;
+  --color-success-100: #d4f0df;
+  --color-success-500: #22a55b;
+  --color-success-600: #188a4b;
+  --color-success-700: #13703e;
+
+  --shadow-card: 0 1px 2px rgb(16 42 84 / 0.04), 0 2px 6px rgb(16 42 84 / 0.04);
+  --shadow-pop: 0 12px 32px -8px rgb(16 42 84 / 0.2), 0 2px 8px rgb(16 42 84 / 0.08);
+
+  --animate-spin-slow: spin 2.4s linear infinite;
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink-800);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brand-500);
+  outline-offset: 2px;
+}
+
+/* Native date inputs: keep the calendar glyph subtle */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.55;
+}
+
+/* Guided tour: block (field, card) to act on before the next mock-up screen — the blue circle pulses */
+.guide-ring {
+  outline: 2px solid var(--color-brand-400);
+  outline-offset: 3px;
+}
+
+/* Blue numbered circle: white ring + pulsing halo drawn with box-shadow (never widens the page) */
+@keyframes guide-dot-pulse {
+  0% {
+    box-shadow: 0 0 0 2px #fff, 0 0 0 2px rgb(11 105 212 / 0.55), 0 2px 6px rgb(15 23 42 / 0.25);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 2px #fff, 0 0 0 12px rgb(11 105 212 / 0), 0 2px 6px rgb(15 23 42 / 0.25);
+  }
+}
+
+.guide-dot {
+  box-shadow: 0 0 0 2px #fff, 0 2px 6px rgb(15 23 42 / 0.25);
+  animation: guide-dot-pulse 1.6s ease-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .guide-dot {
+    animation: none !important;
+  }
+}

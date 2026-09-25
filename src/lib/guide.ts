@@ -9,10 +9,11 @@
 import { useSyncExternalStore } from "react";
 import { createSeed, type DemoState } from "./data";
 import { DECISION_EXAMPLE, REVIEW_EXAMPLE } from "./data-dossier";
-import { MIXING_DEVIATION_EXAMPLE, PEOPLE_LAB, defaultTestPlan, mixerReservation } from "./data-lab";
+import { MIXING_DEVIATION_EXAMPLE, PEOPLE_LAB, SCHEDULE_EXAMPLE, defaultTestPlan, mixerReservation } from "./data-lab";
 import { dossier, versionEventId } from "./dossier";
 import { DEMO_TODAY } from "./format";
 import { lab } from "./lab";
+import { prerequisite } from "./prerequisites";
 import { applyState, replaceState } from "./store";
 
 export interface GuideStep {
@@ -34,6 +35,26 @@ const lp01 = (s: DemoState) => s.pilotLots.find((l) => l.projectCode === CS && l
 /* ------------------------------------------------------------------ */
 /* Story transitions                                                   */
 /* ------------------------------------------------------------------ */
+
+/** Screen 13 → 14: the version 4 of the supplier's DMF of CR-01 is imported and checked. */
+function dmfImported(s: DemoState) {
+  const dmf = s.prerequisites.find((p) => p.id === "pr-cr-1");
+  if (!dmf || dmf.importedAt) return s;
+  return prerequisite.importDocument(s, dmf.id, {
+    file: {
+      name: "EXEMPLE-PHARMA-DMF-001.pdf",
+      size: "1,6 Mo",
+      pages: 4,
+      fields: [
+        { label: "Fabricant", value: "Fournisseur EXEMPLE" },
+        { label: "Procédé – Description extraite", value: "Description du procédé à vérifier" },
+      ],
+    },
+    docType: "DMF / CEP",
+    version: "v4",
+    supplier: "Fournisseur EXEMPLE",
+  });
+}
 
 function decisionUnderReview(s: DemoState) {
   const d = decisionOf(s);
@@ -147,6 +168,19 @@ function deviationCreated(s: DemoState) {
   });
 }
 
+/** Screen 42: storage condition, T0 and responsible of the ST-01 schedule filled in (protocol still a draft). */
+function scheduleDraft(s: DemoState) {
+  const n = lab.prepareStudyProtocol(s, "ST-01");
+  const p = n.studies.find((x) => x.id === "ST-01")?.protocol;
+  if (!p || p.status !== "Brouillon" || (p.storage && p.startDate)) return n;
+  return lab.saveStudySchedule(n, "ST-01", {
+    startDate: p.startDate || SCHEDULE_EXAMPLE.startDate,
+    storage: p.storage || SCHEDULE_EXAMPLE.storage,
+    responsible: SCHEDULE_EXAMPLE.responsible,
+    milestones: p.milestones,
+  });
+}
+
 /* ---------------- Documents, dossier, transfer, closure (45–56) ---------------- */
 
 const RF2 = "doc-cs-rf2";
@@ -249,12 +283,28 @@ export const GUIDE_STEPS: GuideStep[] = [
   { n: 9, section: "Projets", label: "Créer un projet — Vérification", href: "/projets/nouveau?demo=verification", hint: "Bouton « Continuer »" },
   { n: 10, section: "Projets", label: "Champs manquants et code déjà utilisé", href: "/projets/nouveau?demo=erreurs", hint: "« Continuer » avec un formulaire incomplet" },
   { n: 11, section: "Projet CS-01", label: "Vue d'un projet", href: "/projets/cs-01", hint: "Ouvrir le projet CS-01" },
-  { n: 14, section: "Projet CS-01", label: "Demander un document ou une matière", href: "/projets/cr-01/prerequis?demande=pr-cr-2", hint: "Prérequis de CR-01 → « Demander »" },
+  { n: 12, section: "Projet CR-01", label: "Prérequis du projet", href: "/projets/cr-01/prerequis", hint: "Projet CR-01 → onglet « Prérequis »" },
+  {
+    n: 13,
+    section: "Projet CR-01",
+    label: "Importer et vérifier un document",
+    href: "/projets/cr-01/prerequis?prerequis=pr-cr-1&importer=exemple",
+    hint: "DMF / CEP → « Importer une nouvelle version » (v4 du fournisseur)",
+  },
+  {
+    n: 14,
+    section: "Projet CR-01",
+    label: "Demander un document ou une matière",
+    href: "/projets/cr-01/prerequis?demande=pr-cr-2",
+    hint: "« Enregistrer » le DMF vérifié, puis certificat GMP → « Demander au responsable »",
+    prepare: dmfImported,
+  },
   { n: 15, section: "Projet CS-01", label: "Documents du projet", href: "/projets/cs-01/documents", hint: "Onglet « Documents »" },
   { n: 16, section: "Projet CS-01", label: "Historique et traçabilité", href: "/projets/cs-01/historique", hint: "Onglet « Historique »" },
   { n: 17, section: "Projet CS-01", label: "Versions de formule", href: "/projets/cs-01/formules", hint: "Onglet « Formules & lots »" },
   { n: 18, section: "Projet CS-01", label: "Éditer une nouvelle formule", href: "/projets/cs-01/formules/nouvelle?parent=F2", hint: "Bouton « Nouvelle version »" },
-  { n: 20, section: "Projet CS-01", label: "Décision sur une formule", href: "/projets/cs-01/formules/comparaison?decision=1", hint: "Comparaison → « Préparer la décision »" },
+  { n: 19, section: "Projet CS-01", label: "Comparaison des formules", href: "/projets/cs-01/formules/comparaison", hint: "Sous-onglet « Comparaison » (sans enregistrer la formule)" },
+  { n: 20, section: "Projet CS-01", label: "Décision sur une formule", href: "/projets/cs-01/formules/comparaison?decision=1", hint: "« Préparer la décision » (formule F2)" },
   {
     n: 21,
     section: "Projet CS-01",
@@ -309,6 +359,22 @@ export const GUIDE_STEPS: GuideStep[] = [
   { n: 39, section: "Lot pilote LP-01", label: "Déviation — actions et efficacité", href: "/projets/cs-01/deviations/dev-01?onglet=actions", hint: "« Créer la déviation »", prepare: deviationCreated },
   { n: 40, section: "Stabilité", label: "Stabilité — études", href: "/stabilite", hint: "Menu « Stabilité »" },
   { n: 41, section: "Stabilité", label: "Stabilité — protocole", href: "/stabilite/st-01", hint: "« Préparer le protocole » de ST-01", prepare: (s) => lab.prepareStudyProtocol(s, "ST-01") },
+  {
+    n: 42,
+    section: "Stabilité",
+    label: "Stabilité — échéancier",
+    href: "/stabilite/st-01?onglet=echeancier",
+    hint: "Onglet « Échéancier » (condition 25 °C / 60 % HR et T0 renseignés)",
+    prepare: scheduleDraft,
+  },
+  {
+    n: 43,
+    section: "Stabilité",
+    label: "Stabilité — résultats",
+    href: "/stabilite/st-02?onglet=resultats&point=res-st02-m3",
+    hint: "Étude ST-02 (lot E-02) → onglet « Résultats » → point M3",
+  },
+  { n: 44, section: "Stabilité", label: "Stabilité — alertes", href: "/stabilite?onglet=alertes&alerte=al-1", hint: "« Enregistrer le brouillon » du résultat M3" },
   {
     n: 45,
     section: "Documents & historique",

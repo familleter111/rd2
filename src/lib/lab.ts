@@ -7,7 +7,7 @@
  * Reducers are idempotent where it matters and add a traceability event.
  */
 import type { DemoState } from "./data";
-import { M01_SOURCE_CRITERIA, PEOPLE_LAB, STANDARD_MILESTONES, m01ProtocolDraft } from "./data-lab";
+import { M01_SOURCE_CRITERIA, PEOPLE_LAB, STANDARD_MILESTONES, TABLET_STABILITY_TESTS, m01ProtocolDraft } from "./data-lab";
 import { DEMO_TODAY, addDays, addMonths, formatNumeric } from "./format";
 import { pendingTests, testsForFormula } from "./selectors";
 import { nextNumber, pad2, projectLabel, stamp, uid, withEvent } from "./state-utils";
@@ -29,7 +29,9 @@ import type {
   Person,
   PilotLot,
   PlanningEvent,
+  StabilityAlert,
   StabilityProtocol,
+  StabilityResult,
   StabilityStudy,
   TestPlan,
 } from "./types";
@@ -185,6 +187,13 @@ function submitAnalysis(s: DemoState, id: string): DemoState {
 /* ------------------------------------------------------------------ */
 /* Reducers                                                            */
 /* ------------------------------------------------------------------ */
+
+/** Specification of a stability analysis (used to raise an out-of-specification alert). */
+export function stabilitySpec(analysis: string): { label: string; ok: (v: number) => boolean } | undefined {
+  if (analysis.startsWith("Dosage")) return { label: "95,0 – 105,0 %", ok: (v) => v >= 95 && v <= 105 };
+  if (analysis.startsWith("Dissolution")) return { label: "≥ 80 % en 30 min", ok: (v) => v >= 80 };
+  return undefined;
+}
 
 export const lab = {
   /* ---------------- Formula decision (screen 21) ---------------- */
@@ -1488,13 +1497,14 @@ export const lab = {
     return next;
   },
 
-  /* ---------------- Stability (40–41) ---------------- */
+  /* ---------------- Stability (40–44) ---------------- */
 
   createStudy(s: DemoState, input: { id: string; projectCode: string; lotCode: string; lotLabel: string; formula: string; dosage: string; owner: string }): DemoState {
     const study: StabilityStudy = {
       ...input,
       status: "À préparer",
       nextTask: { title: "Préparer le protocole", detail: "Rédiger et finaliser le protocole de l'étude de stabilité." },
+      results: [],
       alerts: [],
     };
     let next: DemoState = { ...s, studies: [...s.studies, study] };
@@ -1526,11 +1536,7 @@ export const lab = {
       storage: "",
       packaging: tablet ? "Blister de démonstration" : "Flacon verre type I",
       tests: tablet
-        ? [
-            { id: "t-aspect", name: "Aspect", method: "Examen visuel", equipment: "—", description: "Conforme / Non conforme", selected: true },
-            { id: "t-dosage", name: "Dosage", method: "M-01 • Dosage PA", equipment: "HPLC-01", description: "Dosage du principe actif", selected: true },
-            { id: "t-dissolution", name: "Dissolution", method: "M-02 • Dissolution", equipment: "UV-01", description: "Profil de dissolution", selected: true },
-          ]
+        ? TABLET_STABILITY_TESTS()
         : [
             { id: "t-aspect", name: "Aspect", method: "Examen visuel", equipment: "—", description: "Conforme / Non conforme", selected: true },
             { id: "t-dosage", name: "Dosage", method: "M-10 • Dosage PA (solution)", equipment: "HPLC-02", description: "Dosage du principe actif", selected: true },
@@ -1582,20 +1588,18 @@ export const lab = {
     return next;
   },
 
+  /** Sampling dates are computed from T0; the points are planned when the schedule is activated. */
   submitStudyProtocol(s: DemoState, id: string): DemoState {
     const study = s.studies.find((x) => x.id === id);
     const p = study?.protocol;
     if (!study || !p || p.status !== "Brouillon" || !p.storage) return s;
-    const milestones = p.milestones.map((m) =>
-      p.startDate ? { ...m, status: "Planifiée" as const, date: addMonths(p.startDate, m.months) } : m,
-    );
+    const milestones = p.milestones.map((m) => (p.startDate && !m.date ? { ...m, date: addMonths(p.startDate, m.months) } : m));
     let next = mapStudy(s, id, (x) => ({
       ...x,
       status: "Protocole soumis",
       protocol: { ...p, status: "Soumis", milestones, submittedAt: stamp(), updatedAt: stamp() },
-      nextTask: p.startDate
-        ? { title: "Démarrer la mise en stabilité", detail: `Mise en stabilité prévue le ${formatNumeric(p.startDate)} (${p.storage}).` }
-        : { title: "Planifier la mise en stabilité", detail: "Le protocole est soumis : planifiez la date de mise en stabilité." },
+      nextTask: { title: "Faire approuver le protocole", detail: "L'échéancier pourra être activé une fois le protocole approuvé." },
+      alerts: x.alerts.map((a) => (a.origin === "Documentation" && a.status === "Ouverte" ? { ...a, tag: "En approbation" } : a)),
     }));
     next = withEvent(next, {
       projectCode: study.projectCode,
@@ -1608,6 +1612,245 @@ export const lab = {
       icon: "send",
       href: `/stabilite/${id.toLowerCase()}`,
       studyId: id,
+    });
+    return next;
+  },
+
+  /** Approval by quality assurance (simulated): resolves the "incomplete protocol" alert. */
+  approveStudyProtocol(s: DemoState, id: string): DemoState {
+    const study = s.studies.find((x) => x.id === id);
+    const p = study?.protocol;
+    if (!study || !p || p.status !== "Soumis") return s;
+    const approver = PEOPLE_LAB.marieL;
+    let next = mapStudy(s, id, (x) => ({
+      ...x,
+      status: "Protocole approuvé",
+      protocol: { ...p, status: "Approuvé", approvedAt: stamp(), approvedBy: approver.name, updatedAt: stamp() },
+      nextTask: { title: "Activer l'échéancier", detail: "Le protocole est approuvé : activez l'échéancier des prélèvements." },
+      alerts: x.alerts.map((a) => (a.origin === "Documentation" && a.status !== "Résolue" ? { ...a, status: "Résolue", tag: "Protocole approuvé" } : a)),
+    }));
+    next = withEvent(next, {
+      projectCode: study.projectCode,
+      title: `Protocole de stabilité ${id} approuvé`,
+      context: `${study.projectCode} • Étude ${id}`,
+      object: "Stabilité",
+      objectLabel: `${study.projectCode} • Étude ${id}`,
+      type: "Approbation",
+      author: approver.name,
+      authorRole: approver.role,
+      description: "Protocole approuvé : l'échéancier des prélèvements peut être activé.",
+      icon: "check",
+      href: `/stabilite/${id.toLowerCase()}?onglet=echeancier`,
+      studyId: id,
+    });
+    return next;
+  },
+
+  /** Draft of the schedule (screen 42): T0, storage condition, responsible and sampling points. */
+  saveStudySchedule(s: DemoState, id: string, patch: Pick<StabilityProtocol, "startDate" | "storage" | "responsible" | "milestones">): DemoState {
+    const study = s.studies.find((x) => x.id === id);
+    if (!study?.protocol || study.protocol.scheduleActivatedAt) return s;
+    let next = mapStudy(s, id, (x) => ({ ...x, protocol: x.protocol && { ...x.protocol, ...patch, updatedAt: stamp() } }));
+    next = withEvent(next, {
+      projectCode: study.projectCode,
+      title: "Brouillon de l'échéancier enregistré",
+      context: `${study.projectCode} • Étude ${id}`,
+      object: "Stabilité",
+      objectLabel: `${study.projectCode} • Étude ${id}`,
+      type: "Modification",
+      description: `T0 ${patch.startDate ? formatNumeric(patch.startDate) : "à définir"} — ${patch.storage || "condition à définir"} — ${patch.milestones.map((m) => m.code).join(", ")}.`,
+      icon: "calendar",
+      href: `/stabilite/${id.toLowerCase()}?onglet=echeancier`,
+      studyId: id,
+    });
+    return next;
+  },
+
+  activateStudySchedule(s: DemoState, id: string): DemoState {
+    const study = s.studies.find((x) => x.id === id);
+    const p = study?.protocol;
+    if (!study || !p || p.status !== "Approuvé" || p.scheduleActivatedAt || !p.startDate || !p.storage) return s;
+    const milestones = p.milestones.map((m) => ({ ...m, status: "Planifiée" as const, date: m.date ?? addMonths(p.startDate, m.months) }));
+    const analyses = p.tests.filter((t) => t.selected && /^M-\d+/.test(t.method));
+    const results: StabilityResult[] = milestones.flatMap((m) =>
+      analyses.map((t) => ({
+        id: `res-${id.toLowerCase()}-${m.code.toLowerCase()}-${t.id}`,
+        point: m.code,
+        method: t.method.split(" • ")[0],
+        analysis: t.method.split(" • ")[1] ?? t.name,
+        storage: p.storage,
+        status: m.code === "T0" ? ("À saisir" as const) : ("À venir" as const),
+        value: "",
+        unit: "%",
+        source: "",
+        comment: "",
+        attachments: [],
+      })),
+    );
+    let next = mapStudy(s, id, (x) => ({
+      ...x,
+      status: "En cours",
+      protocol: { ...p, milestones, scheduleActivatedAt: stamp(), updatedAt: stamp() },
+      results: x.results.length ? x.results : results,
+      nextTask: { title: "Prélèvement T0", detail: `Mise en stabilité le ${formatNumeric(p.startDate)} (${p.storage}).` },
+    }));
+    next = withEvent(next, {
+      projectCode: study.projectCode,
+      title: `Échéancier ${id} activé`,
+      context: `${study.projectCode} • Étude ${id}`,
+      object: "Stabilité",
+      objectLabel: `${study.projectCode} • Étude ${id}`,
+      type: "Modification",
+      description: `${milestones.length} prélèvements planifiés (${milestones.map((m) => `${m.code} ${formatNumeric(m.date)}`).join(", ")}).`,
+      icon: "calendar",
+      href: `/stabilite/${id.toLowerCase()}?onglet=echeancier`,
+      studyId: id,
+    });
+    return next;
+  },
+
+  /** Result entry (screen 43): a draft can be incomplete; submitting needs the value, the source and a supporting file. */
+  saveStabilityResult(
+    s: DemoState,
+    studyId: string,
+    resultId: string,
+    input: Pick<StabilityResult, "value" | "unit" | "source" | "comment" | "attachments">,
+    submit: boolean,
+  ): DemoState {
+    const study = s.studies.find((x) => x.id === studyId);
+    const r = study?.results.find((x) => x.id === resultId);
+    if (!study || !r || r.status === "Validé" || r.status === "Soumis") return s;
+    if (submit && (!input.value.trim() || !input.source || !input.attachments.length)) return s;
+    const spec = stabilitySpec(r.analysis);
+    const outOfSpec = submit && spec ? !spec.ok(Number(input.value.replace(",", "."))) : false;
+    let next = mapStudy(s, studyId, (x) => ({
+      ...x,
+      results: x.results.map((y) => (y.id === resultId ? { ...y, ...input, status: submit ? "Soumis" : "Brouillon", updatedAt: stamp() } : y)),
+      alerts: outOfSpec
+        ? [
+            {
+              id: `al-${resultId}`,
+              title: `Résultat hors spécification (${r.point})`,
+              description: `${r.analysis} au point ${r.point} : ${input.value} ${input.unit} pour une spécification ${spec?.label}. Une investigation est à ouvrir.`,
+              origin: "Résultats" as const,
+              tag: "Hors spécification",
+              level: "Élevé" as const,
+              status: "Ouverte" as const,
+              due: addDays(DEMO_TODAY, 2),
+              responsible: study.owner,
+              date: DEMO_TODAY,
+            },
+            ...x.alerts,
+          ]
+        : x.alerts,
+    }));
+    next = withEvent(next, {
+      projectCode: study.projectCode,
+      title: submit ? `Résultat ${r.point} soumis` : `Brouillon du résultat ${r.point} enregistré`,
+      context: `${study.projectCode} • Étude ${studyId} • ${r.analysis}`,
+      object: "Stabilité",
+      objectLabel: `${study.projectCode} • Étude ${studyId}`,
+      type: submit ? "Soumission" : "Modification",
+      description: `${r.method} — ${r.analysis} : ${input.value ? `${input.value} ${input.unit}` : "résultat à saisir"}${input.source ? ` (${input.source})` : ""}. ${input.attachments.length} pièce(s) justificative(s).`,
+      icon: submit ? "send" : "edit",
+      href: `/stabilite/${studyId.toLowerCase()}?onglet=resultats&point=${resultId}`,
+      studyId,
+    });
+    return next;
+  },
+
+  /** Review of a submitted result (simulated reviewer). */
+  validateStabilityResult(s: DemoState, studyId: string, resultId: string): DemoState {
+    const study = s.studies.find((x) => x.id === studyId);
+    const r = study?.results.find((x) => x.id === resultId);
+    if (!study || !r || r.status !== "Soumis") return s;
+    const reviewer = PEOPLE_LAB.marieL;
+    let next = mapStudy(s, studyId, (x) => ({
+      ...x,
+      results: x.results.map((y) => (y.id === resultId ? { ...y, status: "Validé", report: `Rapport ${r.point}`, updatedAt: stamp() } : y)),
+    }));
+    next = withEvent(next, {
+      projectCode: study.projectCode,
+      title: `Résultat ${r.point} validé`,
+      context: `${study.projectCode} • Étude ${studyId} • ${r.analysis}`,
+      object: "Stabilité",
+      objectLabel: `${study.projectCode} • Étude ${studyId}`,
+      type: "Approbation",
+      author: reviewer.name,
+      authorRole: reviewer.role,
+      description: `${r.analysis} : ${r.value} ${r.unit} — rapport ${r.point} disponible.`,
+      icon: "check",
+      href: `/stabilite/${studyId.toLowerCase()}?onglet=resultats&point=${resultId}`,
+      studyId,
+    });
+    return next;
+  },
+
+  /** Alert follow-up (screen 44): assign, take charge, resolve or reopen. */
+  updateStabilityAlert(s: DemoState, studyId: string, alertId: string, patch: Partial<Pick<StabilityAlert, "status" | "responsible">>): DemoState {
+    const study = s.studies.find((x) => x.id === studyId);
+    const a = study?.alerts.find((x) => x.id === alertId);
+    if (!study || !a) return s;
+    let next = mapStudy(s, studyId, (x) => ({ ...x, alerts: x.alerts.map((y) => (y.id === alertId ? { ...y, ...patch } : y)) }));
+    const field = patch.responsible ? "Responsable" : "Statut";
+    next = withEvent(next, {
+      projectCode: study.projectCode,
+      title: patch.responsible ? "Alerte de stabilité assignée" : patch.status === "Prise en charge" ? "Alerte de stabilité prise en charge" : `Alerte de stabilité ${patch.status?.toLowerCase()}`,
+      context: `${study.projectCode} • Étude ${studyId} • ${a.title}`,
+      object: "Stabilité",
+      objectLabel: `${study.projectCode} • Étude ${studyId}`,
+      type: "Modification",
+      field,
+      oldValue: patch.responsible ? a.responsible : a.status,
+      newValue: patch.responsible ?? patch.status,
+      icon: "alert",
+      href: `/stabilite?onglet=alertes&alerte=${alertId}`,
+      studyId,
+    });
+    return next;
+  },
+
+  /** "Créer une activité": the alert becomes a task of "Mes activités". */
+  createAlertActivity(s: DemoState, studyId: string, alertId: string): DemoState {
+    const study = s.studies.find((x) => x.id === studyId);
+    const a = study?.alerts.find((x) => x.id === alertId);
+    if (!study || !a || a.activityId) return s;
+    const id = `act-${alertId}`;
+    const activity: Activity = {
+      id,
+      projectCode: study.projectCode,
+      title: a.title,
+      detail: `${studyId} • ${study.lotCode} — ${a.description}`,
+      tags: [study.projectCode, "Stabilité"],
+      status: { label: "À faire", tone: "warn" },
+      due: a.due ?? addDays(DEMO_TODAY, 7),
+      owner: a.responsible,
+      icon: "flask",
+      done: false,
+      state: "a-faire",
+      context: `Étude ${studyId} • Lot ${study.lotCode}`,
+      description: a.description,
+      priority: a.level === "Élevé" ? "Haute" : "Normale",
+      lotCode: study.lotCode,
+      kind: "standard",
+      href: `/stabilite/${studyId.toLowerCase()}`,
+    };
+    let next: DemoState = {
+      ...mapStudy(s, studyId, (x) => ({ ...x, alerts: x.alerts.map((y) => (y.id === alertId ? { ...y, activityId: id } : y)) })),
+      activities: [...s.activities, activity],
+    };
+    next = withEvent(next, {
+      projectCode: study.projectCode,
+      title: "Activité créée depuis une alerte de stabilité",
+      context: `${study.projectCode} • Étude ${studyId} • ${a.title}`,
+      object: "Stabilité",
+      objectLabel: `${study.projectCode} • Étude ${studyId}`,
+      type: "Création",
+      description: `Activité « ${a.title} » assignée à ${a.responsible}.`,
+      icon: "calendar",
+      href: `/activites/${id}`,
+      studyId,
+      activityId: id,
     });
     return next;
   },

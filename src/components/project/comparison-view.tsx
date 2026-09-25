@@ -4,8 +4,14 @@ import {
   Check,
   ChevronDown,
   ChevronRight,
+  CircleCheck,
+  CircleEllipsis,
+  CirclePlus,
+  CircleX,
+  Clock,
   Copy,
   Download,
+  Ellipsis,
   FileText,
   Info,
   Package,
@@ -15,26 +21,27 @@ import {
   TriangleAlert,
   X,
 } from "lucide-react";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { useGuideNav } from "@/components/guide/guide-mark";
-import { Badge } from "@/components/ui/badge";
+import { Badge, StatusDot, TONE_TEXT } from "@/components/ui/badge";
 import { Button, LinkButton } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Field, Radio, Select, Textarea } from "@/components/ui/field";
+import { Checkbox, Field, Radio, Select, Textarea } from "@/components/ui/field";
 import { Menu } from "@/components/ui/menu";
 import { Modal } from "@/components/ui/modal";
 import { ScreenRef } from "@/components/ui/page";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
-import { downloadText, formatDateTime, formatNumeric, toCsv } from "@/lib/format";
+import { downloadText, formatDateTime, formatNumber, formatNumeric, toCsv } from "@/lib/format";
 import { useGuideTarget } from "@/lib/guide";
 import { criteriaFor, findProject, pendingTests, projectFormulas, testsForFormula } from "@/lib/selectors";
 import { actions, useDemo } from "@/lib/store";
-import type { DecisionChoice, Formula, Project } from "@/lib/types";
+import type { DecisionChoice, Formula, FormulaStatus, LotType, Project, TestStatus, Tone } from "@/lib/types";
 import { DecisionReviewModal } from "./decision-review";
-import { CRITERION_ICONS, FormulaStatusBadge, TestStatusText } from "./formula-bits";
+import { CRITERION_ICONS, FormulaStatusBadge } from "./formula-bits";
 import { FormulaSubTabs, ProjectTabs } from "./project-frame";
 
 const CHOICES: { value: DecisionChoice; label: string; detail: string }[] = [
@@ -297,6 +304,46 @@ const DECISION_BANNER: Record<string, { text: string; badge: string; tone: "info
   "Correction demandée": { text: "Renvoyée au chef de projet pour correction", badge: "Correction demandée", tone: "danger" },
 };
 
+const LOT_TYPE_LABEL: Record<LotType, string> = { Essai: "Lot d'essais", Pilote: "Lot pilote", Échantillon: "Lot d'échantillons" };
+
+const FORMULA_DOT: Record<FormulaStatus, Tone> = {
+  Référence: "success",
+  Brouillon: "neutral",
+  "Essais en cours": "info",
+  "Essais terminés": "success",
+  "À améliorer": "warn",
+  Retenue: "success",
+  Archivée: "neutral",
+};
+
+const RESULT_LOOK: Record<TestStatus, { label: string; icon: typeof Check; text: string; iconClass: string }> = {
+  Conforme: { label: "Conforme", icon: CircleCheck, text: "text-success-700", iconClass: "fill-success-500 text-white" },
+  "Non conforme": { label: "Non conforme", icon: CircleX, text: "text-danger-700", iconClass: "fill-danger-500 text-white" },
+  "En attente": { label: "Résultat attendu", icon: Clock, text: "text-warn-700", iconClass: "text-warn-600" },
+  "Non démarré": { label: "Non démarrée", icon: CircleEllipsis, text: "text-ink-600", iconClass: "fill-slate-200 text-ink-500" },
+};
+
+function ResultCell({ status, result, compact }: { status?: TestStatus; result?: string; compact?: boolean }) {
+  if (!status) return <span className="text-sm text-ink-400">—</span>;
+  const look = RESULT_LOOK[status];
+  return (
+    <span title={result} className={cn("inline-flex items-center whitespace-nowrap", compact ? "gap-2 text-sm" : "gap-2.5 text-[15px]", look.text)}>
+      <look.icon className={cn("h-5 w-5 shrink-0", look.iconClass)} aria-hidden />
+      {look.label}
+    </span>
+  );
+}
+
+/** Formula status as a coloured dot + text ("● Essais en cours"). */
+function StatusText({ status }: { status: FormulaStatus }) {
+  return (
+    <span className={cn("inline-flex items-center gap-2 whitespace-nowrap", TONE_TEXT[FORMULA_DOT[status]])}>
+      <StatusDot tone={FORMULA_DOT[status]} />
+      {status === "Référence" ? "Validée" : status}
+    </span>
+  );
+}
+
 export function ComparisonView({
   slug,
   versions,
@@ -314,23 +361,48 @@ export function ComparisonView({
   const project = findProject(state, slug);
   const formulas = project ? projectFormulas(state, project.code).sort((a, b) => a.code.localeCompare(b.code, "fr", { numeric: true })) : [];
   const reference = project ? state.formulas.find((f) => f.projectCode === project.code && f.status === "Référence") : undefined;
-  const compared = versions?.length ? formulas.filter((f) => versions.includes(f.code)) : formulas;
-  const defaultFocus = compared.find((f) => f.status === "Essais en cours")?.code ?? compared[compared.length - 1]?.code ?? "";
+  const candidates = [...(reference ? [reference] : []), ...formulas];
+  const defaultSelection = (versions?.length ? candidates.filter((f) => f.status === "Référence" || versions.includes(f.code)) : candidates).slice(0, 3).map((f) => f.code);
+  const defaultFocus = formulas.find((f) => f.status === "Essais en cours")?.code ?? formulas[formulas.length - 1]?.code ?? "";
 
+  const [selection, setSelection] = useState<string[]>(defaultSelection);
   const [focus, setFocus] = useState(defaultFocus);
   const [decisionOpen, setDecisionOpen] = useState(openDecision && !openExam);
   const [decisionKey, setDecisionKey] = useState(0);
   const [examOpen, setExamOpen] = useState(openExam);
   const [examKey, setExamKey] = useState(0);
+  const guideDecision = useGuideTarget(20);
 
   if (!project) return null;
 
-  const columns = [...(reference ? [reference] : []), ...compared];
+  const columns = candidates.filter((f) => selection.includes(f.code));
   const criteria = criteriaFor(state, project.code);
-  const focusFormula = formulas.find((f) => f.code === focus);
+  const focusFormula = candidates.find((f) => f.code === focus);
   const focusTests = testsForFormula(state, project.code, focus);
   const focusDocs = state.documents.filter((d) => d.projectCode === project.code && d.formula === focus);
   const decision = state.formulaDecisions.find((d) => d.projectCode === project.code);
+
+  /** Lot tested for a formula (the most recent one), or the reference product. */
+  const lotOf = (f: Formula) => {
+    if (f.status === "Référence") return { code: "REF-01", type: "Lot de référence", lot: undefined };
+    const code = testsForFormula(state, project.code, f.code)[0]?.lotCode;
+    const lot = state.lots.find((l) => l.projectCode === project.code && (code ? l.code === code : l.formula === f.code && l.type === "Essai"));
+    return { code: lot?.code ?? "—", type: lot ? LOT_TYPE_LABEL[lot.type] : "Aucun lot", lot };
+  };
+  const focusLot = focusFormula ? lotOf(focusFormula) : undefined;
+  const pendingOf = (f: Formula) => (f.status === "Référence" ? [] : pendingTests(testsForFormula(state, project.code, f.code)));
+  const blocked = columns.filter((f) => pendingOf(f).length > 0);
+  const toWatch = focusTests.filter((t) => t.status !== "Conforme").sort((a, b) => (a.method ?? "").localeCompare(b.method ?? ""));
+
+  const toggle = (code: string, checked: boolean) => {
+    if (checked && selection.length >= 3) {
+      toast.show({ title: "Trois formules au maximum", description: "Décochez une formule pour en comparer une autre.", tone: "info" });
+      return;
+    }
+    const next = checked ? candidates.map((f) => f.code).filter((c) => c === code || selection.includes(c)) : selection.filter((c) => c !== code);
+    setSelection(next);
+    if (!checked && code === focus) setFocus(next.find((c) => c !== reference?.code) ?? next[0] ?? "");
+  };
 
   const openModal = () => {
     setExamOpen(false);
@@ -346,11 +418,11 @@ export function ComparisonView({
 
   const exportCsv = () => {
     const rows = [
-      ["Critère", ...columns.map((c) => c.code)],
+      ["Critère", ...columns.map((c) => `${c.code} (${lotOf(c).code})`)],
       ...criteria.map((cr) => [cr, ...columns.map((c) => testsForFormula(state, project.code, c.code).find((t) => t.criterion === cr)?.status ?? "—")]),
     ];
     downloadText(`comparaison-${project.code}.csv`, toCsv(rows), "text/csv");
-    toast.show({ title: "Synthèse exportée", description: `comparaison-${project.code}.csv` });
+    toast.show({ title: "Comparaison exportée", description: `comparaison-${project.code}.csv` });
   };
 
   return (
@@ -372,7 +444,7 @@ export function ComparisonView({
               { label: "Préparer la décision", icon: Scale, onSelect: openModal, disabled: !formulas.length },
               { label: "Nouvelle version de formule", icon: Copy, href: `/projets/${slug}/formules/nouvelle${focus ? `?parent=${focus}` : ""}` },
               { label: "Créer un lot", icon: Package, href: `/projets/${slug}/formules/lots?creer=1${focus ? `&formule=${focus}` : ""}` },
-              { label: "Exporter la synthèse (CSV)", icon: Download, onSelect: exportCsv, separatorBefore: true },
+              { label: "Exporter la comparaison (CSV)", icon: Download, onSelect: exportCsv, separatorBefore: true },
             ]}
           />
         }
@@ -389,7 +461,7 @@ export function ComparisonView({
           />
         </Card>
       ) : (
-        <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_400px]">
+        <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
           <div className="min-w-0 space-y-5">
             {decision && (
               <div className="flex flex-wrap items-center gap-4 rounded-xl border border-brand-100 bg-brand-50/70 p-4">
@@ -418,62 +490,84 @@ export function ComparisonView({
             )}
 
             <Card className="p-5">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <h2 className="text-xl font-bold text-ink-900">Formules à comparer</h2>
-                <Button icon={<Scale className="h-4 w-4" />} onClick={openModal} guide={examinable ? undefined : 21}>
-                  Préparer la décision
-                </Button>
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-bold text-ink-900">Sélection des formules à comparer</h2>
+                  <p className="text-sm text-ink-600">Choisissez jusqu&apos;à 3 formules pour afficher la comparaison des résultats disponibles.</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {candidates.map((f) => (
+                    <Checkbox
+                      key={f.id}
+                      checked={selection.includes(f.code)}
+                      onChange={(v) => toggle(f.code, v)}
+                      label={<span className="font-medium">{f.code}</span>}
+                      className="items-center rounded-lg border border-line px-3 py-2 hover:border-brand-300"
+                    />
+                  ))}
+                </div>
               </div>
-              <div className="relative mt-4 overflow-x-auto">
-                <table className="w-full min-w-[560px] text-left text-[15px]">
-                  <thead>
-                    <tr className="bg-subtle text-sm text-ink-700">
-                      <th className="rounded-l-lg px-4 py-2.5 font-semibold">Formule</th>
-                      <th className="px-4 py-2.5 font-semibold">Statut</th>
-                      <th className="px-4 py-2.5 font-semibold">Lot testé</th>
-                      <th className="rounded-r-lg px-4 py-2.5 font-semibold">Essais conformes</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-line">
-                    {columns.map((f) => {
-                      const tests = testsForFormula(state, project.code, f.code);
-                      const ok = tests.filter((t) => t.status === "Conforme").length;
-                      const isRef = f.status === "Référence";
-                      return (
-                        <tr key={f.id} className={cn(focus === f.code && "bg-brand-50/60")}>
-                          <td className="px-4 py-3">
-                            {isRef ? (
-                              <span className="flex items-center gap-3 pl-8 font-medium text-ink-900">Référence</span>
-                            ) : (
-                              <label className="flex cursor-pointer items-center gap-3 font-semibold text-ink-900">
-                                <input type="radio" name="focus" checked={focus === f.code} onChange={() => setFocus(f.code)} className="h-5 w-5 cursor-pointer accent-brand-600" />
-                                {f.code}
-                              </label>
-                            )}
-                          </td>
-                          <td className="px-4 py-3">
-                            <FormulaStatusBadge status={f.status} size="sm" />
-                          </td>
-                          <td className="px-4 py-3 text-ink-700">{isRef ? "Produit de référence" : (tests[0]?.lotCode ?? "—")}</td>
-                          <td className="px-4 py-3 text-ink-700">{tests.length ? `${ok} / ${tests.length}` : "Aucun essai"}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
 
-            <Card className="p-5">
-              <h2 className="text-xl font-bold text-ink-900">Synthèse des résultats</h2>
-              <div className="relative mt-4 overflow-x-auto">
+              <div className={cn("mt-4 grid gap-4", columns.length >= 3 ? "grid-cols-3" : columns.length === 2 ? "grid-cols-2" : "grid-cols-1")}>
+                {columns.map((f) => {
+                  const lot = lotOf(f);
+                  const isRef = f.status === "Référence";
+                  const active = f.code === focus;
+                  return (
+                    <div
+                      key={f.id}
+                      role="button"
+                      tabIndex={0}
+                      aria-pressed={active}
+                      onClick={() => setFocus(f.code)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") setFocus(f.code);
+                      }}
+                      className={cn(
+                        "cursor-pointer rounded-xl border p-4 text-left transition-colors",
+                        active ? "border-brand-400 bg-brand-50/50 ring-1 ring-brand-300" : "border-line hover:border-brand-200",
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-xl font-extrabold text-ink-900">{lot.code}</span>
+                        <span className={cn("rounded-md px-2 py-0.5 text-sm font-medium", isRef ? "bg-slate-100 text-ink-600" : "bg-brand-50 text-brand-700")}>{isRef ? "Référence" : f.code}</span>
+                        <span className="ml-auto" onClick={(e) => e.stopPropagation()}>
+                          <Menu
+                            label={`Actions pour ${f.code}`}
+                            trigger={<Ellipsis className="h-5 w-5" />}
+                            triggerClassName="inline-flex h-8 w-8 items-center justify-center rounded-full border border-line text-ink-600 hover:bg-brand-50"
+                            items={[
+                              { label: "Voir les versions", icon: FileText, href: `/projets/${slug}/formules` },
+                              ...(lot.lot ? [{ label: `Voir le lot ${lot.code}`, icon: Package, href: `/projets/${slug}/formules/lots` }] : []),
+                              ...(!isRef ? [{ label: "Nouvelle version", icon: Copy, href: `/projets/${slug}/formules/nouvelle?parent=${f.code}` }] : []),
+                            ]}
+                          />
+                        </span>
+                      </div>
+                      <dl className="mt-3 grid grid-cols-[92px_minmax(0,1fr)] gap-y-2 text-[15px]">
+                        <dt className="text-ink-600">Formule</dt>
+                        <dd className="font-medium text-ink-900">{isRef ? "Référence" : f.code}</dd>
+                        <dt className="text-ink-600">Statut</dt>
+                        <dd>
+                          <StatusText status={f.status} />
+                        </dd>
+                        <dt className="text-ink-600">Type de lot</dt>
+                        <dd className="text-ink-800">{lot.type}</dd>
+                      </dl>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <h2 className="mt-6 text-lg font-bold text-ink-900">Comparaison des résultats</h2>
+              <div className="relative mt-3 overflow-x-auto rounded-xl border border-line">
                 <table className="w-full min-w-[620px] text-left text-[15px]">
                   <thead>
-                    <tr className="bg-subtle text-sm text-ink-700">
-                      <th className="rounded-l-lg px-4 py-2.5 font-semibold">Critère</th>
-                      {columns.map((c, i) => (
-                        <th key={c.id} className={cn("px-4 py-2.5 font-semibold", i === columns.length - 1 && "rounded-r-lg", c.code === focus && "text-brand-700")}>
-                          {c.code}
+                    <tr className="bg-subtle text-ink-900">
+                      <th className="px-4 py-3 font-semibold">Critère</th>
+                      {columns.map((c) => (
+                        <th key={c.id} className={cn("border-l border-line px-4 py-3 text-center font-semibold", c.code === focus && "text-brand-700")}>
+                          {c.status === "Référence" ? "Référence" : c.code} ({lotOf(c).code})
                         </th>
                       ))}
                     </tr>
@@ -481,13 +575,14 @@ export function ComparisonView({
                   <tbody className="divide-y divide-line">
                     {criteria.map((cr) => (
                       <tr key={cr}>
-                        <td className="px-4 py-3 font-medium text-ink-900">{cr}</td>
+                        <td className="px-4 py-2.5 text-ink-900">{cr}</td>
                         {columns.map((c) => {
                           const t = testsForFormula(state, project.code, c.code).find((x) => x.criterion === cr);
                           return (
-                            <td key={c.id} className={cn("px-4 py-3 align-top", c.code === focus && "bg-brand-50/50")}>
-                              <TestStatusText status={t?.status} short />
-                              {t?.result && <span className="mt-0.5 block text-xs text-ink-500">{t.result}</span>}
+                            <td key={c.id} className={cn("border-l border-line px-4 py-2.5", c.code === focus && "bg-brand-50/40")}>
+                              <span className="flex justify-center">
+                                <ResultCell status={t?.status} result={t?.result} />
+                              </span>
                             </td>
                           );
                         })}
@@ -503,39 +598,94 @@ export function ComparisonView({
                   </tbody>
                 </table>
               </div>
+
+              {blocked.length > 0 ? (
+                <p className="mt-4 flex items-start gap-3 rounded-xl border border-warn-200 bg-warn-50 px-4 py-3 text-[15px] text-ink-800">
+                  <TriangleAlert className="h-5 w-5 shrink-0 fill-warn-500 text-white" aria-hidden />
+                  <span>
+                    <strong className="font-semibold text-warn-700">La sélection finale reste bloquée</strong> tant que les essais requis ne sont pas disponibles
+                    <span className="text-ink-600"> ({blocked.map((f) => `${f.code} : ${pendingOf(f).map((t) => t.criterion.toLowerCase()).join(", ")}`).join(" ; ")})</span>.
+                  </span>
+                </p>
+              ) : (
+                <p className="mt-4 flex items-start gap-3 rounded-xl border border-success-500/30 bg-success-50 px-4 py-3 text-[15px] text-success-700">
+                  <CircleCheck className="h-5 w-5 shrink-0 fill-success-500 text-white" aria-hidden />
+                  Tous les essais requis sont disponibles : la sélection finale peut être proposée.
+                </p>
+              )}
+
+              <div className="mt-4 flex flex-wrap gap-3">
+                <Button variant="outline" size="lg" icon={<FileText className="h-5 w-5" />} onClick={exportCsv} className="min-w-60">
+                  Exporter la comparaison
+                </Button>
+                <Button size="lg" icon={<CirclePlus className="h-5 w-5" />} onClick={() => router.push(`/projets/${slug}/formules/nouvelle${focus ? `?parent=${focus}` : ""}`)} className="min-w-56">
+                  Ajouter une formule
+                </Button>
+              </div>
             </Card>
           </div>
 
-          <div className="space-y-5">
-            <Card className="p-5">
+          {focusFormula && focusLot && (
+            <Card className="h-fit p-5 xl:sticky xl:top-[96px]">
               <div className="flex items-center justify-between gap-3">
-                <h2 className="text-lg font-bold text-ink-900">État des essais – {focus}</h2>
-                {focusFormula && <FormulaStatusBadge status={focusFormula.status} size="sm" />}
+                <h2 className="text-lg font-bold text-ink-900">
+                  {focusFormula.status === "Référence" ? "Référence" : `Formule ${focusFormula.code}`} – {focusLot.code}
+                </h2>
+                <Badge tone={FORMULA_DOT[focusFormula.status]} dot>
+                  {focusFormula.status === "Référence" ? "Validée" : focusFormula.status}
+                </Badge>
               </div>
-              {focusTests.length ? (
-                <ul className="mt-3 divide-y divide-line rounded-xl border border-line">
-                  {focusTests.map((t) => {
+              <dl className="mt-4 grid grid-cols-[150px_minmax(0,1fr)] gap-y-2.5 rounded-xl border border-line p-4 text-[15px]">
+                <dt className="text-ink-600">Formule</dt>
+                <dd className="text-ink-900">{focusFormula.code}</dd>
+                <dt className="text-ink-600">Lot</dt>
+                <dd className="text-ink-900">{focusLot.code}</dd>
+                <dt className="text-ink-600">Type de lot</dt>
+                <dd className="text-ink-900">{focusLot.type}</dd>
+                <dt className="text-ink-600">Statut</dt>
+                <dd>
+                  <StatusText status={focusFormula.status} />
+                </dd>
+                <dt className="text-ink-600">Date de fabrication</dt>
+                <dd className="text-ink-900">{focusLot.lot ? formatNumeric(focusLot.lot.createdAt) : "—"}</dd>
+                <dt className="text-ink-600">Quantité produite</dt>
+                <dd className="text-ink-900">{focusLot.lot?.status === "Disponible" ? `${formatNumber(focusLot.lot.quantity)} ${focusLot.lot.unit}` : "—"}</dd>
+              </dl>
+
+              <h3 className="mt-5 font-bold text-ink-900">Essais et résultats</h3>
+              {focusTests.length === 0 ? (
+                <p className="mt-2 rounded-lg bg-subtle p-3 text-sm text-ink-500">Aucun essai réalisé sur cette formule. Créez un lot d&apos;essai pour lancer les analyses.</p>
+              ) : toWatch.length === 0 ? (
+                <p className="mt-2 flex items-center gap-2 rounded-lg bg-success-50 p-3 text-sm text-success-700">
+                  <CircleCheck className="h-5 w-5 fill-success-500 text-white" aria-hidden />
+                  Tous les essais sont conformes ({focusTests.length} / {focusTests.length}).
+                </p>
+              ) : (
+                <ul className="mt-2 divide-y divide-line border-y border-line">
+                  {toWatch.map((t) => {
                     const Icon = CRITERION_ICONS[t.criterion] ?? FileText;
                     return (
-                      <li key={t.id} className="flex items-center gap-3 px-4 py-2.5">
-                        <Icon className="h-5 w-5 text-ink-600" strokeWidth={1.6} aria-hidden />
-                        <span className="flex-1 text-[15px] text-ink-800">{t.criterion}</span>
-                        <TestStatusText status={t.status} />
+                      <li key={t.id}>
+                        <Link href={`/projets/${slug}/essais`} className="flex items-center gap-3 px-1 py-2.5 hover:bg-brand-50/50">
+                          <Icon className="h-5 w-5 text-ink-600" strokeWidth={1.6} aria-hidden />
+                          <span className="min-w-0 flex-1 truncate text-[15px] text-ink-900">
+                            {t.method ? `${t.method} – ` : ""}
+                            {t.criterion}
+                          </span>
+                          <ResultCell status={t.status} result={t.result} compact />
+                          <ChevronRight className="h-4 w-4 text-ink-500" aria-hidden />
+                        </Link>
                       </li>
                     );
                   })}
                 </ul>
-              ) : (
-                <p className="mt-3 rounded-lg bg-subtle p-4 text-sm text-ink-500">Aucun essai réalisé sur cette formule. Créez un lot d&apos;essai pour lancer les analyses.</p>
               )}
-            </Card>
 
-            <Card className="p-5">
-              <h2 className="text-lg font-bold text-ink-900">Documents associés – {focus}</h2>
+              <h3 className="mt-5 font-bold text-ink-900">Documents associés</h3>
               {focusDocs.length ? (
-                <ul className="mt-3 divide-y divide-line">
+                <ul className="mt-2 space-y-2">
                   {focusDocs.map((d) => (
-                    <li key={d.id} className="flex items-center gap-3 py-3">
+                    <li key={d.id} className="flex items-center gap-3 rounded-xl border border-line px-3 py-2.5">
                       <FileText className="h-7 w-7 text-ink-600" strokeWidth={1.4} aria-hidden />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate font-semibold text-ink-900">
@@ -562,18 +712,29 @@ export function ComparisonView({
                   ))}
                 </ul>
               ) : (
-                <p className="mt-3 text-sm text-ink-500">Aucun document rattaché à cette formule.</p>
+                <p className="mt-2 text-sm text-ink-500">Aucun document rattaché à cette formule.</p>
               )}
-              <LinkButton
-                href={`/projets/${slug}/documents`}
-                variant="outline"
-                className="mt-3 w-full justify-between"
-                iconRight={<ChevronRight className="h-4 w-4" />}
-              >
-                <span className="flex-1 text-center">Voir tous les documents</span>
-              </LinkButton>
+
+              {focusFormula.status !== "Référence" && (
+                <Button
+                  size="lg"
+                  className="mt-5 w-full justify-start"
+                  icon={<FileText className="h-5 w-5" />}
+                  onClick={examinable ? openExamModal : openModal}
+                  guide={examinable ? undefined : guideDecision ? 20 : 21}
+                  guideHint="Préparez la décision sur la formule F2."
+                  iconRight={
+                    <span className="ml-auto inline-flex items-center gap-1.5 rounded-md bg-white/20 px-2.5 py-1 text-xs font-semibold">
+                      <span className="h-2 w-2 rounded-sm bg-current" aria-hidden />
+                      {decision ? DECISION_BANNER[decision.status].badge : "Brouillon"}
+                    </span>
+                  }
+                >
+                  {examinable ? "Consulter la décision" : "Préparer la décision"}
+                </Button>
+              )}
             </Card>
-          </div>
+          )}
         </div>
       )}
 
@@ -582,7 +743,7 @@ export function ComparisonView({
           key={decisionKey}
           project={project}
           formulas={formulas}
-          initialFormula={focus || defaultFocus}
+          initialFormula={focus && focus !== reference?.code ? focus : defaultFocus}
           open={decisionOpen}
           onClose={() => {
             setDecisionOpen(false);
@@ -602,8 +763,10 @@ export function ComparisonView({
       />
       {examOpen || (examinable && !decisionOpen) ? (
         <ScreenRef n={21} label="Décision — examen et approbation" />
-      ) : (
+      ) : decisionOpen ? (
         <ScreenRef n={20} label="Décision sur une formule" />
+      ) : (
+        <ScreenRef n={19} label="Comparaison des formules" />
       )}
     </>
   );

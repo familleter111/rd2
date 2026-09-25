@@ -17,6 +17,7 @@ import type {
   ProtocolParams,
   Resource,
   StabilityMilestone,
+  StabilityTest,
   StabilityStudy,
   TestPlan,
 } from "./types";
@@ -928,6 +929,19 @@ export const STANDARD_MILESTONES = (): StabilityMilestone[] =>
     ["M12", 12],
   ].map(([code, months]) => ({ id: `ms-${code}`, code: code as string, months: months as number, status: "À planifier" as const }));
 
+/** Storage conditions proposed by the stability protocol (ICH Q1A). */
+export const STORAGE_CONDITIONS = ["25 °C / 60 % HR (long terme)", "30 °C / 65 % HR (intermédiaire)", "30 °C / 75 % HR (zone IVb)", "40 °C / 75 % HR (accéléré)"];
+
+/** Analytical tests of a tablet stability protocol. */
+export const TABLET_STABILITY_TESTS = (): StabilityTest[] => [
+  { id: "t-aspect", name: "Aspect", method: "Examen visuel", equipment: "—", description: "Conforme / Non conforme", selected: true },
+  { id: "t-dosage", name: "Dosage", method: "M-01 • Dosage PA", equipment: "HPLC-01", description: "Dosage du principe actif", selected: true },
+  { id: "t-dissolution", name: "Dissolution", method: "M-02 • Dissolution", equipment: "UV-01", description: "Profil de dissolution", selected: true },
+];
+
+/** Values of the schedule of ST-01 shown by mock-up 42. */
+export const SCHEDULE_EXAMPLE = { startDate: "2026-10-12", storage: STORAGE_CONDITIONS[0], responsible: PEOPLE_LAB.julie.name };
+
 export function studies(): StabilityStudy[] {
   return [
     {
@@ -940,7 +954,21 @@ export function studies(): StabilityStudy[] {
       owner: PEOPLE_LAB.sophie.name,
       status: "À préparer",
       nextTask: { title: "Préparer le protocole", detail: "Rédiger et finaliser le protocole de l'étude de stabilité." },
-      alerts: [],
+      results: [],
+      alerts: [
+        {
+          id: "al-st01",
+          title: "Protocole incomplet",
+          description: "Le protocole de l'étude doit être complété (condition de stockage, date de départ) puis approuvé avant l'activation de l'échéancier.",
+          origin: "Documentation",
+          tag: "À compléter",
+          level: "Moyen",
+          status: "Ouverte",
+          due: "2026-10-05",
+          responsible: PEOPLE_LAB.sophie.name,
+          date: "2026-09-24",
+        },
+      ],
     },
     {
       id: "ST-02",
@@ -951,16 +979,16 @@ export function studies(): StabilityStudy[] {
       dosage: "100 mg",
       owner: PEOPLE_LAB.thomas.name,
       status: "En cours",
-      nextTask: { title: "Prélèvement à planifier", detail: "Planifier le prélèvement M3 (40 °C / 75 % HR)." },
+      nextTask: { title: "Prélèvement à planifier", detail: "Planifier le prélèvement M3 (25 °C / 60 % HR)." },
       protocol: {
-        status: "Soumis",
+        status: "Approuvé",
         responsible: PEOPLE_LAB.thomas.name,
         formula: "F2",
         lot: "E-02",
         startDate: "2026-09-20",
-        storage: "40 °C / 75 % HR (accéléré)",
+        storage: STORAGE_CONDITIONS[0],
         packaging: "Blister de démonstration",
-        tests: [],
+        tests: TABLET_STABILITY_TESTS(),
         milestones: [
           { id: "ms-T0", code: "T0", months: 0, status: "Réalisée", date: "2026-09-20" },
           { id: "ms-M3", code: "M3", months: 3, status: "Planifiée", date: "2026-12-20" },
@@ -969,8 +997,42 @@ export function studies(): StabilityStudy[] {
         documents: [],
         updatedAt: "2026-09-20",
         submittedAt: "2026-09-18",
+        approvedAt: "2026-09-19",
+        approvedBy: PEOPLE_LAB.marieL.name,
+        scheduleActivatedAt: "2026-09-19",
       },
-      alerts: [{ id: "al-1", title: "Prélèvement M3 à planifier", detail: "Aucun créneau réservé sur ETU-01 pour le 20/12/2026.", tone: "warn", date: "2026-12-20" }],
+      results: [
+        {
+          id: "res-st02-t0",
+          point: "T0",
+          method: "M-01",
+          analysis: "Dosage PA",
+          storage: STORAGE_CONDITIONS[0],
+          status: "Validé",
+          value: "99,1",
+          unit: "%",
+          source: "Analyse interne — HPLC-01",
+          comment: "",
+          attachments: [{ name: "Chromatogramme_T0_ST-02.pdf", size: "420 Ko" }],
+          report: "Rapport T0",
+          updatedAt: "2026-09-21T16:10",
+        },
+        { id: "res-st02-m3", point: "M3", method: "M-01", analysis: "Dosage PA", storage: STORAGE_CONDITIONS[0], status: "À saisir", value: "", unit: "%", source: "", comment: "", attachments: [] },
+        { id: "res-st02-m6", point: "M6", method: "M-02", analysis: "Dissolution", storage: STORAGE_CONDITIONS[0], status: "À venir", value: "", unit: "%", source: "", comment: "", attachments: [] },
+      ],
+      alerts: [
+        {
+          id: "al-1",
+          title: "Prélèvement M3 à planifier",
+          description: "Le prélèvement du point M3 doit être planifié conformément à l'échéancier de l'étude. Aucune activité n'est encore programmée.",
+          origin: "Échéancier",
+          tag: "À planifier",
+          level: "Moyen",
+          status: "Ouverte",
+          responsible: PEOPLE_LAB.julie.name,
+          date: "2026-09-22",
+        },
+      ],
     },
     {
       id: "ST-03",
@@ -982,7 +1044,21 @@ export function studies(): StabilityStudy[] {
       owner: PEOPLE_LAB.claireD.name,
       status: "En revue",
       nextTask: { title: "Examiner les résultats", detail: "Résultats T0 et M1 à examiner avant clôture." },
-      alerts: [{ id: "al-2", title: "Résultats à examiner", detail: "Résultats M1 disponibles depuis le 20/09/2026.", tone: "info", date: "2026-09-20" }],
+      results: [],
+      alerts: [
+        {
+          id: "al-2",
+          title: "Résultats en attente de revue",
+          description: "Les résultats M1 sont disponibles depuis le 20/09/2026 : ils doivent être examinés avant la clôture de l'étude.",
+          origin: "Résultats",
+          tag: "En attente",
+          level: "Faible",
+          status: "Ouverte",
+          due: "2026-09-30",
+          responsible: PEOPLE_LAB.claireD.name,
+          date: "2026-09-20",
+        },
+      ],
     },
     {
       id: "ST-04",
@@ -994,7 +1070,8 @@ export function studies(): StabilityStudy[] {
       owner: PEOPLE_LAB.thomas.name,
       status: "En cours",
       nextTask: { title: "Contrôle T6 à planifier", detail: "Analyse des échantillons à 6 mois (M-10, M-11)." },
-      alerts: [{ id: "al-3", title: "Échéance T6 proche", detail: "Contrôle à réaliser avant le 15/10/2026.", tone: "warn", date: "2026-10-15" }],
+      results: [],
+      alerts: [],
     },
   ];
 }

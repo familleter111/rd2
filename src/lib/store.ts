@@ -11,6 +11,7 @@ import { createSeed, type DemoState } from "./data";
 import { DEMO_TODAY, addDays } from "./format";
 import { dossier } from "./dossier";
 import { decisionCircuit, lab } from "./lab";
+import { prerequisite } from "./prerequisites";
 import { nextNumber, pad2, projectLabel, stamp, uid, withEvent } from "./state-utils";
 import type {
   Activity,
@@ -19,7 +20,7 @@ import type {
   Formula,
   LotType,
   OverviewFilters,
-  PrerequisiteStatus,
+  Prerequisite,
   Project,
   ProjectDocument,
   ProjectDraft,
@@ -211,14 +212,18 @@ export const actions = {
       archived: false,
     };
 
-    const prerequisites = PREREQUISITE_TEMPLATES.filter((t) => draft.prerequisites.includes(t.name)).map((t) => ({
+    const prerequisites: Prerequisite[] = PREREQUISITE_TEMPLATES.filter((t) => draft.prerequisites.includes(t.name)).map((t) => ({
       id: uid("pr"),
       projectCode: code,
+      category: t.category,
       name: t.name,
       detail: t.detail,
       source: t.source,
+      importance: t.blocking ? "Très importante" : "Importante",
+      quality: "Non disponible",
       icon: t.icon,
-      status: "À planifier" as const,
+      status: "Non disponible",
+      blocking: t.blocking || undefined,
     }));
 
     const documents: ProjectDocument[] = draft.files.map((f) => ({
@@ -440,7 +445,7 @@ export const actions = {
       ...state,
       requests: [...state.requests, { ...input, ref, status: "À traiter", createdAt: DEMO_TODAY }],
       prerequisites: state.prerequisites.map((p) =>
-        p.id === input.prerequisiteId ? { ...p, status: "Demandé", requestRef: ref } : p,
+        p.id === input.prerequisiteId ? { ...p, status: "En cours de réception", requestRef: ref, date: input.wishedDate } : p,
       ),
     };
     s = withEvent(s, {
@@ -457,25 +462,23 @@ export const actions = {
     commit(s);
     return ref;
   },
-  setPrerequisiteStatus(id: string, status: PrerequisiteStatus) {
-    const prereq = state.prerequisites.find((p) => p.id === id);
-    if (!prereq) return;
-    const s = { ...state, prerequisites: state.prerequisites.map((p) => (p.id === id ? { ...p, status } : p)) };
-    commit(
-      withEvent(s, {
-        projectCode: prereq.projectCode,
-        title: status === "Satisfait" ? "Prérequis satisfait" : "Statut de prérequis modifié",
-        context: `${prereq.projectCode} • ${prereq.name}`,
-        object: "Prérequis",
-        objectLabel: `${prereq.projectCode} • Prérequis : ${prereq.name}`,
-        type: "Modification",
-        field: "Statut",
-        oldValue: prereq.status,
-        newValue: status,
-        icon: "check",
-        href: `/projets/${prereq.projectCode.toLowerCase()}/prerequis`,
-      }),
-    );
+  /* Screens 12 → 14: pure transitions in `lib/prerequisites.ts`. */
+  updatePrerequisite(id: string, patch: Parameters<typeof prerequisite.update>[2]) {
+    commit(prerequisite.update(state, id, patch));
+  },
+  addPrerequisite(input: Parameters<typeof prerequisite.add>[2]) {
+    const id = uid("pr");
+    commit(prerequisite.add(state, id, input));
+    return id;
+  },
+  importPrerequisiteDocument(id: string, input: Parameters<typeof prerequisite.importDocument>[2]) {
+    commit(prerequisite.importDocument(state, id, input));
+  },
+  detachPrerequisiteFile(id: string) {
+    commit(prerequisite.detachFile(state, id));
+  },
+  remindPrerequisite(id: string) {
+    commit(prerequisite.remind(state, id));
   },
 
   /* Documents */

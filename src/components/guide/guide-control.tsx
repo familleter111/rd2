@@ -18,10 +18,21 @@ function missingScreens() {
   return missing;
 }
 
+/** Consecutive steps of the same section (a section can come back later in the story). */
+function sectionGroups() {
+  const groups: { section: string; steps: typeof GUIDE_STEPS }[] = [];
+  for (const step of GUIDE_STEPS) {
+    const last = groups.at(-1);
+    if (last?.section === step.section) last.steps.push(step);
+    else groups.push({ section: step.section, steps: [step] });
+  }
+  return groups;
+}
+
 function GuidePanel() {
   const { panelOpen, enabled, current } = useGuideUi();
   const router = useRouter();
-  const sections = [...new Set(GUIDE_STEPS.map((s) => s.section))];
+  const groups = sectionGroups();
   const missing = missingScreens();
 
   return (
@@ -45,11 +56,11 @@ function GuidePanel() {
         Ouvrir un écran depuis cette liste remet les données de démonstration dans l&apos;état de la maquette correspondante.
       </p>
       <div className="mt-4 max-h-[52vh] space-y-5 overflow-y-auto pr-1">
-        {sections.map((section) => (
-          <section key={section}>
+        {groups.map(({ section, steps }) => (
+          <section key={`${section}-${steps[0].n}`}>
             <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-500">{section}</h3>
-            <ul className="grid gap-1.5 sm:grid-cols-2">
-              {GUIDE_STEPS.filter((s) => s.section === section).map((step) => {
+            <ul className="grid grid-cols-2 gap-1.5">
+              {steps.map((step) => {
                 const here = step.n === current;
                 return (
                   <li key={step.n}>
@@ -86,10 +97,12 @@ function GuidePanel() {
             </ul>
           </section>
         ))}
-        <section>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-500">Maquettes non fournies</h3>
-          <p className="text-sm text-ink-600">{missing.map(pad).join(", ")}</p>
-        </section>
+        {missing.length > 0 && (
+          <section>
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-500">Maquettes non fournies</h3>
+            <p className="text-sm text-ink-600">{missing.map(pad).join(", ")}</p>
+          </section>
+        )}
       </div>
     </Modal>
   );
@@ -110,7 +123,7 @@ export function GuideControl() {
         className="flex h-12 shrink-0 cursor-pointer items-center gap-2 rounded-xl border border-line-strong bg-white px-3 text-sm font-semibold text-ink-700 shadow-card transition-colors hover:border-brand-300 hover:text-brand-700"
       >
         <ListOrdered className="h-5 w-5" strokeWidth={1.8} aria-hidden />
-        <span className="hidden tabular-nums sm:inline">{here ? `Écran ${pad(here.n)} / ${TOTAL_SCREENS}` : "Parcours"}</span>
+        <span className="tabular-nums">{here ? `Écran ${pad(here.n)} / ${TOTAL_SCREENS}` : "Parcours"}</span>
       </button>
       <GuidePanel />
     </>

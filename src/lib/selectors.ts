@@ -52,7 +52,7 @@ export function findProject(s: DemoState, slug: string) {
 }
 
 export function blockingPrerequisites(s: DemoState, projectCode: string) {
-  return s.prerequisites.filter((p) => p.projectCode === projectCode && p.blocking && p.status !== "Satisfait");
+  return s.prerequisites.filter((p) => p.projectCode === projectCode && p.blocking && p.status !== "Vérifié");
 }
 
 export type BadgeIcon = StageIcon | "warning";

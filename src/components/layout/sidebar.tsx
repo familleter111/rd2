@@ -45,7 +45,7 @@ function isActive(pathname: string, item: NavItem) {
   return [item.href, ...(item.also ?? [])].some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
-function NavLink({ item, pathname, onNavigate }: { item: NavItem; pathname: string; onNavigate?: () => void }) {
+function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
   const active = isActive(pathname, item);
   const guided = useGuideTarget(item.guide) && !active;
   const go = useGuideNav();
@@ -59,7 +59,6 @@ function NavLink({ item, pathname, onNavigate }: { item: NavItem; pathname: stri
           e.preventDefault();
           go(item.guide);
         }
-        onNavigate?.();
       }}
       aria-current={active ? "page" : undefined}
       className={cn(
@@ -77,7 +76,7 @@ function NavLink({ item, pathname, onNavigate }: { item: NavItem; pathname: stri
   );
 }
 
-export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+function SidebarContent() {
   const pathname = usePathname();
   const guideConfig = useGuideTarget(54) && !pathname.startsWith("/configuration");
   const go = useGuideNav();
@@ -85,7 +84,6 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
     <div className="flex h-full flex-col">
       <Link
         href="/vue-ensemble"
-        onClick={onNavigate}
         className="mx-auto flex flex-col items-center px-4 pb-7 pt-7"
         aria-label="Laboratoires SIMED — Espace R&D, accueil"
       >
@@ -95,7 +93,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
       <nav aria-label="Navigation principale" className="flex-1 space-y-1.5 overflow-y-auto">
         {NAV_ITEMS.map((item) => (
-          <NavLink key={item.href} item={item} pathname={pathname} onNavigate={onNavigate} />
+          <NavLink key={item.href} item={item} pathname={pathname} />
         ))}
       </nav>
 
@@ -107,7 +105,6 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
               e.preventDefault();
               go(54);
             }
-            onNavigate?.();
           }}
           className={cn(
             "flex h-11 items-center gap-3.5 rounded-lg px-3 text-[15px] font-medium transition-colors",
@@ -121,7 +118,6 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         </Link>
         <Link
           href="/profil"
-          onClick={onNavigate}
           className={cn(
             "flex h-11 items-center gap-3.5 rounded-lg px-3 text-[15px] font-medium transition-colors",
             pathname.startsWith("/profil") ? "bg-brand-100/80 text-brand-700" : "text-ink-800 hover:bg-brand-50",
@@ -138,7 +134,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
 export function Sidebar() {
   return (
-    <aside className="fixed inset-y-0 left-0 z-30 hidden w-[264px] border-r border-line bg-white lg:block">
+    <aside className="sticky top-0 z-30 h-screen w-[264px] shrink-0 border-r border-line bg-white">
       <SidebarContent />
     </aside>
   );

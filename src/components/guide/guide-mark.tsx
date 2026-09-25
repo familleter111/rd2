@@ -90,7 +90,7 @@ function Dot({
 
   useEffect(() => {
     const el = ref.current;
-    // Circles inside hidden containers (desktop sidebar on mobile…) do not count.
+    // Circles inside hidden containers (closed menu, inactive panel…) do not count.
     if (!register || !el || el.getClientRects().length === 0) return;
     dotElements.add(el);
     guideUi.addDot();
@@ -176,7 +176,7 @@ export function GuideSpot({
   );
 }
 
-const FLOATING = "fixed bottom-5 right-5 z-[55] sm:bottom-7 sm:right-7";
+const FLOATING = "fixed bottom-7 right-7 z-[55]";
 
 /**
  * Bottom-right circle of the tour:
@@ -195,7 +195,7 @@ export function GuideFloatingDot() {
     if (dotsInView > 0 || !next) return null;
     const Arrow = dotSide === "up" ? ArrowUp : ArrowDown;
     return (
-      <motion.div key={`${current}-scroll`} {...enter} className={FLOATING}>
+      <motion.div key={`${current}-scroll`} {...enter} className={FLOATING} data-guide-floating>
         <Dot
           step={next.n}
           size="lg"
@@ -230,7 +230,7 @@ export function GuideFloatingDot() {
   }
 
   return (
-    <motion.div key={current} {...enter} className={FLOATING}>
+    <motion.div key={current} {...enter} className={FLOATING} data-guide-floating>
       <Dot step={next.n} size="lg" register={false} className="relative" hint={`Dans l'application : ${next.hint}.`} />
     </motion.div>
   );

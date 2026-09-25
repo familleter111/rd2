@@ -61,19 +61,49 @@ export interface Project {
   closeReason?: string;
 }
 
-export type PrerequisiteStatus = "Satisfait" | "En attente" | "À planifier" | "Demandé";
+export type PrerequisiteCategory = "Documents" | "Matières" | "Ressources";
+
+/** Reception of a prerequisite (screen 12): missing → requested / expected → received → verified. */
+export type PrerequisiteStatus = "Non disponible" | "En cours de réception" | "Reçu" | "Vérifié";
+
+export type PrerequisiteImportance = "Très importante" | "Importante" | "Normale";
+
+export type PrerequisiteQuality = "Non disponible" | "À vérifier" | "Conforme" | "Non conforme";
+
+export interface PrerequisiteFile {
+  name: string;
+  size: string;
+  pages?: number;
+  /** Information checked in the import dialog (screen 13). */
+  fields?: { label: string; value: string }[];
+}
 
 export interface Prerequisite {
   id: string;
   projectCode: string;
+  category: PrerequisiteCategory;
   name: string;
+  /** Description shown under the title of the detail panel. */
   detail: string;
+  /** Department in charge of the piece ("Responsable"). */
   source: string;
-  icon: "doc" | "flask";
+  importance: PrerequisiteImportance;
+  quality: PrerequisiteQuality;
+  icon: "doc" | "flask" | "sample";
   status: PrerequisiteStatus;
+  /** Version or nature of the supporting piece ("v3", "DMF/CEP", "Dossier complet"). */
+  reference?: string;
+  /** Verification date, or expected reception date. */
+  date?: string;
+  /** Agreement of "Vérifié" in the list ("Vérifiée", "Vérifiés"). */
+  agreement?: "f" | "pl";
+  /** The review cannot be prepared while it is not verified (named in the alert). */
   blocking?: boolean;
   requestRef?: string;
   documentId?: string;
+  file?: PrerequisiteFile;
+  /** Set when a document was imported and checked (screen 13). */
+  importedAt?: string;
   defaultJustification?: string;
 }
 
@@ -767,10 +797,10 @@ export interface DeviationDraft {
 }
 
 /* ------------------------------------------------------------------ */
-/* Stability (screens 40–41)                                           */
+/* Stability (screens 40–44)                                           */
 /* ------------------------------------------------------------------ */
 
-export type StudyStatus = "À préparer" | "Protocole en cours" | "Protocole soumis" | "En cours" | "En revue";
+export type StudyStatus = "À préparer" | "Protocole en cours" | "Protocole soumis" | "Protocole approuvé" | "En cours" | "En revue";
 
 export interface StabilityTest {
   id: string;
@@ -790,7 +820,8 @@ export interface StabilityMilestone {
 }
 
 export interface StabilityProtocol {
-  status: "Brouillon" | "Soumis";
+  /** The schedule (screen 42) can only be activated once the protocol is approved. */
+  status: "Brouillon" | "Soumis" | "Approuvé";
   responsible: string;
   formula: string;
   lot: string;
@@ -802,6 +833,52 @@ export interface StabilityProtocol {
   documents: { id: string; name: string; date: string }[];
   updatedAt: string;
   submittedAt?: string;
+  approvedAt?: string;
+  approvedBy?: string;
+  /** Set when the schedule is activated: the sampling points become "Planifiée". */
+  scheduleActivatedAt?: string;
+}
+
+/** Result of one analysis at one sampling point (screen 43). */
+export type StabilityResultStatus = "À venir" | "À saisir" | "Brouillon" | "Soumis" | "Validé";
+
+export interface StabilityResult {
+  id: string;
+  /** Sampling point ("T0", "M3"…). */
+  point: string;
+  method: string;
+  analysis: string;
+  storage: string;
+  status: StabilityResultStatus;
+  value: string;
+  unit: string;
+  source: string;
+  comment: string;
+  attachments: { name: string; size: string }[];
+  /** Report of a validated result ("Rapport T0"). */
+  report?: string;
+  updatedAt?: string;
+}
+
+export type StabilityAlertLevel = "Faible" | "Moyen" | "Élevé";
+export type StabilityAlertStatus = "Ouverte" | "Prise en charge" | "Résolue";
+
+/** Stability alert (screen 44). */
+export interface StabilityAlert {
+  id: string;
+  title: string;
+  description: string;
+  origin: "Échéancier" | "Résultats" | "Documentation";
+  /** State tag next to the origin ("À planifier", "En attente", "À compléter"). */
+  tag: string;
+  level: StabilityAlertLevel;
+  status: StabilityAlertStatus;
+  /** Due date; "À confirmer" when empty. */
+  due?: string;
+  responsible: string;
+  date: string;
+  /** Activity created from the alert ("Créer une activité"). */
+  activityId?: string;
 }
 
 export interface StabilityStudy {
@@ -815,7 +892,8 @@ export interface StabilityStudy {
   status: StudyStatus;
   nextTask: { title: string; detail: string };
   protocol?: StabilityProtocol;
-  alerts: { id: string; title: string; detail: string; tone: Tone; date: string }[];
+  results: StabilityResult[];
+  alerts: StabilityAlert[];
 }
 
 export interface Notification {

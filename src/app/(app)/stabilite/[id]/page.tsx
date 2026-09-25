@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
-import { StudyView } from "@/components/stability/study-view";
+import { StudyView, type StudyTab } from "@/components/stability/study-view";
 
-export const metadata: Metadata = { title: "Protocole de stabilité" };
+export const metadata: Metadata = { title: "Étude de stabilité" };
 
-export default async function Page({ params }: PageProps<"/stabilite/[id]">) {
+const TABS: StudyTab[] = ["protocole", "echeancier", "resultats", "documents", "historique"];
+
+export default async function Page({ params, searchParams }: PageProps<"/stabilite/[id]">) {
   const { id } = await params;
-  return <StudyView key={id} id={id} />;
+  const { onglet, point } = await searchParams;
+  const tab = TABS.find((t) => t === onglet) ?? "protocole";
+  const resultId = typeof point === "string" ? point : undefined;
+  return <StudyView key={`${id}-${tab}-${resultId ?? ""}`} id={id} initialTab={tab} initialPoint={resultId} />;
 }

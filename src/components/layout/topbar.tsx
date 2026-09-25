@@ -1,20 +1,18 @@
 "use client";
 
-import { Bell, Check, ChevronDown, Database, ListOrdered, Menu as MenuIcon, RotateCcw, Search, X } from "lucide-react";
+import { Bell, Check, ChevronDown, Database, ListOrdered, RotateCcw, Search, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState, type FormEvent } from "react";
 import { GuideControl } from "@/components/guide/guide-control";
 import { GuideDot } from "@/components/guide/guide-mark";
 import { StatusDot } from "@/components/ui/badge";
-import { Drawer } from "@/components/ui/drawer";
 import { ConfirmDialog } from "@/components/ui/modal";
 import { useDismissable } from "@/components/ui/overlay";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
 import { advanceTo, guideUi, useGuideTarget } from "@/lib/guide";
 import { actions, useDemo } from "@/lib/store";
-import { SidebarContent } from "./sidebar";
 
 const searchShell =
   "flex h-12 min-w-0 flex-1 max-w-[720px] items-center gap-3 rounded-xl border border-line-strong bg-white/90 px-4 transition-[border-color,box-shadow] focus-within:border-brand-500 focus-within:ring-3 focus-within:ring-brand-100";
@@ -220,34 +218,14 @@ function EnvironmentMenu() {
   );
 }
 
-function MobileNav() {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <button
-        type="button"
-        aria-label="Ouvrir le menu"
-        onClick={() => setOpen(true)}
-        className="flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-xl text-ink-700 hover:bg-white lg:hidden"
-      >
-        <MenuIcon className="h-6 w-6" />
-      </button>
-      <Drawer open={open} onClose={() => setOpen(false)} title="Menu" side="left" widthClass="max-w-[300px]" icon={<span />} bodyClassName="px-0 pb-0">
-        <SidebarContent onNavigate={() => setOpen(false)} />
-      </Drawer>
-    </>
-  );
-}
-
 export function Topbar() {
   return (
     <header className="sticky top-0 z-20 border-b border-line/70 bg-canvas/85 backdrop-blur-md">
-      <div className="mx-auto flex h-[76px] max-w-[1600px] items-center gap-2 px-4 sm:gap-3 sm:px-8">
-        <MobileNav />
+      <div className="mx-auto flex h-[76px] max-w-[1600px] items-center gap-3 px-8">
         <Suspense fallback={<div className={searchShell} />}>
           <SearchBox />
         </Suspense>
-        <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-3">
+        <div className="ml-auto flex shrink-0 items-center gap-3">
           <GuideControl />
           <Notifications />
           <EnvironmentMenu />

@@ -4,13 +4,14 @@ import { Toaster } from "@/components/ui/toast";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
 
+/** Desktop shell (web only): the sidebar stays visible, narrower windows scroll horizontally. */
 export function AppShell({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen">
+    <div className="flex min-h-screen min-w-[1200px]">
       <Sidebar />
-      <div className="lg:pl-[264px]">
+      <div className="min-w-0 flex-1">
         <Topbar />
-        <main id="contenu" className="mx-auto max-w-[1600px] px-4 pb-6 pt-6 sm:px-8 sm:pt-7">
+        <main id="contenu" className="mx-auto max-w-[1600px] px-8 pb-6 pt-7">
           {children}
         </main>
       </div>

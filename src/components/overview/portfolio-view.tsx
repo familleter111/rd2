@@ -239,7 +239,7 @@ export function PortfolioView({ openFilters = false }: { openFilters?: boolean }
   });
   const visible = filterProjects(state, scoped, state.filters);
   const codes = new Set(visible.map((p) => p.code));
-  const blocking = state.prerequisites.filter((p) => codes.has(p.projectCode) && p.blocking && p.status !== "Satisfait").length;
+  const blocking = state.prerequisites.filter((p) => codes.has(p.projectCode) && p.blocking && p.status !== "Vérifié").length;
   const reviewsToPrepare = state.reviews.filter((r) => r.status === "a-preparer" && codes.has(r.projectCode)).length;
   const filtered = isFiltered(state.filters) || scope !== SCOPES[0];
 

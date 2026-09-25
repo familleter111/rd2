@@ -103,12 +103,21 @@ export const TEAM_ROLES = [
 ] as const;
 
 export const PREREQUISITE_TEMPLATES = [
-  { name: "Formule cible", detail: "Formule qualitative et quantitative validée", source: "R&D", icon: "doc" as const },
-  { name: "Certificat GMP fournisseur", detail: "À obtenir auprès du fournisseur", source: "Achats", icon: "doc" as const },
-  { name: "Spécifications matières", detail: "Fiches techniques et spécifications", source: "Achats", icon: "doc" as const },
-  { name: "Méthode analytique", detail: "Méthode validée", source: "Contrôle qualité", icon: "flask" as const },
-  { name: "Stabilité préliminaire", detail: "Protocole approuvé", source: "R&D", icon: "doc" as const },
+  { name: "Formule cible", detail: "Formule qualitative et quantitative validée.", source: "R&D", icon: "doc" as const, category: "Documents" as const, blocking: false },
+  { name: "Certificat GMP fournisseur", detail: "Document qualité confirmant la conformité du site de fabrication.", source: "Achats", icon: "doc" as const, category: "Documents" as const, blocking: true },
+  { name: "Spécifications matières", detail: "Fiches techniques et spécifications.", source: "Achats", icon: "flask" as const, category: "Matières" as const, blocking: false },
+  { name: "Méthode analytique", detail: "Méthode validée.", source: "Contrôle qualité", icon: "flask" as const, category: "Ressources" as const, blocking: false },
+  { name: "Stabilité préliminaire", detail: "Protocole approuvé.", source: "R&D", icon: "doc" as const, category: "Documents" as const, blocking: false },
 ];
+
+export const PREREQUISITE_CATEGORIES = [
+  { value: "Documents" as const, detail: "Documents réglementaires et qualité requis pour la revue." },
+  { value: "Matières" as const, detail: "Disponibilité et conformité des matières critiques." },
+  { value: "Ressources" as const, detail: "Ressources nécessaires pour la revue." },
+];
+
+/** Supplier of the demonstration document imported at screen 13. */
+export const EXAMPLE_SUPPLIER = "Fournisseur EXEMPLE";
 
 export const PEOPLE = [
   "Chef de projet",
@@ -173,7 +182,7 @@ export const LOT_UNITS = ["comprimés", "gélules", "flacons", "tubes", "kg"];
 
 export const RECIPIENTS = ["Achats", "Contrôle qualité", "Assurance qualité", "Production", "R&D"];
 
-export const SUPPLIERS = ["Fournisseur A", "Fournisseur B", "Fournisseur C", "Interne (sans fournisseur)"];
+export const SUPPLIERS = ["Fournisseur A", "Fournisseur B", "Fournisseur C", "Fournisseur EXEMPLE", "Interne (sans fournisseur)"];
 
 export const JOURNEY_STEPS = [
   { n: "01", title: "Cadrer", detail: "Faisabilité et prérequis", icon: "doc" },

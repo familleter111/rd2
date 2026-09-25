@@ -60,7 +60,12 @@ Sommaire
      « passer le temps » dans l'histoire (ex. : « quelques jours plus tard, les essais F2 sont
      terminés ») : un message bleu en haut à droite l'annonce.
 
-0.4 Trois façons de parcourir
+0.4 Écran utilisé
+  Le prototype est une application web pour ordinateur (fenêtre de 1 200 px de large au
+  minimum). Il n'y a pas de version mobile : sur une fenêtre plus étroite, la page défile
+  horizontalement.
+
+0.5 Trois façons de parcourir
   A. Visite rapide (environ 15 min)
      Cliquer uniquement sur les cercles bleus, de 01 jusqu'à 56.
      On voit chaque maquette dans son état, sans rien remplir.
@@ -84,9 +89,13 @@ Projets de démonstration :
   - CR-01  Crème
   - SL-01  Solution
 
-Le fil rouge sur CS-01 :
-  1. Deux formules sont en essai, F1 et F2 (lots d'essai E-01 et E-02).
-  2. Le chef de projet prépare une décision ; les essais F2 se terminent ; la décision
+Le fil rouge sur CS-01 (avec un détour par CR-01) :
+  1. Sur le projet CR-01 (Crème), la revue de faisabilité est bloquée : le certificat GMP
+     manque. Le fournisseur envoie la version 4 de son DMF, qui est importée et vérifiée,
+     puis le certificat GMP est demandé aux Achats.                        (écrans 12–14)
+  2. Sur CS-01, deux formules sont en essai, F1 et F2 (lots d'essai E-01 et E-02) ; la
+     page de comparaison montre que la F2 attend encore deux résultats.   (écrans 17–19)
+     Le chef de projet prépare une décision ; les essais F2 se terminent ; la décision
      « Retenir F2 » reçoit l'avis du responsable développement puis l'approbation du
      pharmacien responsable. Cela autorise le lot pilote LP-01.            (écrans 20–21)
   3. La méthode de dosage M-01 est mise en place : référence, protocole, essais sur les
@@ -97,7 +106,10 @@ Le fil rouge sur CS-01 :
                                                                            (écrans 29–34)
   5. Le lot pilote LP-01 est fabriqué : préparation, mélange, contrôles, puis déviation
      DEV-01 sur le mélangeur.                                              (écrans 35–39)
-  6. L'étude de stabilité ST-01 est préparée sur LP-01.                   (écrans 40–41)
+  6. L'étude de stabilité ST-01 est préparée sur LP-01 : protocole, puis échéancier des
+     prélèvements (activation bloquée tant que le protocole n'est pas approuvé). Sur l'étude
+     ST-02 (lot E-02, déjà en cours), le résultat M3 est saisi en brouillon ; les alertes
+     de stabilité sont suivies (prélèvement M3 à planifier).               (écrans 40–44)
   7. Fin de projet : le rapport d'essais F2 v2 est approuvé ; une v3 est ajoutée en
      brouillon (la v2 reste en vigueur) ; l'historique montre l'avant / après.  (écrans 45–47)
   8. Le dossier CTD de CS-01 est préparé : structure, section 3.2.P.2 « Développement
@@ -108,13 +120,24 @@ Le fil rouge sur CS-01 :
  10. L'administrateur gère les rôles et les modèles de parcours ; le projet CS-01 est
      enfin clôturé et archivé.                                             (écrans 54–56)
 
-Écrans absents du parcours : 12, 13, 19, 42, 43 et 44 ne figuraient pas dans les captures
-reçues (le parcours passe de 11 à 14, de 18 à 20 et de 41 à 45). Ils seront ajoutés au
-parcours dès réception des captures.
+Les 56 écrans sont livrés et reliés par les cercles bleus.
 
-Écrans 15 et 16 : les onglets « Documents » et « Historique » suivent désormais le dessin
-plus récent des maquettes 45 et 47 (même écran, même fonctionnement). Seul l'état des
-données change : début de projet pour 15 et 16, fin de projet pour 45 et 47.
+Un seul dessin par onglet (quand deux maquettes montrent le même onglet) :
+  - Prérequis : dessin de la maquette 12 ; l'écran 14 (demande) s'ouvre sur ce même onglet.
+  - Formules & lots → Comparaison : dessin de la maquette 19 ; les écrans 20 et 21 sont des
+    fenêtres ouvertes sur cette page.
+  - Documents et Historique : dessin des maquettes 45 et 47 ; les écrans 15 et 16 montrent
+    ces mêmes onglets en début de projet.
+  - Stabilité : la page d'une étude garde ses onglets Protocole (41), Échéancier (42) et
+    Résultats (43) ; la page Stabilité garde ses onglets Études (40) et Alertes (44).
+
+Écarts assumés avec les maquettes (pour garder une histoire cohérente) :
+  - La F1 reste « À améliorer » (dureté non conforme, raison de la F2) au lieu de « Essais
+    terminés » ; le lot E-02 est fabriqué le 18/09/2026 (date des échantillons).
+  - CR-01 est en phase « Faisabilité » (revue de faisabilité bloquée par le certificat GMP).
+  - L'en-tête d'un projet reste celui des autres écrans du projet (visuel, équipe, dates).
+  - Stabilité : une étape « Approuver (simulation) » du protocole a été ajoutée, puisque la
+    maquette 42 exige un protocole approuvé ; l'étude ST-02 est en 25 °C / 60 % HR.
 
 
 ===============================================================================================
@@ -238,7 +261,7 @@ PARTIE B — PROJETS ET CRÉATION D'UN PROJET (écrans 06 à 10)
 
 
 -----------------------------------------------------------------------------------------------
-PARTIE C — PROJET CS-01 (écrans 11 à 20)
+PARTIE C — PROJETS CS-01 ET CR-01 (écrans 11 à 20)
 -----------------------------------------------------------------------------------------------
 
 [ ] 11 / 56 — Vue d'un projet (CS-01)
@@ -248,18 +271,61 @@ PARTIE C — PROJET CS-01 (écrans 11 à 20)
                le « Journal récent ».
     FAIRE    : « Configurer » (modifier phase, prochaine étape… : tracé dans l'historique) ;
                « Ajouter une activité » ; « Voir le planning ».
-    SUITE    : l'écran 14 porte sur le projet CR-01 : menu « Projets » → CR-01 → onglet
-               « Prérequis » → ligne « Certificat GMP fournisseur » → « Demander »
-               (ou cercle 14 en bas à droite, qui ouvre directement le formulaire).
+    SUITE    : les écrans 12 à 14 portent sur le projet CR-01 : menu « Projets » → CR-01 →
+               onglet « Prérequis » (ou cercle 12 en bas à droite).
+
+[ ] 12 / 56 — Prérequis du projet (CR-01)
+    REGARDER : trois cartes avec leur compteur de prérequis vérifiés :
+                 Documents 2 / 3 : DMF / CEP (v3, vérifié le 12/09/2026), FDS (v5.1,
+                 vérifiée), Certificat GMP (manquant, ligne orange sélectionnée) ;
+                 Matières 2 / 2 : principe actif, excipients critiques ;
+                 Ressources 0 / 1 : échantillon de référence (réception attendue le
+                 30/09/2026).
+               À droite, le détail du Certificat GMP : responsable Achats, importance « Très
+               importante », qualité, statut (Non disponible / En cours de réception / Reçu /
+               Vérifié), « Ajouter un document », « Demander au responsable ».
+               En bas, le bandeau rouge « Certificat GMP requis avant la revue. » et
+               « Préparer la revue » grisé.
+    FAIRE    : cliquer une autre ligne (le détail suit) ; survoler l'icône (i) (description) ;
+               changer le responsable, l'importance ou la qualité (tracé dans l'Historique) ;
+               « Ajouter » dans une carte (nouveau prérequis, statut « Non disponible ») ;
+               menu ⋮ d'une ligne ; fermer le détail (×).
+    BLOCAGE  : passer le Certificat GMP à « Vérifié » → refus : « Ajoutez le document avant
+               de le marquer comme vérifié. » ; « Préparer la revue » reste grisé tant qu'un
+               prérequis n'est pas vérifié (« Action indisponible tant que des prérequis sont
+               manquants. »).
+    SUITE    : ligne « DMF / CEP » (cercle 13) : le fournisseur a envoyé la version 4 de son
+               DMF → dans le détail du DMF, « Importer une nouvelle version ».
+
+[ ] 13 / 56 — Importer et vérifier un document
+    REGARDER : la fenêtre « Importer et vérifier un document » en 3 étapes (Fichier :
+               Terminé, Informations : Terminé, Vérification : En cours) ; l'aperçu du
+               document EXEMPLE-PHARMA-DMF-001 (4 pages, zoom, plein écran) ; le bandeau
+               « Extraction automatique à vérifier » ; les informations extraites :
+               Fabricant « Fournisseur EXEMPLE » (Vérifié) et Procédé – Description extraite
+               (À vérifier), chacune avec « Source : page 1 » et Ignorer / Corriger / Accepter ;
+               la case « Je confirme avoir vérifié les informations extraites. ».
+    FAIRE    : feuilleter l'aperçu (flèches, zoom) ; cliquer « Source : page 1 » ;
+               « Corriger » la description, la modifier, puis « Accepter » (état « Corrigé ») ;
+               « Retour » pour revoir l'étape 2 (type de document, prérequis associé,
+               fournisseur, version v4, date du document).
+    BLOCAGE  : « Enregistrer » grisé tant qu'une information n'est pas acceptée (ou corrigée)
+               et que la case n'est pas cochée ; à l'étape 1, « Continuer » sans fichier →
+               « Sélectionnez un fichier à importer. » (PDF, DOC, XLSX, 10 Mo maximum) ;
+               à l'étape 2, fournisseur et version obligatoires.
+    SUITE    : accepter la description, cocher la case, puis « Enregistrer » (cercle 14)
+               → le DMF / CEP passe en v4, vérifié le 24/09/2026.
 
 [ ] 14 / 56 — Demander un document ou une matière (projet CR-01)
-    REGARDER : la fenêtre « Créer une demande » : type de demande, objet, destinataire
-               interne, fournisseur, date souhaitée, justification, prérequis associé.
+    OÙ       : détail du Certificat GMP → « Demander au responsable » → « Créer une demande ».
+    REGARDER : la fenêtre « Créer une demande » : type de demande, objet « Certificat GMP »,
+               destinataire interne (Achats), fournisseur, date souhaitée, justification,
+               prérequis associé.
     FAIRE    : choisir le fournisseur « Fournisseur A » → « Créer la demande »
                → « Demande créée • À traiter » avec la référence interne DEM-01 → Fermer.
-               La ligne du prérequis passe à « Demandé ».
-               Menu de la ligne → « Marquer comme satisfait » → le badge
-               « Prérequis incomplets » du projet disparaît.
+               La ligne du Certificat GMP passe à « Réception attendue » et le détail
+               rappelle la demande. Même menu : « Envoyer un rappel » (tracé dans
+               l'Historique). Pour vérifier le certificat et débloquer la revue : T16.
     BLOCAGE  : « Créer la demande » avec des champs vides → erreurs sous les champs.
     SUITE    : menu « Projets » → CS-01 → onglet « Documents » (ou cercle 15 en bas à droite).
 
@@ -299,8 +365,22 @@ PARTIE C — PROJET CS-01 (écrans 11 à 20)
                « Ajouter une étape », « Ajouter une source ».
     BLOCAGE  : enregistrer sans motif de modification → erreur.
     SUITE    : « Annuler » (ou « Enregistrer le brouillon », ce qui crée F3), puis
-               sous-onglet « Comparaison » → bouton « Préparer la décision »
-               (ou cercle 20 en bas à droite).
+               sous-onglet « Comparaison » (ou cercle 19 en bas à droite).
+
+[ ] 19 / 56 — Comparaison des formules
+    REGARDER : « Sélection des formules à comparer » (Référence, F1 et F2 cochées ; trois au
+               maximum) ; les cartes REF-01 (référence, validée), E-01 (F1, à améliorer) et
+               E-02 (F2, essais en cours) ; le tableau « Comparaison des résultats » critère
+               par critère (F2 : friabilité « Résultat attendu », dissolution « Non
+               démarrée ») ; le bandeau « La sélection finale reste bloquée… » ; à droite, le
+               panneau « Formule F2 – E-02 » (lot, type de lot, statut, date de fabrication,
+               essais à suivre M-02 et M-03, documents associés, « Préparer la décision »).
+    FAIRE    : cliquer la carte E-01 → le panneau passe sur F1 ; décocher puis recocher une
+               formule (le tableau suit) ; survoler un résultat (valeur mesurée) ;
+               « Exporter la comparaison » (fichier CSV) ; « Ajouter une formule ».
+    BLOCAGE  : une 4e formule est refusée (« Trois formules au maximum », si F3 a été créée à
+               l'écran 18) ; la sélection finale reste bloquée tant que des essais manquent.
+    SUITE    : « Préparer la décision » dans le panneau de droite (cercle 20).
 
 [ ] 20 / 56 — Décision sur une formule
     REGARDER : la fenêtre « Préparer la décision » : formule concernée, choix
@@ -536,7 +616,7 @@ PARTIE F — LOT PILOTE LP-01 ET DÉVIATION (écrans 35 à 39)
 
 
 -----------------------------------------------------------------------------------------------
-PARTIE G — STABILITÉ (écrans 40 et 41)
+PARTIE G — STABILITÉ (écrans 40 à 44)
 -----------------------------------------------------------------------------------------------
 
 [ ] 40 / 56 — Stabilité — études
@@ -554,8 +634,55 @@ PARTIE G — STABILITÉ (écrans 40 et 41)
                échéances T0, M3, M6, M12 ; documents associés.
     BLOCAGE  : « Soumettre le protocole » grisé tant que la condition de stockage n'est pas
                choisie ; aucun essai coché → « Sélectionnez au moins un essai ».
-    FAIRE    : « Ajouter une échéance » ; « Enregistrer le brouillon » ;
-               choisir « 25 °C / 60 % HR (long terme) » → « Soumettre le protocole ».
+    FAIRE    : « Ajouter une échéance » ; choisir « 25 °C / 60 % HR (long terme) » → le bouton
+               « Soumettre le protocole » s'active (ne pas soumettre maintenant : soumission et
+               approbation se testent en T18) ; « Enregistrer le brouillon ».
+    SUITE    : onglet « Échéancier » (cercle 42).
+
+[ ] 42 / 56 — Stabilité — échéancier (ST-01, lot LP-01)
+    REGARDER : le titre « ST-01 • Lot LP-01 » (Brouillon) ; le bandeau orange « Le protocole
+               doit être approuvé avant activation de l'échéancier. » avec « Activer
+               l'échéancier » grisé (« Action indisponible : protocole non approuvé. ») ;
+               « Planifier les prélèvements » : T0 le 12/10/2026, 25 °C / 60 % HR, Julie
+               Bernard ; l'échéancier T0 12/10/2026, M3 12/01/2027, M6 12/04/2027,
+               M12 12/10/2027 (à planifier) ; les essais Dosage PA et Dissolution ;
+               « Aucun résultat disponible ».
+    FAIRE    : changer la date T0 puis « Recalculer les dates » ; menu ⋮ d'un point →
+               « Modifier la date » ; « Ajouter une échéance » (M18…) ; « Enregistrer le
+               brouillon » (tracé dans l'onglet Historique) ; lien « Ouvrir le protocole ».
+    BLOCAGE  : activation impossible tant que le protocole n'est pas approuvé, puis tant que
+               le T0 ou la condition manque ; le point T0 ne peut pas être retiré ; un
+               échéancier activé n'est plus modifiable (activation complète : T18).
+    SUITE    : cercle 43 en bas à droite (résultats de l'étude ST-02, déjà en cours).
+
+[ ] 43 / 56 — Stabilité — résultats (ST-02, lot E-02)
+    OÙ       : Stabilité → ST-02 → « Ouvrir l'étude » → onglet « Résultats » → ligne M3.
+    REGARDER : les filtres « Conditions de stockage » (25 °C / 60 % HR) et « Période » ; le
+               tableau T0 (Validé, « Rapport T0 »), M3 (À saisir), M6 (À venir) ; le panneau
+               « Saisir un résultat » : Point M3 | M-01 | Dosage PA | Planifié, Résultat et
+               Unité, Source de l'analyse, Pièce(s) justificative(s), Commentaire.
+    FAIRE    : saisir 98,7 (la spécification 95,0 – 105,0 % s'affiche) ; ajouter un fichier du
+               PC comme pièce justificative ; cliquer « Rapport T0 » (PDF téléchargé) ;
+               cliquer les lignes T0 et M6 (détail en lecture seule).
+    BLOCAGE  : « Soumettre » grisé : « Résultat et pièce justificative requis. » (la source
+               est aussi obligatoire) ; une valeur hors spécification (ex. 90) affiche un
+               avertissement rouge et crée une alerte à la soumission.
+    SUITE    : « Enregistrer le brouillon » (cercle 44) → message du parcours : le
+               prélèvement M3 n'est pas encore programmé.
+
+[ ] 44 / 56 — Stabilité — alertes
+    OÙ       : Stabilité → onglet « Alertes ».
+    REGARDER : le titre « Stabilité — Suivi des études de stabilité et de leurs alertes » ;
+               les filtres Projet, Responsable, Niveau, Statut ; les 3 alertes :
+               ST-02 • E-02 « Prélèvement M3 à planifier » (Échéancier, À planifier),
+               ST-03 • E-01 « Résultats en attente de revue », ST-01 • LP-01 « Protocole
+               incomplet » ; le détail : niveau Moyen, origine Échéancier, échéance « À
+               confirmer », responsable Julie Bernard, statut Ouverte, description, actions,
+               note « La prise en charge ne valide pas les résultats. ».
+    FAIRE    : « Créer une activité » → elle apparaît dans Mes activités (« Voir l'activité ») ;
+               « Assigner » → choisir une personne ; « Marquer comme prise en charge », puis
+               « Marquer comme résolue », puis « Rouvrir l'alerte » ; « Ouvrir l'étude »
+               (ouvre l'onglet concerné) ; filtrer par statut ou par niveau.
     SUITE    : cercle 45 en bas à droite (documents du projet CS-01, en fin de projet).
 
 
@@ -564,7 +691,7 @@ PARTIE H — DOCUMENTS ET HISTORIQUE EN FIN DE PROJET (écrans 45 à 47)
 -----------------------------------------------------------------------------------------------
 
 [ ] 45 / 56 — Documents du projet
-    OÙ       : cercle 45 en bas à droite depuis l'écran 41, ou Projets → CS-01 → « Documents ».
+    OÙ       : cercle 45 en bas à droite depuis l'écran 44, ou Projets → CS-01 → « Documents ».
     REGARDER : le rapport d'essais F2 v2, désormais « Approuvé », est sélectionné ; panneau :
                Aperçu, Télécharger, Nouvelle version, menu ⋮ (Archiver…), informations
                générales, description, mots-clés.
@@ -811,6 +938,36 @@ T15. Configuration
     Onglets « Ressources » (qualification des équipements) et « Notifications »
     (interrupteurs application / e-mail).
 
+T16. Prérequis de CR-01 tous vérifiés (« Parcours des écrans » → écran 14)
+    - Certificat GMP : menu ⋮ → « Importer et vérifier un document » → choisir un fichier
+      du PC → fournisseur et version → accepter les informations → cocher → « Enregistrer ».
+    - Échantillon de référence : dans le détail, statut « Vérifié » (possible sans document
+      pour une ressource).
+    - Le bandeau devient vert « Tous les prérequis sont vérifiés. », « Préparer la revue »
+      s'active (il ouvre « Revues à préparer ») et le badge « Prérequis incomplets » de CR-01
+      disparaît.
+    - Retirer le document d'un prérequis (×) → il repasse « Non disponible ».
+
+T17. Comparaison (« Parcours des écrans » → écran 18)
+    « Enregistrer le brouillon » de la F3, puis Comparaison : cocher F3 → refus « Trois
+    formules au maximum » ; décocher F1 puis cocher F3.
+
+T18. Échéancier activé (« Parcours des écrans » → écran 42)
+    - Onglet Protocole → « Soumettre le protocole » → « Approuver (simulation) » : l'alerte
+      « Protocole incomplet » de ST-01 passe « Résolue ».
+    - « Voir l'échéancier » → « Activer l'échéancier » : les points passent « Planifiée »,
+      l'étude « En cours » et les résultats T0 à M12 sont créés.
+    - Onglet Résultats → T0 Dosage PA : saisir 90, une source et un fichier → « Soumettre »
+      → alerte « Résultat hors spécification (T0) » de niveau Élevé dans l'onglet Alertes.
+
+T19. Résultat validé (« Parcours des écrans » → écran 43)
+    M3 : valeur, source et fichier → « Soumettre » → « Valider le résultat (simulation) »
+    → statut « Validé » et « Rapport M3 » téléchargeable.
+
+T20. Alertes (« Parcours des écrans » → écran 44)
+    Filtrer « Statut : Ouverte » après une prise en charge (l'alerte disparaît de la liste) ;
+    retrouver l'activité créée dans Mes activités.
+
 
 ===============================================================================================
 4. LISTE DES RÈGLES DE BLOCAGE À VÉRIFIER
@@ -821,9 +978,16 @@ T15. Configuration
   [ ] 04  Filtre de dates : la date de fin ne peut pas précéder la date de début.
   [ ] 07/10  Assistant : champs obligatoires signalés, code projet déjà utilisé refusé.
   [ ] 08  Équipe projet incomplète : « 4 champs à corriger ».
+  [ ] 12  « Préparer la revue » indisponible tant qu'un prérequis n'est pas vérifié ;
+          un document ne peut pas être « Vérifié » sans pièce associée.
+  [ ] 13  Import : fichier obligatoire (PDF, DOC, XLSX, 10 Mo maximum), fournisseur et version
+          obligatoires ; enregistrement impossible tant qu'une information extraite n'est pas
+          acceptée ou corrigée et que la vérification n'est pas confirmée.
   [ ] 14  Demande incomplète refusée.
   [ ] 15  Document approuvé non modifiable (nouvelle version obligatoire).
   [ ] 18  Nouvelle formule sans motif de modification refusée.
+  [ ] 19  Trois formules comparées au maximum ; sélection finale bloquée tant que des
+          essais requis manquent.
   [ ] 20  « Retenir une formule » impossible tant que des essais sont attendus ;
           justification de 20 caractères minimum.
   [ ] 21  Demande de correction de la décision : motif de 10 caractères minimum.
@@ -842,6 +1006,12 @@ T15. Configuration
   [ ] 39  Analyse non terminée sans causes ni impact ; efficacité non confirmée tant que
           les actions ne sont pas terminées ; déviation non clôturée avant l'efficacité.
   [ ] 41  Protocole de stabilité non soumis sans condition de stockage ni essai coché.
+  [ ] 42  Échéancier non activable tant que le protocole n'est pas approuvé, ni sans T0 et
+          condition de stockage ; un échéancier activé n'est plus modifiable.
+  [ ] 43  Résultat non soumis sans valeur, source et pièce justificative ; une valeur hors
+          spécification crée une alerte de niveau élevé.
+  [ ] 44  Une alerte prise en charge n'est pas validée pour autant ; une alerte résolue peut
+          être rouverte.
   [ ] 45  Seul un brouillon peut être supprimé ; un document archivé est en lecture seule.
   [ ] 46  Nouvelle version refusée sans fichier ni motif ; la version approuvée reste en
           vigueur tant que la nouvelle n'est pas approuvée.
@@ -875,12 +1045,16 @@ T15. Configuration
   08     Créer un projet — Parcours & équipe         « Continuer »
   09     Créer un projet — Vérification              En bas à droite
   10     Champs manquants et code déjà utilisé       En bas à droite (projet CS-01)
-  11     Vue d'un projet                             En bas à droite (demande sur CR-01)
+  11     Vue d'un projet                             En bas à droite (prérequis de CR-01)
+  12     Prérequis du projet                         Ligne « DMF / CEP » (importer la v4)
+  13     Importer et vérifier un document            Informations extraites (accepter, cocher),
+                                                     puis « Enregistrer »
   14     Demander un document ou une matière         En bas à droite (documents CS-01)
   15     Documents du projet                         Onglet « Historique »
   16     Historique et traçabilité                   Onglet « Formules & lots »
   17     Versions de formule                         « Nouvelle version »
-  18     Éditer une nouvelle formule                 En bas à droite (décision)
+  18     Éditer une nouvelle formule                 En bas à droite (comparaison)
+  19     Comparaison des formules                    « Préparer la décision » (panneau F2)
   20     Décision sur une formule                    « Soumettre pour avis »
   21     Décision — examen et approbation            « Approuver la décision »
   22     Méthodes & essais — catalogue               Carte « M-01 • Dosage PA »
@@ -905,7 +1079,10 @@ T15. Configuration
   38     Déclarer une déviation de lot               « Créer la déviation »
   39     Déviation — actions et efficacité           Menu « Stabilité »
   40     Stabilité — études                          « Préparer le protocole » (ST-01)
-  41     Stabilité — protocole                       En bas à droite (documents CS-01)
+  41     Stabilité — protocole                       Onglet « Échéancier »
+  42     Stabilité — échéancier                      En bas à droite (résultats de ST-02)
+  43     Stabilité — résultats                       « Enregistrer le brouillon » (résultat M3)
+  44     Stabilité — alertes                         En bas à droite (documents CS-01)
   45     Documents du projet                         « Nouvelle version » (rapport d'essais F2)
   46     Document — importer une nouvelle version    « Enregistrer la version »
   47     Projet — historique                         Menu « Dossiers & revues »
@@ -919,9 +1096,8 @@ T15. Configuration
   55     Configuration — modèles de parcours         En bas à droite (clôture CS-01)
   56     Clôture et archivage du projet              « Fin du parcours » en bas à droite
 
-  Sur mobile, les cercles du menu de gauche (écrans 06, 29, 40, 48, 54) sont remplacés par le cercle
-  en bas à droite. Un cercle avec une flèche en bas à droite = le cercle de la page est hors
-  de l'écran : cliquer dessus pour y descendre.
+  Un cercle avec une flèche en bas à droite = le cercle de la page est hors de l'écran :
+  cliquer dessus pour y descendre.
 
 
 ===============================================================================================

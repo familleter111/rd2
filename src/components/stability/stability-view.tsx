@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, CalendarDays, ChevronRight, CircleCheck, EllipsisVertical, ExternalLink, FileText, Plus } from "lucide-react";
+import { CalendarDays, ChevronRight, CircleCheck, EllipsisVertical, ExternalLink, FileText, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useGuideNav } from "@/components/guide/guide-mark";
@@ -22,11 +22,13 @@ import { nextStudyId } from "@/lib/lab";
 import { findProject } from "@/lib/selectors";
 import { getDemoState, labActions, useDemo } from "@/lib/store";
 import type { StabilityStudy, StudyStatus, Tone } from "@/lib/types";
+import { StabilityAlerts } from "./stability-alerts";
 
 export const STUDY_TONE: Record<StudyStatus, Tone> = {
   "À préparer": "warn",
   "Protocole en cours": "info",
   "Protocole soumis": "info",
+  "Protocole approuvé": "success",
   "En cours": "info",
   "En revue": "neutral",
 };
@@ -200,7 +202,7 @@ function StudyDetail({ study }: { study: StabilityStudy }) {
   );
 }
 
-export function StabilityView({ slug, initialTab, initialStudy }: { slug: string; initialTab: Tab; initialStudy?: string }) {
+export function StabilityView({ slug, initialTab, initialStudy, initialAlert }: { slug: string; initialTab: Tab; initialStudy?: string; initialAlert?: string }) {
   const state = useDemo();
   const [project, setProject] = useState(findProject(state, slug)?.code ?? "CS-01");
   const [lot, setLot] = useState("Tous");
@@ -218,16 +220,18 @@ export function StabilityView({ slug, initialTab, initialStudy }: { slug: string
     .sort((a, b) => a.id.localeCompare(b.id, "fr", { numeric: true }) * (order === "asc" ? 1 : -1));
   const selected = studies.find((s) => s.id === selectedId) ?? studies[0];
   const milestones = studies.flatMap((s) => (s.protocol?.milestones ?? []).map((m) => ({ study: s, m })));
-  const alerts = studies.flatMap((s) => s.alerts.map((a) => ({ study: s, a })));
+  const openAlerts = state.studies.flatMap((s) => s.alerts).filter((a) => a.status !== "Résolue").length;
 
   return (
     <>
-      <Breadcrumb items={[{ label: "Stabilité", href: "/stabilite" }, { label: tab === "etudes" ? "Études" : tab === "echeances" ? "Échéances" : "Alertes" }]} />
+      <Breadcrumb items={tab === "alertes" ? [{ label: "Stabilité" }] : [{ label: "Stabilité", href: "/stabilite" }, { label: tab === "etudes" ? "Études" : "Échéances" }]} />
       <PageHeader
         className="mt-3"
-        title="Études de stabilité"
+        title={tab === "alertes" ? "Stabilité" : "Études de stabilité"}
         subtitle={
-          p ? (
+          tab === "alertes" ? (
+            "Suivi des études de stabilité et de leurs alertes"
+          ) : p ? (
             <span className="flex flex-wrap items-center gap-3">
               <strong className="font-bold text-ink-900">
                 {p.code} • {p.name}
@@ -245,11 +249,12 @@ export function StabilityView({ slug, initialTab, initialStudy }: { slug: string
         items={[
           { value: "etudes", label: "Études" },
           { value: "echeances", label: "Échéances", count: milestones.length },
-          { value: "alertes", label: "Alertes", count: alerts.length },
+          { value: "alertes", label: "Alertes", count: openAlerts },
         ]}
         value={tab}
         onChange={setTab}
       />
+      {tab !== "alertes" && (
       <Card className="mt-5 grid grid-cols-1 items-end gap-4 p-4 md:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_auto]">
         <label className="text-sm font-semibold text-ink-800">
           Projet
@@ -283,6 +288,7 @@ export function StabilityView({ slug, initialTab, initialStudy }: { slug: string
           Nouvelle étude
         </Button>
       </Card>
+      )}
 
       {tab === "etudes" && (
         <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
@@ -386,28 +392,7 @@ export function StabilityView({ slug, initialTab, initialStudy }: { slug: string
         </Card>
       )}
 
-      {tab === "alertes" && (
-        <Card className="mt-5 p-4">
-          {alerts.length === 0 ? (
-            <EmptyState icon={Bell} title="Aucune alerte" />
-          ) : (
-            <ul className="divide-y divide-line rounded-xl border border-line">
-              {alerts.map(({ study, a }) => (
-                <li key={a.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
-                  <Bell className={cn("h-5 w-5", a.tone === "warn" ? "text-warn-600" : "text-brand-600")} aria-hidden />
-                  <span className="min-w-0 flex-1">
-                    <span className="block font-semibold text-ink-900">
-                      {study.id} — {a.title}
-                    </span>
-                    <span className="block text-sm text-ink-600">{a.detail}</span>
-                  </span>
-                  <span className="text-sm text-ink-600">{formatNumeric(a.date)}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-      )}
+      {tab === "alertes" && <StabilityAlerts initialAlert={initialAlert} />}
 
       <NewStudyDrawer
         key={`ns-${drawer}`}
@@ -419,7 +404,13 @@ export function StabilityView({ slug, initialTab, initialStudy }: { slug: string
           setSelectedId(id);
         }}
       />
-      <ScreenRef n={40} label="Stabilité — études" />
+      {tab === "alertes" ? (
+        <ScreenRef n={44} label="Stabilité — alertes" />
+      ) : tab === "echeances" ? (
+        <ScreenRef label="Stabilité — échéances" />
+      ) : (
+        <ScreenRef n={40} label="Stabilité — études" />
+      )}
     </>
   );
 }

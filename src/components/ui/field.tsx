@@ -17,14 +17,19 @@ interface FieldProps {
   error?: string | null;
   info?: string;
   optional?: boolean;
+  /** Shown at the end of the label row (e.g. where the value comes from). */
+  aside?: ReactNode;
   className?: string;
   children: ReactNode;
 }
 
-export function Field({ label, htmlFor, required, hint, error, info, optional, className, children }: FieldProps) {
+export function Field({ label, htmlFor, required, hint, error, info, optional, aside, className, children }: FieldProps) {
   return (
     <div className={className}>
-      <label htmlFor={htmlFor} className="mb-1.5 flex items-center gap-1 text-[15px] font-semibold text-ink-800">
+      <label
+        htmlFor={htmlFor}
+        className={cn("mb-1.5 flex items-center gap-1 text-[15px] font-semibold text-ink-800", aside && "flex-wrap gap-y-1 whitespace-nowrap")}
+      >
         {label}
         {required && (
           <span className="text-danger-600" aria-hidden>
@@ -37,6 +42,7 @@ export function Field({ label, htmlFor, required, hint, error, info, optional, c
             <Info className="h-4 w-4" aria-label={info} />
           </span>
         )}
+        {aside && <span className="ml-auto pl-2 font-normal">{aside}</span>}
       </label>
       {children}
       {error ? (

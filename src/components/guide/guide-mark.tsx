@@ -6,9 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/cn";
-import { TOTAL_SCREENS, advanceTo, findStep, guideUi, nextStepOf, useGuideTarget, useGuideUi, type GuideStep } from "@/lib/guide";
-
-const pad = (n: number) => String(n).padStart(2, "0");
+import { TOTAL_SCREENS, advanceTo, findStep, guideUi, nextStepOf, screenCode, useGuideTarget, useGuideUi, type GuideStep } from "@/lib/guide";
 
 /** Returns `go(step)`: moves the story to `step` and opens its screen. */
 export function useGuideNav() {
@@ -41,7 +39,7 @@ function GuideTip({ rect, step, hint, action }: { rect: DOMRect; step: GuideStep
       className="pointer-events-none fixed z-[70] rounded-xl bg-ink-900 px-3.5 py-2.5 text-left shadow-pop"
     >
       <span className="block text-[11px] font-semibold uppercase tracking-wide text-brand-200">
-        Étape suivante · {pad(step.n)} / {TOTAL_SCREENS}
+        Étape suivante · {screenCode(step.n)}
       </span>
       <span className="mt-0.5 block text-sm font-semibold text-white">{step.label}</span>
       <span className="block text-xs text-slate-400">{step.section}</span>
@@ -115,6 +113,8 @@ function Dot({
   }, [register]);
 
   if (!target) return null;
+  // Screens outside the deck show their series code ("IA1" for IA-01).
+  const code = target.ref ? target.ref.replace(/-0?/, "") : String(step);
   return (
     <span
       ref={ref}
@@ -132,10 +132,11 @@ function Dot({
       className={cn(
         "guide-dot inline-flex shrink-0 cursor-pointer items-center justify-center rounded-full bg-brand-600 font-bold tabular-nums leading-none text-white transition-transform duration-150 hover:scale-110",
         DOT_SIZE[size],
+        code.length > 2 && size !== "lg" && "text-[9px] tracking-tight",
         className,
       )}
     >
-      {step}
+      {code}
       {badge}
       {rect && <GuideTip rect={rect} step={target} hint={hint} action={action} />}
     </span>

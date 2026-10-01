@@ -1,11 +1,12 @@
 ===============================================================================================
   LABORATOIRES SIMED — ESPACE R&D
-  SCÉNARIO DE PARCOURS COMPLET — ÉCRANS 01 À 56
-  Prototype (données de démonstration) — mis à jour le 25/09/2026
+  SCÉNARIO DE PARCOURS COMPLET — ÉCRANS 01 À 56 + DÉTECTION IA (IA-01 À IA-06)
+  Prototype (données de démonstration) — mis à jour le 01/10/2026
 ===============================================================================================
 
 Ce document explique, écran par écran, quoi regarder, quoi faire et quoi vérifier pour
-comprendre toutes les interfaces livrées (maquettes 01 à 56) et les tester de bout en bout.
+comprendre toutes les interfaces livrées (maquettes 01 à 56, et les 6 maquettes de la
+détection IA, IA-01 à IA-06) et les tester de bout en bout.
 
 Sommaire
   0. Avant de commencer
@@ -30,6 +31,9 @@ Sommaire
 0.2 Les repères à l'écran
   - Bas de chaque page : « NN / 56 — nom de l'écran » = numéro de la maquette affichée,
     avec des liens vers l'écran précédent et l'écran suivant.
+    Les 6 écrans de la détection IA forment une série à part, placée entre les écrans 07
+    et 08 : ils portent la référence « IA-01 — … » à « IA-06 — … » et leur cercle bleu
+    affiche « IA1 » à « IA6 ».
   - LE CERCLE BLEU NUMÉROTÉ (il clignote doucement) : il est posé sur l'élément à cliquer pour
     passer à l'écran suivant (bouton, onglet, menu, champ). Son numéro = l'écran qu'il ouvre.
       • Survoler le cercle : une bulle affiche l'étape suivante (numéro, nom, section) et,
@@ -43,7 +47,8 @@ Sommaire
         (changement de projet, variante de maquette) → cliquer dessus ouvre l'écran suivant ;
       • avec une petite flèche ↓ ou ↑ : le cercle à cliquer est plus bas (ou plus haut) dans
         la page → cliquer dessus fait défiler la page jusqu'à lui.
-  - Bouton « Écran NN / 56 » en haut à droite (icône liste), ou menu « Démonstration » →
+  - Bouton « Écran NN / 56 » (« Écran IA-01 » pour la détection IA) en haut à droite
+    (icône liste), ou menu « Démonstration » →
     « Parcours des écrans » : liste de tous les écrans livrés. Cliquer sur un écran y va
     directement ET remet les données dans l'état de la maquette. On y trouve aussi la case
     pour afficher / masquer les cercles bleus.
@@ -67,8 +72,8 @@ Sommaire
 
 0.5 Trois façons de parcourir
   A. Visite rapide (environ 15 min)
-     Cliquer uniquement sur les cercles bleus, de 01 jusqu'à 56.
-     On voit chaque maquette dans son état, sans rien remplir.
+     Cliquer uniquement sur les cercles bleus, de 01 jusqu'à 56 (en passant par IA-01 à
+     IA-06 juste après l'écran 07). On voit chaque maquette dans son état, sans rien remplir.
   B. Passage complet (recommandé, environ 2 h)
      Suivre la partie 2. À chaque écran : regarder, faire les actions, tester les blocages,
      puis cliquer sur le bouton qui porte le cercle bleu (ou sur le cercle lui-même).
@@ -88,6 +93,13 @@ Projets de démonstration :
   - CS-01  Comprimé (forme sèche orale)   ← fil rouge de tout le scénario
   - CR-01  Crème
   - SL-01  Solution
+
+Au début du parcours, un nouveau projet est créé (écrans 06 à 10) : GL-01, Gélule 250 mg.
+Le chef de projet dépose trois documents (Formulation_F2.xlsx, Cadrage_RD.pdf,
+Protocole_essais_v1.docx). La détection IA les lit, montre chaque donnée trouvée avec sa
+source, signale un écart de dosage (250 mg dans la formulation, 200 mg dans le protocole v1)
+que le chef de projet résout, propose des activités et liste les pièces manquantes, puis
+préremplit le formulaire après confirmation.                              (écrans IA-01 à IA-06)
 
 Le fil rouge sur CS-01 (avec un détour par CR-01) :
   1. Sur le projet CR-01 (Crème), la revue de faisabilité est bloquée : le certificat GMP
@@ -120,7 +132,8 @@ Le fil rouge sur CS-01 (avec un détour par CR-01) :
  10. L'administrateur gère les rôles et les modèles de parcours ; le projet CS-01 est
      enfin clôturé et archivé.                                             (écrans 54–56)
 
-Les 56 écrans sont livrés et reliés par les cercles bleus.
+Les 56 écrans sont livrés et reliés par les cercles bleus, ainsi que les 6 écrans de la
+détection IA (IA-01 à IA-06), insérés entre les écrans 07 et 08.
 
 Un seul dessin par onglet (quand deux maquettes montrent le même onglet) :
   - Prérequis : dessin de la maquette 12 ; l'écran 14 (demande) s'ouvre sur ce même onglet.
@@ -138,6 +151,12 @@ Un seul dessin par onglet (quand deux maquettes montrent le même onglet) :
   - L'en-tête d'un projet reste celui des autres écrans du projet (visuel, équipe, dates).
   - Stabilité : une étape « Approuver (simulation) » du protocole a été ajoutée, puisque la
     maquette 42 exige un protocole approuvé ; l'étude ST-02 est en 25 °C / 60 % HR.
+  - Détection IA : l'écran 07 prend le dessin de la maquette IA-01 (bloc « Démarrer à partir
+    de vos documents » et carte « Ce que l'IA recherchera ») ; les champs restent vides tant
+    que « Appliquer au formulaire » n'est pas cliqué (certaines maquettes les montrent déjà
+    remplis en arrière-plan) ; l'étiquette « Issu des documents » est placée à côté du nom
+    du champ, pour que la valeur reste lisible. La détection est simulée : elle donne les
+    résultats du scénario GL-01, quels que soient les fichiers déposés.
 
 
 ===============================================================================================
@@ -211,7 +230,7 @@ PARTIE A — VUE D'ENSEMBLE (écrans 01 à 05)
 
 
 -----------------------------------------------------------------------------------------------
-PARTIE B — PROJETS ET CRÉATION D'UN PROJET (écrans 06 à 10)
+PARTIE B — PROJETS ET CRÉATION D'UN PROJET (écrans 06 à 10, détection IA IA-01 à IA-06)
 -----------------------------------------------------------------------------------------------
 
 [ ] 06 / 56 — Liste des projets
@@ -223,10 +242,12 @@ PARTIE B — PROJETS ET CRÉATION D'UN PROJET (écrans 06 à 10)
     SUITE    : bouton « Nouveau projet » (cercle 7).
 
 [ ] 07 / 56 — Créer un projet — Produit (étape 1 de l'assistant)
-    REGARDER : l'assistant en 3 étapes (Produit → Parcours & équipe → Vérification),
-               les champs : code projet, nom, DCI, famille, forme, dosage, pays cible,
-               produit de référence, pièces initiales.
-    FAIRE    : d'abord tester les erreurs (c'est l'écran 10) :
+    REGARDER : l'assistant en 3 étapes (Produit → Parcours & équipe → Vérification) ;
+               en haut, « Démarrer à partir de vos documents » (zone de dépôt et bouton
+               « Détection IA ») ; les champs : code projet, nom, DCI, famille, forme,
+               dosage, pays cible, produit de référence ; à droite « Ce que l'IA
+               recherchera » et « Ce qui sera créé ».
+    FAIRE    : d'abord tester les erreurs, sans déposer de fichier (c'est l'écran 10) :
                1. Cliquer « Continuer » sans rien remplir → le bas de page passe à « 10 / 56 »,
                   la liste des champs manquants s'affiche.
                2. Saisir le code CS-01 → message « code déjà utilisé ».
@@ -234,12 +255,88 @@ PARTIE B — PROJETS ET CRÉATION D'UN PROJET (écrans 06 à 10)
                   Code CS-02 • Nom « Comprimé 200 mg » • DCI « Principe actif D » •
                   Dosage 200 • Pays cible : Maroc • un produit de référence.
                « Enregistrer le brouillon » est aussi possible (repris depuis « Projets »).
+               « Continuer » mène alors à l'écran 08.
+    SUITE    : zone « Déposer des fichiers ici » (cercle IA1) : le cercle dépose les 3
+               documents d'exemple. On peut aussi déposer ses propres fichiers (PDF, DOCX
+               ou XLSX, 10 Mo maximum).
+
+[ ] IA-01 — Détection IA — Dépôt des documents
+    REGARDER : les 3 fichiers « Prêt » (icône Excel, PDF ou Word ; nombre de feuilles ou
+               de pages), le bouton « Détection IA », la carte « Ce que l'IA recherchera »
+               (informations produit, formules et matières, essais et méthodes, prérequis
+               documentaires) et l'encadré « Sources visibles avant application ».
+    FAIRE    : l'œil d'un fichier → aperçu de son contenu ; la croix → retirer le fichier ;
+               déposer un fichier .txt → « format non accepté ».
+    BLOCAGE  : « Détection IA » est grisé sans fichier ; « Continuer » est grisé
+               (« Champs obligatoires à compléter ») tant que la détection n'est pas
+               appliquée ou que les champs ne sont pas remplis à la main.
+    SUITE    : « Détection IA » (cercle IA2).
+
+[ ] IA-02 — Détection IA — Détection en cours
+    REGARDER : la fenêtre « Détection IA en cours » : les 3 étapes (Lire les fichiers,
+               Croiser les informations, Préparer les suggestions), la lecture fichier par
+               fichier (« Lecture en cours » puis « Lu • 2 feuilles »), la barre
+               d'avancement (environ 3 secondes), « Vos champs seront préremplis après votre
+               confirmation ».
+    FAIRE    : « Réduire la fenêtre » → la détection continue et son avancement s'affiche
+               dans la page (« Afficher la détection » la rouvre) ; « Annuler l'analyse » →
+               retour au dépôt (IA-01).
+    SUITE    : à la fin de la lecture, « Voir les informations détectées » (cercle IA3) ;
+               pendant la lecture, le cercle IA3 est en bas à droite.
+
+[ ] IA-03 — Détection IA — Données et provenance
+    REGARDER : « 6 données prêtes à reprendre · 1 écart à résoudre · 1 donnée non trouvée » ;
+               le tableau Champ / Valeur détectée / Source (ex. « Excel • Cibles!B2 ») ;
+               la ligne Dosage en orange (250 mg / 200 mg, écart entre deux fichiers) ; la
+               ligne Responsable du projet en rouge (non trouvé, à renseigner à l'étape
+               suivante) ; à droite, « Source sélectionnée » et l'extrait du document, avec
+               la cellule ou la ligne utilisée surlignée.
+    FAIRE    : cliquer sur une ligne → sa source s'affiche (ex. Pays cibles → Cadrage_RD.pdf,
+               page 2) ; changer de source dans la liste ; « Voir les fichiers » ; onglet
+               « Points à vérifier ».
+    BLOCAGE  : « Appliquer » reste grisé (« Résolvez l'écart de dosage »).
+    SUITE    : ligne Dosage → « Résoudre » (cercle IA4).
+
+[ ] IA-04 — Détection IA — Résolution d'un écart
+    REGARDER : « Vérifier le dosage détecté » : les deux valeurs et leur source (250 mg :
+               Formulation_F2.xlsx, feuille Cibles, cellule B6 ; 200 mg :
+               Protocole_essais_v1.docx, page 1), le motif du choix prérempli, la case
+               « Préparer une activité : mettre à jour le dosage dans le protocole » et
+               « Les fichiers sources ne seront pas modifiés ».
+    FAIRE    : choisir 200 mg → la case propose de mettre à jour la formule F2 ; revenir
+               à 250 mg.
+    BLOCAGE  : motif vide → « Indiquez le motif du choix. » et « Confirmer le choix » grisé.
+    SUITE    : « Confirmer le choix » (cercle IA5).
+
+[ ] IA-05 — Détection IA — Suggestions R&D
+    REGARDER : onglet « Parcours R&D » : « Dosage retenu : 250 mg · Écart documenté » ;
+               « Éléments détectés » (formule candidate F2, essais prévus, objectif) et leur
+               source ; « Activités proposées » (4, « Brouillon · À affecter », dont
+               « Mettre à jour le protocole à 250 mg » issue de l'écart) ; « Prérequis à
+               compléter » (Certificat d'analyse PA, Critères d'acceptation, Conditions de
+               stabilité) ; « Aucun essai n'est déclaré réalisé ».
+    FAIRE    : décocher une activité (elle ne sera pas créée) ; cliquer sur la source d'un
+               élément (ex. « Excel Composition ») → onglet Produit sur cet extrait.
+    SUITE    : « Appliquer au formulaire » (cercle IA6).
+
+[ ] IA-06 — Détection IA — Préremplissage confirmé
+    REGARDER : le bandeau vert « 7 champs préremplis depuis vos documents » ; les étiquettes
+               « Issu des documents » (et « Choix confirmé » sur le dosage) ; les pièces
+               initiales « Analyse terminée » ; à droite « Ce qui sera créé » et
+               « 4 activités proposées » (brouillons), avec « Prérequis documentaires à
+               compléter ».
+    FAIRE    : modifier un champ à la main → son étiquette disparaît (le bandeau passe à
+               « 6 champs ») ; « Revoir la détection » sur un fichier → la fenêtre rouvre
+               sa source.
     SUITE    : « Continuer » (cercle 8).
 
 [ ] 08 / 56 — Créer un projet — Parcours & équipe (étape 2)
     REGARDER : famille et modèle, parcours de développement (galénique, analytique),
                études optionnelles, équipe projet, calendrier, estimation et prérequis ;
-               à droite l'« Aperçu du projet » qui se met à jour.
+               à droite l'« Aperçu du projet » qui se met à jour. Après la détection IA
+               (bouton « Continuer » de l'écran IA-06), l'aperçu indique « Activités
+               proposées (détection IA) — 4 à affecter » ; le cercle 8 ouvre la maquette 08
+               telle quelle (équipe déjà choisie).
     BLOCAGE  : « Continuer » sans l'équipe → « 4 champs à corriger ».
     FAIRE    : choisir les 4 membres de l'équipe (chef de projet, développement, qualité,
                production), cocher / décocher des études et observer l'aperçu.
@@ -968,6 +1065,14 @@ T20. Alertes (« Parcours des écrans » → écran 44)
     Filtrer « Statut : Ouverte » après une prise en charge (l'alerte disparaît de la liste) ;
     retrouver l'activité créée dans Mes activités.
 
+T21. Créer GL-01 avec la détection IA (« Parcours des écrans » → écran IA-01)
+    « Détection IA » → « Voir les informations détectées » → ligne Dosage « Résoudre » →
+    « Confirmer le choix » → « Appliquer au formulaire » → « Continuer » → choisir les
+    4 membres de l'équipe → « Continuer » : la vérification montre la ligne « Détection IA »
+    et les prérequis non trouvés → « Créer le projet ». Le projet GL-01 s'ouvre : l'onglet
+    Prérequis liste les 3 pièces non trouvées, l'onglet Historique montre « Formulaire
+    prérempli par la détection IA » ; les activités proposées sont créées en brouillon.
+
 
 ===============================================================================================
 4. LISTE DES RÈGLES DE BLOCAGE À VÉRIFIER
@@ -977,6 +1082,10 @@ T20. Alertes (« Parcours des écrans » → écran 44)
   [ ] 03  « Soumettre la revue » : seulement quand la checklist est complète.
   [ ] 04  Filtre de dates : la date de fin ne peut pas précéder la date de début.
   [ ] 07/10  Assistant : champs obligatoires signalés, code projet déjà utilisé refusé.
+  [ ] IA-01  « Détection IA » grisé sans fichier ; seuls PDF, DOCX et XLSX de 10 Mo maximum ;
+             « Continuer » grisé tant que les champs obligatoires ne sont pas remplis.
+  [ ] IA-03  « Appliquer » grisé tant que l'écart de dosage n'est pas résolu.
+  [ ] IA-04  Motif du choix obligatoire ; les fichiers sources ne sont jamais modifiés.
   [ ] 08  Équipe projet incomplète : « 4 champs à corriger ».
   [ ] 12  « Préparer la revue » indisponible tant qu'un prérequis n'est pas vérifié ;
           un document ne peut pas être « Vérifié » sans pièce associée.
@@ -1041,7 +1150,14 @@ T20. Alertes (« Parcours des écrans » → écran 44)
   04     Filtres et vue enregistrée                  « Appliquer », puis recherche « CS-01 »
   05     Recherche et accès direct                   Menu « Projets »
   06     Liste des projets                           « Nouveau projet »
-  07     Créer un projet — Produit                   « Continuer »
+  07     Créer un projet — Produit                   Zone « Déposer des fichiers ici » (IA1)
+  IA-01  Détection IA — dépôt des documents          « Détection IA »
+  IA-02  Détection IA — détection en cours           « Voir les informations détectées »
+                                                     (fin de lecture) ou en bas à droite
+  IA-03  Détection IA — données et provenance        Ligne « Dosage » → « Résoudre »
+  IA-04  Détection IA — résolution d'un écart        « Confirmer le choix »
+  IA-05  Détection IA — suggestions R&D              « Appliquer au formulaire »
+  IA-06  Détection IA — préremplissage confirmé      « Continuer » (cercle 8)
   08     Créer un projet — Parcours & équipe         « Continuer »
   09     Créer un projet — Vérification              En bas à droite
   10     Champs manquants et code déjà utilisé       En bas à droite (projet CS-01)

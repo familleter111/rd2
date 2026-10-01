@@ -945,6 +945,19 @@ export interface ProjectDraft {
   effort: string;
   prerequisites: string[];
   sourceProject?: string;
+  /** What the "Détection IA" applied to the form (screens IA-01 → IA-06). */
+  ai?: AiPrefill;
+}
+
+export interface AiPrefill {
+  /** Fields filled from the documents ("Issu des documents") or by a confirmed choice. */
+  fields: Partial<Record<"name" | "dci" | "family" | "form" | "dosage" | "countries" | "referenceProduct", "documents" | "confirme">>;
+  /** Proposed activities, created as drafts with the project. */
+  activities: { title: string; detail: string }[];
+  /** Pieces not found in the documents, added to the prerequisites of the project. */
+  prerequisites: string[];
+  dosageReason: string;
+  files: string[];
 }
 
 /* ------------------------------------------------------------------ */

@@ -225,6 +225,21 @@ export const actions = {
       status: "Non disponible",
       blocking: t.blocking || undefined,
     }));
+    for (const name of draft.ai?.prerequisites ?? []) {
+      if (prerequisites.some((p) => p.name === name)) continue;
+      prerequisites.push({
+        id: uid("pr"),
+        projectCode: code,
+        category: "Documents",
+        name,
+        detail: "Non trouvé dans les documents fournis lors de la création (détection IA).",
+        source: "R&D",
+        importance: "Importante",
+        quality: "Non disponible",
+        icon: "doc",
+        status: "Non disponible",
+      });
+    }
 
     const documents: ProjectDocument[] = draft.files.map((f) => ({
       id: uid("doc"),
@@ -261,6 +276,10 @@ export const actions = {
       ...(draft.analytic
         ? [activity("Planifier le développement analytique", "Planifier les méthodes et essais", "Analytique", addDays(start, 7), "flask")]
         : []),
+      ...(draft.ai?.activities ?? []).map((a) => ({
+        ...activity(a.title, a.detail, "Détection IA", addDays(start, 7), "doc"),
+        status: { label: "Brouillon", tone: "neutral" as const },
+      })),
     ];
 
     let s: DemoState = {
@@ -284,6 +303,22 @@ export const actions = {
       icon: "folder",
       href: `/projets/${slug}`,
     });
+    if (draft.ai) {
+      const fields = Object.keys(draft.ai.fields).length;
+      s = withEvent(s, {
+        projectCode: code,
+        title: "Formulaire prérempli par la détection IA",
+        context: `${code} • ${project.name}`,
+        object: "Projet",
+        objectLabel: `${code} • ${project.name}`,
+        type: "Création",
+        description: `${fields} champs repris de ${draft.ai.files.join(", ")} après vérification. Dosage retenu : ${dosage} — ${draft.ai.dosageReason} ${
+          draft.ai.activities.length
+        } activités proposées créées en brouillon.`,
+        icon: "doc",
+        href: `/projets/${slug}`,
+      });
+    }
     commit(s);
     return slug;
   },

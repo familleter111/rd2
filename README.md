@@ -37,9 +37,12 @@ Le prototype se parcourt écran par écran, dans l'ordre des maquettes :
   d'abord le cas échéant) ; le cliquer ouvre cet écran. Les boutons concernés passent en bleu plein ;
   un champ ou un bloc entouré de bleu signale un préalable (confirmer l'applicabilité, saisir un résultat…).
 - **Cercle en bas à droite** : quand aucun élément de la page ne mène à l'écran suivant (changement de
-  projet ou d'étude, variante de maquette : écrans 09, 10, 11, 14, 18, 34, 42, 44, 55), il ouvre l'écran suivant ; avec une
+  projet ou d'étude, variante de maquette : écrans 09, 10, 11, 14, 18, 34, 42, 44, 55, et IA-02 pendant la
+  lecture), il ouvre l'écran suivant ; avec une
   flèche, il fait défiler la page jusqu'au cercle quand celui-ci est hors de l'écran.
 - **Pied de page** : liens vers l'écran précédent et l'écran suivant, référence `NN / 56`.
+- **Série « Détection IA »** (maquettes IA-01 à IA-06) : insérée entre les écrans 07 et 08 ; référence
+  `IA-01 — …` dans le pied de page, cercle « IA1 » à « IA6 ».
 - **Écran NN / 56** (barre du haut, ou menu **Démonstration** → *Parcours des écrans*) : liste de tous
   les écrans livrés. Choisir un écran remet les données dans l'état exact de sa maquette.
   La même fenêtre permet de masquer les cercles.
@@ -62,6 +65,12 @@ sont idempotentes : ce que vous avez fait à la main est conservé.
 | 05       | Recherche et accès direct                | `/recherche?q=CS-01`                                        |
 | 06       | Liste des projets                        | `/projets`                                                  |
 | 07       | Créer un projet — Produit                | `/projets/nouveau`                                          |
+| IA-01    | Détection IA — dépôt des documents       | `/projets/nouveau?ia=depot`                                 |
+| IA-02    | Détection IA — détection en cours        | `/projets/nouveau?ia=analyse`                               |
+| IA-03    | Détection IA — données et provenance     | `/projets/nouveau?ia=donnees`                               |
+| IA-04    | Détection IA — résolution d'un écart     | `/projets/nouveau?ia=ecart`                                 |
+| IA-05    | Détection IA — suggestions R&D           | `/projets/nouveau?ia=parcours`                              |
+| IA-06    | Détection IA — préremplissage confirmé   | `/projets/nouveau?ia=applique`                              |
 | 08       | Créer un projet — Parcours & équipe      | `/projets/nouveau?demo=parcours`                            |
 | 09       | Créer un projet — Vérification           | `/projets/nouveau?demo=verification` (non maquetté)         |
 | 10       | Champs manquants et code déjà utilisé    | `/projets/nouveau?demo=erreurs`                             |
@@ -112,7 +121,7 @@ sont idempotentes : ce que vous avez fait à la main est conservé.
 | 55       | Configuration — modèles de parcours      | `/configuration/modeles`                                    |
 | 56       | Clôture et archivage du projet           | `/projets/cs-01/cloture?confirmer=1`                        |
 
-Les 56 maquettes sont livrées.
+Les 56 maquettes sont livrées, ainsi que les 6 maquettes de la détection IA (IA-01 à IA-06).
 
 Ouvertes directement (sans passer par le parcours), les pages affichent l'état réel des données :
 par exemple le protocole de M-01 n'existe pas tant que l'applicabilité n'est pas confirmée, et le lot
@@ -180,10 +189,20 @@ Les maquettes divergent parfois ; les choix suivants rendent le prototype cohér
   « ST-01 • Lot LP-01 » sur les autres (maquettes 42 et 43).
 - CR-01 reste en phase « Faisabilité » (la maquette 12 indique « Développement ») : sa revue de
   faisabilité est justement bloquée par le certificat GMP.
+- **Détection IA** (étape Produit de la création) : l'écran 07 prend le dessin de la maquette IA-01
+  (bloc « Démarrer à partir de vos documents », carte « Ce que l'IA recherchera »). La détection est
+  simulée (`lib/data-ai.ts`) : elle donne les résultats du scénario GL-01 quels que soient les fichiers
+  déposés. Rien n'est écrit dans le formulaire avant « Appliquer au formulaire » (certaines maquettes
+  montrent les champs déjà remplis en arrière-plan) ; « Appliquer » reste bloqué tant que l'écart de
+  dosage n'est pas résolu, et le motif du choix est obligatoire. L'étiquette « Issu des documents » est
+  placée sur la ligne du libellé, pour que la valeur reste lisible ; elle disparaît si le champ est
+  modifié à la main. À la création, les activités retenues sont créées en brouillon, les pièces non
+  trouvées deviennent des prérequis et l'historique trace le préremplissage.
 
 ## Données et état
 
 - `src/lib/data.ts` + `src/lib/data-lab.ts` + `src/lib/data-dossier.ts` : jeu de démonstration (`createSeed()`).
+- `src/lib/data-ai.ts` : documents, données détectées, sources et suggestions de la détection IA (IA-01 → IA-06).
 - `src/lib/store.ts` : store en mémoire (`useDemo()`, `actions.*`, `labActions.*`). L'état survit à la
   navigation, pas au rechargement. Menu **Démonstration → Réinitialiser les données**.
 - `src/lib/prerequisites.ts` : transitions des prérequis (écrans 12 → 14) : détail, ajout, import
@@ -207,7 +226,7 @@ src/
   components/guide/        parcours guidé (cercles bleus, liste des écrans, pied de page)
   components/layout/       sidebar (logo SIMED), topbar
   components/overview/     portefeuille, priorités, revues, filtres
-  components/projects/     liste des projets, assistant de création
+  components/projects/     liste des projets, assistant de création, détection IA
   components/project/      en-tête projet, prérequis et import, formules, comparaison, décision, lots, documents, historique, planning
   components/methods/      catalogue, référence, protocole, essais, résultats, validation, historique
   components/activities/   mes activités, fiche activité
@@ -229,4 +248,6 @@ public/brand/              logo SIMED recadré (source : simed.png)
    les données.
 4. Ajouter `<ScreenRef n={NN} label="…" />` en bas de page.
 5. Déclarer l'étape dans `GUIDE_STEPS` (`lib/guide.ts`, avec sa fonction `prepare` si besoin) et poser
-   `guide={NN}` sur le bouton (ou onglet) de l'écran précédent qui y mène.
+   `guide={NN}` sur le bouton (ou onglet) de l'écran précédent qui y mène. Un écran hors de la
+   numérotation 01–56 reçoit un identifiant à partir de 101 et une `ref` (ex. `IA-01`), affichée à la
+   place de `NN / 56`.

@@ -9,27 +9,25 @@ import {
   ChevronRight,
   CircleAlert,
   CalendarDays,
+  CircleCheck,
   Clock,
-  CloudUpload,
   Copy,
   Cylinder,
   Factory,
   FileText,
   FlaskConical,
   Info,
-  List,
   Network,
   Package,
   Pill,
   Settings,
   ShieldCheck,
-  Trash2,
   User,
   Users,
   type LucideIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, type DragEvent, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Badge, IconTile } from "@/components/ui/badge";
 import { Button, LinkButton } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -48,14 +46,32 @@ import {
   REFERENCE_PRODUCTS,
   TEAM_ROLES,
   TEMPLATE_BY_FAMILY,
-  TEMPLATE_TASKS,
   TEMPLATES,
 } from "@/lib/catalog";
 import type { DemoState } from "@/lib/data";
-import { formatFileSize, formatLong, plural } from "@/lib/format";
+import { AI_EXTRACTS, type AiStage } from "@/lib/data-ai";
+import { formatLong, plural } from "@/lib/format";
 import { findProject } from "@/lib/selectors";
 import { actions, useDemo } from "@/lib/store";
 import type { Family, ProjectDraft, Tone } from "@/lib/types";
+import {
+  AI_IDLE,
+  AiActivitiesCard,
+  AiLookupCard,
+  AnalysedFiles,
+  DetectedDataModal,
+  DetectionModal,
+  DocumentsStart,
+  DosageConflictModal,
+  FilePreviewModal,
+  SourceTag,
+  aiDraft,
+  aiScreen,
+  aiStateFor,
+  applyDetection,
+  useDetectionProgress,
+  type AiState,
+} from "./ai-detection";
 
 export type WizardSource =
   | { kind: "new" }
@@ -63,7 +79,9 @@ export type WizardSource =
   | { kind: "duplicate"; slug: string }
   | { kind: "template"; family: string }
   /** Guided tour: pre-filled wizard at a given state (screens 08, 09, 10). */
-  | { kind: "demo"; variant: "parcours" | "verification" | "erreurs" };
+  | { kind: "demo"; variant: "parcours" | "verification" | "erreurs" }
+  /** Guided tour: "Détection IA" series of step 1 (screens IA-01 → IA-06). */
+  | { kind: "ia"; stage: AiStage };
 
 const DEFAULT_PREREQUISITES = PREREQUISITE_TEMPLATES.slice(0, 4).map((p) => p.name);
 
@@ -111,6 +129,9 @@ function demoDraft(): ProjectDraft {
 }
 
 function initialDraft(state: DemoState, source: WizardSource): { draft: ProjectDraft; notice?: string } {
+  if (source.kind === "ia") {
+    return { draft: aiDraft(emptyDraft("Sèche"), source.stage), notice: "Déposez vos documents, puis lancez la détection IA." };
+  }
   if (source.kind === "demo") {
     if (source.variant === "erreurs") return { draft: { ...emptyDraft("Sèche"), code: "CS-01" } };
     return { draft: demoDraft(), notice: "Parcours guidé : formulaire pré-rempli pour la démonstration." };
@@ -234,103 +255,38 @@ function ErrorSummary({ errors }: { errors: Errors }) {
 /* Step 1 — Produit                                                    */
 /* ------------------------------------------------------------------ */
 
-const ACCEPTED = ["pdf", "docx", "xlsx", "pptx"];
-const MAX_SIZE = 10 * 1024 * 1024;
-
-function FileDrop({ draft, setDraft }: { draft: ProjectDraft; setDraft: (d: ProjectDraft) => void }) {
-  const [rejected, setRejected] = useState<string[]>([]);
-  const [over, setOver] = useState(false);
-
-  const addFiles = (list: FileList | null) => {
-    if (!list) return;
-    const accepted: ProjectDraft["files"] = [];
-    const refused: string[] = [];
-    Array.from(list).forEach((f) => {
-      const ext = f.name.split(".").pop()?.toLowerCase() ?? "";
-      if (!ACCEPTED.includes(ext)) refused.push(`${f.name} : format non accepté`);
-      else if (f.size > MAX_SIZE) refused.push(`${f.name} : fichier supérieur à 10 Mo`);
-      else if (!draft.files.some((x) => x.name === f.name)) accepted.push({ name: f.name, size: formatFileSize(f.size) });
-    });
-    setRejected(refused);
-    if (accepted.length) setDraft({ ...draft, files: [...draft.files, ...accepted] });
-  };
-
-  const onDrop = (e: DragEvent) => {
-    e.preventDefault();
-    setOver(false);
-    addFiles(e.dataTransfer.files);
-  };
-
-  return (
-    <div>
-      <label
-        onDragOver={(e) => {
-          e.preventDefault();
-          setOver(true);
-        }}
-        onDragLeave={() => setOver(false)}
-        onDrop={onDrop}
-        className={`flex cursor-pointer flex-col items-center rounded-xl border-2 border-dashed px-6 py-7 text-center transition-colors ${
-          over ? "border-brand-500 bg-brand-50" : "border-brand-200 bg-subtle hover:border-brand-300 hover:bg-brand-50/60"
-        }`}
-      >
-        <CloudUpload className="h-10 w-10 text-brand-500" strokeWidth={1.5} aria-hidden />
-        <span className="mt-2 font-semibold text-ink-900">Déposer des fichiers ici</span>
-        <span className="text-sm text-brand-600">ou cliquer pour parcourir</span>
-        <span className="mt-2 text-[13px] text-ink-500">PDF, DOCX, XLSX, PPTX • 10 Mo max par fichier</span>
-        <input type="file" multiple accept=".pdf,.docx,.xlsx,.pptx" className="sr-only" onChange={(e) => addFiles(e.target.files)} />
-      </label>
-      {rejected.length > 0 && (
-        <ul className="mt-2 space-y-1 text-sm text-danger-600" role="alert">
-          {rejected.map((r) => (
-            <li key={r}>{r}</li>
-          ))}
-        </ul>
-      )}
-      {draft.files.length > 0 && (
-        <ul className="mt-3 divide-y divide-line rounded-xl border border-line">
-          {draft.files.map((f) => (
-            <li key={f.name} className="flex items-center gap-3 px-4 py-2.5 text-sm">
-              <FileText className="h-5 w-5 text-brand-600" aria-hidden />
-              <span className="flex-1 truncate text-ink-900">{f.name}</span>
-              <span className="text-ink-500">{f.size}</span>
-              <button
-                type="button"
-                aria-label={`Retirer ${f.name}`}
-                onClick={() => setDraft({ ...draft, files: draft.files.filter((x) => x.name !== f.name) })}
-                className="cursor-pointer rounded p-1 text-ink-500 hover:bg-danger-50 hover:text-danger-600"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
-const TASK_ICONS: Record<(typeof TEMPLATE_TASKS)[number]["icon"], LucideIcon> = {
-  flask: FlaskConical,
-  settings: Settings,
-  chart: ChartNoAxesColumn,
-  doc: FileText,
-};
-
 function SummaryValue({ value }: { value: string }) {
   return value ? <span className="text-ink-900">{value}</span> : <span className="text-ink-400">À renseigner</span>;
 }
+
+type AiFieldKey = keyof NonNullable<ProjectDraft["ai"]>["fields"];
 
 function ProductStep({
   draft,
   setDraft,
   errors,
+  ai,
+  onDetect,
+  onShowDetection,
+  onFilesChange,
+  onPreview,
+  onReview,
 }: {
   draft: ProjectDraft;
   setDraft: (d: ProjectDraft) => void;
   errors: Errors;
+  ai: AiState;
+  onDetect: () => void;
+  onShowDetection: () => void;
+  /** Files added or removed: a previous detection no longer applies. */
+  onFilesChange: () => void;
+  onPreview: (name: string) => void;
+  onReview: (name: string) => void;
 }) {
-  const set = <K extends keyof ProjectDraft>(key: K, value: ProjectDraft[K]) => setDraft({ ...draft, [key]: value });
+  // A value changed by hand loses its "Issu des documents" tag.
+  const untag = (...keys: string[]) =>
+    draft.ai && { ...draft.ai, fields: Object.fromEntries(Object.entries(draft.ai.fields).filter(([k]) => !keys.includes(k))) };
+  const set = <K extends keyof ProjectDraft>(key: K, value: ProjectDraft[K]) => setDraft({ ...draft, [key]: value, ai: untag(key) });
   const setFamily = (family: Family) =>
     setDraft({
       ...draft,
@@ -338,39 +294,56 @@ function ProductStep({
       form: FORMS_BY_FAMILY[family][0],
       template: TEMPLATE_BY_FAMILY[family],
       dosageUnit: family === "Semi-solide" ? "%" : family === "Liquide" ? "mg/mL" : "mg",
+      ai: untag("family", "form"),
     });
+  const tag = (key: AiFieldKey) => (draft.ai?.fields[key] ? <SourceTag confirmed={draft.ai.fields[key] === "confirme"} /> : null);
 
   return (
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_480px]">
       <Card className="p-6">
+        {!draft.ai && (
+          <div className="mb-6 border-b border-line pb-6">
+            <DocumentsStart
+              draft={draft}
+              setDraft={(d) => {
+                setDraft(d);
+                onFilesChange();
+              }}
+              ai={ai}
+              onDetect={onDetect}
+              onShow={onShowDetection}
+              onPreview={onPreview}
+            />
+          </div>
+        )}
         <h2 className="text-xl font-bold text-ink-900">Informations produit</h2>
-        <div className="mt-5 grid gap-5 md:grid-cols-3">
+        <div className="mt-5 grid gap-5 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_minmax(0,2fr)]">
           <Field label="Code projet" required htmlFor="field-code" error={errors.code} info="2 lettres, un tiret et 2 chiffres. Le code doit être unique.">
             <Input id="field-code" placeholder="Ex. CS-01" value={draft.code} invalid={Boolean(errors.code)} onChange={(e) => set("code", e.target.value.toUpperCase())} />
           </Field>
-          <Field label="Nom du projet" required htmlFor="field-name" error={errors.name}>
-            <Input id="field-name" placeholder="Ex. Comprimé 100 mg" value={draft.name} invalid={Boolean(errors.name)} onChange={(e) => set("name", e.target.value)} />
+          <Field label="Nom du projet" required htmlFor="field-name" error={errors.name} aside={tag("name")}>
+            <Input id="field-name" placeholder="Saisir un nom de projet" value={draft.name} invalid={Boolean(errors.name)} onChange={(e) => set("name", e.target.value)} />
           </Field>
-          <Field label="DCI" required htmlFor="field-dci" error={errors.dci}>
+          <Field label="DCI" required htmlFor="field-dci" error={errors.dci} aside={tag("dci")}>
             <Input id="field-dci" placeholder="Saisir la DCI" value={draft.dci} invalid={Boolean(errors.dci)} onChange={(e) => set("dci", e.target.value)} />
           </Field>
         </div>
 
-        <Field label="Famille" required className="mt-5">
+        <Field label="Famille" required className="mt-5" aside={tag("family")}>
           <Segmented label="Famille" options={FAMILIES.map((f) => ({ value: f, label: f }))} value={draft.family} onChange={setFamily} />
         </Field>
 
         <div className="mt-5 grid gap-5 md:grid-cols-2">
-          <Field label="Forme" required htmlFor="field-form">
+          <Field label="Forme" required htmlFor="field-form" aside={tag("form")}>
             <Select id="field-form" options={FORMS_BY_FAMILY[draft.family]} value={draft.form} onChange={(e) => set("form", e.target.value)} />
           </Field>
-          <Field label="Dosage" required htmlFor="field-dosage" error={errors.dosage}>
+          <Field label="Dosage" required htmlFor="field-dosage" error={errors.dosage} aside={tag("dosage")}>
             <div className="grid grid-cols-[1fr_130px] gap-3">
-              <Input id="field-dosage" inputMode="decimal" value={draft.dosage} invalid={Boolean(errors.dosage)} onChange={(e) => set("dosage", e.target.value)} />
+              <Input id="field-dosage" inputMode="decimal" placeholder="Saisir un dosage" value={draft.dosage} invalid={Boolean(errors.dosage)} onChange={(e) => set("dosage", e.target.value)} />
               <Select aria-label="Unité du dosage" options={DOSAGE_UNITS} value={draft.dosageUnit} onChange={(e) => set("dosageUnit", e.target.value)} />
             </div>
           </Field>
-          <Field label="Pays cible" required htmlFor="field-countries" error={errors.countries}>
+          <Field label="Pays cible" required htmlFor="field-countries" error={errors.countries} aside={tag("countries")}>
             <MultiSelect
               id="field-countries"
               label="Pays cible"
@@ -381,7 +354,7 @@ function ProductStep({
               invalid={Boolean(errors.countries)}
             />
           </Field>
-          <Field label="Produit de référence" required htmlFor="field-referenceProduct" error={errors.referenceProduct}>
+          <Field label="Produit de référence" required htmlFor="field-referenceProduct" error={errors.referenceProduct} aside={tag("referenceProduct")}>
             <Select
               id="field-referenceProduct"
               placeholder="Sélectionner un produit de référence"
@@ -393,21 +366,22 @@ function ProductStep({
           </Field>
         </div>
 
-        <div className="mt-6 border-t border-line pt-5">
-          <Field label="Pièces initiales" optional info="Les pièces seront ajoutées aux documents du projet (catégorie Références).">
-            <FileDrop draft={draft} setDraft={setDraft} />
-          </Field>
-        </div>
+        {draft.ai && (
+          <div className="mt-6 border-t border-line pt-5">
+            <AnalysedFiles files={draft.files} onReview={onReview} />
+          </div>
+        )}
       </Card>
 
       <div className="space-y-5">
+        {!draft.ai && <AiLookupCard />}
         <Card className="p-5">
           <h2 className="text-xl font-bold text-ink-900">Ce qui sera créé</h2>
           <div className="mt-4 rounded-xl border border-line">
             <div className="flex items-start gap-3 p-4">
               <IconTile icon={FileText} className="bg-brand-50 text-ink-700" />
               <div>
-                <p className="font-semibold text-ink-900">Projet R&amp;D</p>
+                <p className="font-semibold text-ink-900">{draft.name ? "Projet R&D" : "En attente des informations produit"}</p>
                 <p className="text-sm text-ink-600">Les informations saisies seront utilisées pour créer le projet et initialiser son parcours.</p>
               </div>
             </div>
@@ -434,29 +408,7 @@ function ProductStep({
             </dl>
           </div>
         </Card>
-        <Card className="p-5">
-          <div className="flex items-start gap-3">
-            <IconTile icon={List} className="bg-brand-50 text-ink-700" />
-            <div>
-              <h2 className="text-lg font-bold text-ink-900">Tâches issues du modèle</h2>
-              <p className="text-sm text-ink-600">Un parcours standard sera créé avec les tâches habituelles pour ce type de produit ({draft.template.toLowerCase()}).</p>
-            </div>
-          </div>
-          <ul className="mt-4 space-y-3.5">
-            {TEMPLATE_TASKS.map((task) => {
-              const Icon = TASK_ICONS[task.icon];
-              return (
-                <li key={task.key} className="flex items-start gap-3">
-                  <Icon className="mt-0.5 h-5 w-5 shrink-0 text-ink-700" strokeWidth={1.7} aria-hidden />
-                  <div>
-                    <p className="font-semibold text-ink-900">{task.title}</p>
-                    <p className="text-sm text-ink-500">{task.detail}</p>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </Card>
+        {draft.ai && <AiActivitiesCard prefill={draft.ai} />}
       </div>
     </div>
   );
@@ -728,7 +680,8 @@ function ProjectPreview({ draft, onEditProduct }: { draft: ProjectDraft; onEditP
             <dd className="text-ink-900">{draft.template}</dd>
           </dl>
         </PreviewBlock>
-        <PreviewBlock n={2} icon={Clock} title="Prérequis" tag={draft.prerequisites.length ? `${draft.prerequisites.length} à demander` : "À définir"} tone={draft.prerequisites.length ? "info" : "neutral"}>
+        <PreviewBlock n={2} icon={Clock} title="Prérequis" tag={prerequisiteCount(draft) ? `${prerequisiteCount(draft)} à demander` : "À définir"} tone={prerequisiteCount(draft) ? "info" : "neutral"}>
+          {draft.ai && <PreviewRow label="Activités proposées (détection IA)" tag={`${draft.ai.activities.length} à affecter`} tone="info" />}
           <PreviewRow label="Études optionnelles" tag={draft.studies.length ? `${draft.studies.length} ${plural(draft.studies.length, "incluse")}` : "À confirmer"} tone={draft.studies.length ? "info" : "warn"} />
           <PreviewRow label="Ressources" tag={teamComplete ? "Attribuées" : "À attribuer"} tone={teamComplete ? "success" : "neutral"} />
           <PreviewRow label="Calendrier" tag={scheduled ? "Estimé" : "À estimer"} tone={scheduled ? "success" : "neutral"} />
@@ -757,6 +710,9 @@ function ProjectPreview({ draft, onEditProduct }: { draft: ProjectDraft; onEditP
 /* Step 3 — Vérification                                               */
 /* ------------------------------------------------------------------ */
 
+/** Prerequisites created with the project: the selected ones and those the detection did not find. */
+const prerequisiteCount = (d: ProjectDraft) => new Set([...d.prerequisites, ...(d.ai?.prerequisites ?? [])]).size;
+
 function RecapCard({ title, onEdit, rows }: { title: string; onEdit: () => void; rows: [string, string][] }) {
   return (
     <Card className="p-5">
@@ -780,7 +736,8 @@ function RecapCard({ title, onEdit, rows }: { title: string; onEdit: () => void;
 
 function ReviewStep({ draft, goTo }: { draft: ProjectDraft; goTo: (step: 1 | 2) => void }) {
   const studies = OPTIONAL_STUDIES.filter((s) => draft.studies.includes(s.key)).map((s) => s.title);
-  const activities = 1 + (draft.galenic ? 1 : 0) + (draft.analytic ? 1 : 0);
+  const activities = 1 + (draft.galenic ? 1 : 0) + (draft.analytic ? 1 : 0) + (draft.ai?.activities.length ?? 0);
+  const prerequisites = prerequisiteCount(draft);
   return (
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
       <div className="space-y-5">
@@ -796,6 +753,9 @@ function ReviewStep({ draft, goTo }: { draft: ProjectDraft; goTo: (step: 1 | 2) 
             ["Pays cible", draft.countries.join(", ")],
             ["Produit de référence", draft.referenceProduct],
             ["Pièces initiales", draft.files.length ? draft.files.map((f) => f.name).join(", ") : "Aucune"],
+            ...(draft.ai
+              ? [["Détection IA", `${Object.keys(draft.ai.fields).length} champs repris des documents — dosage retenu : ${draft.dosage} ${draft.dosageUnit}`] as [string, string]]
+              : []),
           ]}
         />
         <RecapCard
@@ -815,7 +775,7 @@ function ReviewStep({ draft, goTo }: { draft: ProjectDraft; goTo: (step: 1 | 2) 
             ["Date de démarrage", draft.startDate ? formatLong(draft.startDate) : "Dès la création"],
             ["Date cible", draft.targetDate ? formatLong(draft.targetDate) : "À estimer (6 mois par défaut)"],
             ["Charge estimée", draft.effort ? `${draft.effort} jours-homme` : "À estimer"],
-            ["Prérequis", draft.prerequisites.join(", ") || "Aucun"],
+            ["Prérequis", [...new Set([...draft.prerequisites, ...(draft.ai?.prerequisites ?? [])])].join(", ") || "Aucun"],
           ]}
         />
       </div>
@@ -824,8 +784,12 @@ function ReviewStep({ draft, goTo }: { draft: ProjectDraft; goTo: (step: 1 | 2) 
         <ul className="mt-4 space-y-3">
           {[
             { icon: FileText, label: `Projet ${draft.code.toUpperCase()} • ${draft.name}`, detail: `${draft.template} — phase Cadrage` },
-            { icon: Clock, label: `${draft.prerequisites.length} ${plural(draft.prerequisites.length, "prérequis")}`, detail: "Statut « À planifier »" },
-            { icon: Check, label: `${activities} ${plural(activities, "activité")}`, detail: "Cadrage et planification des parcours" },
+            { icon: Clock, label: `${prerequisites} ${plural(prerequisites, "prérequis")}`, detail: "Statut « À planifier »" },
+            {
+              icon: Check,
+              label: `${activities} ${plural(activities, "activité")}`,
+              detail: draft.ai ? `Cadrage, parcours et ${draft.ai.activities.length} activités proposées (brouillon)` : "Cadrage et planification des parcours",
+            },
             { icon: FileText, label: `${draft.files.length} ${plural(draft.files.length, "document")}`, detail: "Pièces initiales (catégorie Références)" },
           ].map((item) => (
             <li key={item.label} className="flex items-start gap-3 rounded-xl border border-line p-3">
@@ -871,6 +835,9 @@ export function NewProjectWizard({ source }: { source: WizardSource }) {
     source.kind === "draft" ? initial.step : source.kind === "demo" ? (source.variant === "parcours" ? 2 : source.variant === "verification" ? 3 : 1) : 1,
   );
   const [attempted, setAttempted] = useState<Record<number, boolean>>(source.kind === "demo" && source.variant === "erreurs" ? { 1: true } : {});
+  const [ai, setAi] = useState<AiState>(() => aiStateFor(source.kind === "ia" ? source.stage : undefined));
+  const [preview, setPreview] = useState<string | null>(null);
+  useDetectionProgress(ai, setAi);
 
   const existingCodes = state.projects.map((p) => p.code);
   const productErrors = validateProduct(draft, existingCodes);
@@ -878,6 +845,24 @@ export function NewProjectWizard({ source }: { source: WizardSource }) {
   const currentErrors = step === 1 ? productErrors : step === 2 ? pathwayErrors : {};
   const shownErrors = attempted[step] ? currentErrors : {};
   const blocked = Boolean(attempted[step] && Object.keys(currentErrors).length);
+  // Documents dropped, detection not applied yet: the form is still to be completed (IA-01).
+  const awaitingDetection = step === 1 && !blocked && draft.files.length > 0 && !draft.ai && Object.keys(productErrors).length > 0;
+
+  const detection = {
+    start: () => setAi((a) => ({ ...AI_IDLE, activities: a.activities, phase: "running" })),
+    show: () => setAi((a) => (a.progress >= 100 ? { ...a, phase: "data", tab: "produit", minimized: false } : { ...a, minimized: false })),
+    minimize: () => setAi((a) => ({ ...a, minimized: true })),
+    cancel: () => setAi(() => AI_IDLE),
+    close: () => setAi((a) => ({ ...a, phase: "idle", minimized: false })),
+    resolve: () => setAi((a) => ({ ...a, phase: "conflict" })),
+    review: (name: string) =>
+      setAi((a) => ({ ...a, phase: "data", tab: "produit", source: { extract: Math.max(0, AI_EXTRACTS.findIndex((x) => x.file === name)) } })),
+    apply: () => {
+      setDraft(applyDetection(draft, ai));
+      setAi((a) => ({ ...a, phase: "idle", minimized: false }));
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    },
+  };
 
   const goTo = (target: 1 | 2 | 3) => {
     setStep(target);
@@ -904,7 +889,9 @@ export function NewProjectWizard({ source }: { source: WizardSource }) {
     toast.show({ title: "Brouillon enregistré", description: "Vous pouvez le reprendre depuis la page Projets.", action: { label: "Voir les projets", href: "/projets" } });
   };
 
-  const screen = step === 1 && blocked ? { n: 10, label: "Champs manquants et code déjà utilisé" } : SCREENS[step];
+  const screen =
+    step === 1 ? (blocked ? { n: 10, label: "Champs manquants et code déjà utilisé" } : (aiScreen(ai, draft) ?? SCREENS[1])) : SCREENS[step];
+  const prefilled = draft.ai ? Object.keys(draft.ai.fields).length : 0;
 
   return (
     <>
@@ -928,7 +915,12 @@ export function NewProjectWizard({ source }: { source: WizardSource }) {
       />
       <Stepper steps={STEPS} current={step} onStepClick={(n) => goTo(n as 1 | 2)} className="mt-6 max-w-5xl" />
 
-      {notice && (
+      {step === 1 && prefilled > 0 ? (
+        <p className="mt-5 flex items-center gap-3 rounded-xl border border-success-100 bg-success-50 px-4 py-3 text-[15px] text-ink-800">
+          <CircleCheck className="h-5 w-5 fill-success-500 text-white" aria-hidden />
+          {prefilled} {plural(prefilled, "champ prérempli", "champs préremplis")} depuis vos documents. Vérifiez-les avant de continuer.
+        </p>
+      ) : notice && (
         <p className="mt-5 flex items-center gap-3 rounded-xl border border-brand-100 bg-brand-50/70 px-4 py-3 text-[15px] text-ink-700">
           {source.kind === "duplicate" ? <Copy className="h-5 w-5 text-brand-600" aria-hidden /> : <Info className="h-5 w-5 text-brand-600" aria-hidden />}
           {notice}
@@ -942,7 +934,19 @@ export function NewProjectWizard({ source }: { source: WizardSource }) {
       )}
 
       <div className="mt-6">
-        {step === 1 && <ProductStep draft={draft} setDraft={setDraft} errors={shownErrors} />}
+        {step === 1 && (
+          <ProductStep
+            draft={draft}
+            setDraft={setDraft}
+            errors={shownErrors}
+            ai={ai}
+            onDetect={detection.start}
+            onShowDetection={detection.show}
+            onFilesChange={detection.cancel}
+            onPreview={setPreview}
+            onReview={detection.review}
+          />
+        )}
         {step === 2 && (
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
             <PathwayStep draft={draft} setDraft={setDraft} errors={shownErrors} />
@@ -966,25 +970,53 @@ export function NewProjectWizard({ source }: { source: WizardSource }) {
             )}
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            {step === 1 && Object.keys(productErrors).length > 0 && <span className="hidden text-sm text-ink-500 md:inline">Le brouillon reste incomplet.</span>}
+            {step === 1 && !awaitingDetection && Object.keys(productErrors).length > 0 && (
+              <span className="hidden text-sm text-ink-500 md:inline">Le brouillon reste incomplet.</span>
+            )}
             <Button variant="outline" size="lg" icon={<FileText className="h-5 w-5" />} onClick={saveDraft}>
               {step === 1 ? "Enregistrer le brouillon" : "Brouillon"}
             </Button>
-            <Button
-              size="lg"
-              disabled={blocked}
-              className="min-w-40"
-              iconRight={step === 3 ? <Check className="h-5 w-5" /> : <ArrowRight className="h-5 w-5" />}
-              onClick={next}
-              guide={step === 1 ? 8 : step === 2 ? 9 : undefined}
-            >
-              {step === 3 ? "Créer le projet" : "Continuer"}
-            </Button>
+            <span className="flex flex-col items-center gap-1">
+              <Button
+                size="lg"
+                disabled={blocked || awaitingDetection}
+                className="min-w-40"
+                iconRight={step === 3 ? <Check className="h-5 w-5" /> : <ArrowRight className="h-5 w-5" />}
+                onClick={next}
+                guide={step === 1 ? 8 : step === 2 ? 9 : undefined}
+              >
+                {step === 3 ? "Créer le projet" : "Continuer"}
+              </Button>
+              {awaitingDetection && <span className="whitespace-nowrap text-xs text-ink-500">Champs obligatoires à compléter</span>}
+            </span>
           </div>
         </div>
       </div>
 
       <ScreenRef n={screen.n} label={screen.label} />
+
+      {step === 1 && (
+        <>
+          <DetectionModal
+            open={ai.phase === "running" && !ai.minimized}
+            ai={ai}
+            files={draft.files}
+            onCancel={detection.cancel}
+            onMinimize={detection.minimize}
+            onShow={detection.show}
+          />
+          <DetectedDataModal open={ai.phase === "data"} ai={ai} setAi={setAi} onClose={detection.close} onResolve={detection.resolve} onApply={detection.apply} />
+          {ai.phase === "conflict" && (
+            <DosageConflictModal
+              open
+              current={ai.dosage}
+              onBack={() => setAi((a) => ({ ...a, phase: "data" }))}
+              onConfirm={(dosage) => setAi((a) => ({ ...a, phase: "data", tab: "parcours", dosage }))}
+            />
+          )}
+          <FilePreviewModal name={preview} onClose={() => setPreview(null)} />
+        </>
+      )}
     </>
   );
 }

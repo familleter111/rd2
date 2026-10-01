@@ -2,10 +2,8 @@
 
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useEffect } from "react";
-import { TOTAL_SCREENS, guideUi, nextStepOf, prevStepOf } from "@/lib/guide";
+import { guideUi, nextStepOf, prevStepOf, screenCode, screenShort } from "@/lib/guide";
 import { useGuideNav } from "./guide-mark";
-
-const pad = (n: number) => String(n).padStart(2, "0");
 
 /**
  * Mock-up reference ("23 / 56 — Méthode — référence · Maquette • Données de démonstration").
@@ -33,7 +31,7 @@ export function ScreenRef({ n, label }: { n?: number; label: string }) {
             className="inline-flex cursor-pointer items-center gap-1.5 rounded-md px-1 py-0.5 text-ink-600 hover:bg-brand-50 hover:text-brand-700"
           >
             <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
-            {pad(prev.n)} — {prev.label}
+            {screenShort(prev.n)} — {prev.label}
           </button>
         )}
         {next && (
@@ -42,14 +40,14 @@ export function ScreenRef({ n, label }: { n?: number; label: string }) {
             onClick={() => go(next.n)}
             className="inline-flex cursor-pointer items-center gap-1.5 rounded-md px-1 py-0.5 font-semibold text-brand-700 hover:bg-brand-50"
           >
-            {pad(next.n)} — {next.label}
+            {screenShort(next.n)} — {next.label}
             <ArrowRight className="h-3.5 w-3.5" aria-hidden />
           </button>
         )}
       </nav>
       <p className="ml-auto flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
         <span>
-          {n !== undefined && `${pad(n)} / ${TOTAL_SCREENS} — `}
+          {n !== undefined && `${screenCode(n)} — `}
           {label}
         </span>
         <span aria-hidden className="text-ink-300">

@@ -16,6 +16,10 @@ interface ModalProps {
   children: ReactNode;
   footer?: ReactNode;
   size?: "sm" | "md" | "lg" | "xl";
+  /** Icon before the title (or above it when `centered`). */
+  icon?: ReactNode;
+  /** Centered header (progress dialogs). */
+  centered?: boolean;
 }
 
 const SIZES = {
@@ -25,7 +29,7 @@ const SIZES = {
   xl: "max-w-[1040px]",
 };
 
-export function Modal({ open, onClose, title, subtitle, children, footer, size = "md" }: ModalProps) {
+export function Modal({ open, onClose, title, subtitle, children, footer, size = "md", icon, centered }: ModalProps) {
   const mounted = useMounted();
   const reduce = useReducedMotion();
   const panelRef = useRef<HTMLDivElement>(null);
@@ -62,14 +66,17 @@ export function Modal({ open, onClose, title, subtitle, children, footer, size =
               transition={{ duration: 0.22, ease: [0.25, 0.46, 0.45, 0.94] }}
               style={{ willChange: "transform, opacity" }}
             >
-              <div className="flex items-start justify-between gap-4 px-7 pb-2 pt-6">
-                <div className="min-w-0">
-                  <h2 id={titleId} className="text-2xl font-bold tracking-tight text-ink-900">
-                    {title}
-                  </h2>
-                  {subtitle && <div className="mt-1.5 text-[15px] text-ink-600">{subtitle}</div>}
+              <div className={cn("flex items-start justify-between gap-4 px-7 pb-2 pt-6", centered && "relative justify-center pt-8")}>
+                <div className={cn("flex min-w-0 items-start gap-3.5", centered && "flex-col items-center text-center")}>
+                  {icon}
+                  <div className="min-w-0">
+                    <h2 id={titleId} className="text-2xl font-bold tracking-tight text-ink-900">
+                      {title}
+                    </h2>
+                    {subtitle && <div className="mt-1.5 text-[15px] text-ink-600">{subtitle}</div>}
+                  </div>
                 </div>
-                <IconButton label="Fermer" onClick={onClose} className="-mr-2">
+                <IconButton label="Fermer" onClick={onClose} className={centered ? "absolute right-5 top-5" : "-mr-2"}>
                   <X className="h-5 w-5" />
                 </IconButton>
               </div>

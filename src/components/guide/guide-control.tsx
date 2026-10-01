@@ -6,7 +6,7 @@ import { Checkbox } from "@/components/ui/field";
 import { Modal } from "@/components/ui/modal";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
-import { GUIDE_STEPS, TOTAL_SCREENS, findStep, guideUi, replayTo, useGuideUi } from "@/lib/guide";
+import { GUIDE_STEPS, TOTAL_SCREENS, findStep, guideUi, replayTo, screenCode, screenShort, useGuideUi } from "@/lib/guide";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
@@ -70,7 +70,7 @@ function GuidePanel() {
                         replayTo(step.n);
                         guideUi.closePanel();
                         router.push(step.href);
-                        toast.show({ title: `Écran ${pad(step.n)} — ${step.label}`, description: "Données remises dans l'état de la maquette.", tone: "info" });
+                        toast.show({ title: `Écran ${screenShort(step.n)} — ${step.label}`, description: "Données remises dans l'état de la maquette.", tone: "info" });
                       }}
                       className={cn(
                         "flex w-full cursor-pointer items-start gap-3 rounded-lg border px-3 py-2 text-left transition-colors",
@@ -79,11 +79,11 @@ function GuidePanel() {
                     >
                       <span
                         className={cn(
-                          "mt-0.5 flex h-7 w-9 shrink-0 items-center justify-center rounded-md text-xs font-bold",
+                          "mt-0.5 flex h-7 min-w-9 shrink-0 items-center justify-center rounded-md px-1 text-xs font-bold",
                           here ? "bg-brand-600 text-white" : "bg-slate-100 text-ink-700",
                         )}
                       >
-                        {pad(step.n)}
+                        {screenShort(step.n)}
                       </span>
                       <span className="min-w-0">
                         <span className="block text-sm font-semibold text-ink-900">{step.label}</span>
@@ -123,7 +123,7 @@ export function GuideControl() {
         className="flex h-12 shrink-0 cursor-pointer items-center gap-2 rounded-xl border border-line-strong bg-white px-3 text-sm font-semibold text-ink-700 shadow-card transition-colors hover:border-brand-300 hover:text-brand-700"
       >
         <ListOrdered className="h-5 w-5" strokeWidth={1.8} aria-hidden />
-        <span className="tabular-nums">{here ? `Écran ${pad(here.n)} / ${TOTAL_SCREENS}` : "Parcours"}</span>
+        <span className="tabular-nums">{here ? `Écran ${screenCode(here.n)}` : "Parcours"}</span>
       </button>
       <GuidePanel />
     </>

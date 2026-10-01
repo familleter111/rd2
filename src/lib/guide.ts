@@ -18,6 +18,8 @@ import { applyState, replaceState } from "./store";
 
 export interface GuideStep {
   n: number;
+  /** Reference of a screen outside the numbered deck ("IA-01"), shown instead of "NN / 56". */
+  ref?: string;
   label: string;
   section: string;
   href: string;
@@ -271,6 +273,9 @@ function readyToClose(s: DemoState) {
 /* Steps                                                               */
 /* ------------------------------------------------------------------ */
 
+/** Identifiers of the "Détection IA" screens (outside the 1–56 numbering of the deck). */
+export const IA = { depot: 101, analyse: 102, donnees: 103, ecart: 104, parcours: 105, applique: 106 } as const;
+
 export const GUIDE_STEPS: GuideStep[] = [
   { n: 1, section: "Vue d'ensemble", label: "Portefeuille", href: "/vue-ensemble", hint: "Menu « Vue d'ensemble »" },
   { n: 2, section: "Vue d'ensemble", label: "Mes priorités", href: "/vue-ensemble/priorites", hint: "Onglet « Mes priorités »" },
@@ -279,6 +284,34 @@ export const GUIDE_STEPS: GuideStep[] = [
   { n: 5, section: "Vue d'ensemble", label: "Recherche et accès direct", href: "/recherche?q=CS-01", hint: "Rechercher « CS-01 »" },
   { n: 6, section: "Projets", label: "Liste des projets", href: "/projets", hint: "Menu « Projets »" },
   { n: 7, section: "Projets", label: "Créer un projet — Produit", href: "/projets/nouveau", hint: "Bouton « Nouveau projet »" },
+  // "Détection IA" series (IA-01 → IA-06): step 1 of the creation, from the documents dropped.
+  {
+    n: IA.depot,
+    ref: "IA-01",
+    section: "Projets",
+    label: "Détection IA — dépôt des documents",
+    href: "/projets/nouveau?ia=depot",
+    hint: "Déposer les documents dans « Démarrer à partir de vos documents »",
+  },
+  { n: IA.analyse, ref: "IA-02", section: "Projets", label: "Détection IA — détection en cours", href: "/projets/nouveau?ia=analyse", hint: "Bouton « Détection IA »" },
+  {
+    n: IA.donnees,
+    ref: "IA-03",
+    section: "Projets",
+    label: "Détection IA — données et provenance",
+    href: "/projets/nouveau?ia=donnees",
+    hint: "« Voir les informations détectées » à la fin de la détection",
+  },
+  { n: IA.ecart, ref: "IA-04", section: "Projets", label: "Détection IA — résolution d'un écart", href: "/projets/nouveau?ia=ecart", hint: "Ligne « Dosage » → « Résoudre »" },
+  { n: IA.parcours, ref: "IA-05", section: "Projets", label: "Détection IA — suggestions R&D", href: "/projets/nouveau?ia=parcours", hint: "« Confirmer le choix » (250 mg)" },
+  {
+    n: IA.applique,
+    ref: "IA-06",
+    section: "Projets",
+    label: "Détection IA — préremplissage confirmé",
+    href: "/projets/nouveau?ia=applique",
+    hint: "« Appliquer au formulaire »",
+  },
   { n: 8, section: "Projets", label: "Créer un projet — Parcours & équipe", href: "/projets/nouveau?demo=parcours", hint: "Bouton « Continuer »" },
   { n: 9, section: "Projets", label: "Créer un projet — Vérification", href: "/projets/nouveau?demo=verification", hint: "Bouton « Continuer »" },
   { n: 10, section: "Projets", label: "Champs manquants et code déjà utilisé", href: "/projets/nouveau?demo=erreurs", hint: "« Continuer » avec un formulaire incomplet" },
@@ -434,6 +467,14 @@ export const TOTAL_SCREENS = 56;
 
 export const findStep = (n: number) => GUIDE_STEPS.find((s) => s.n === n);
 
+const pad = (n: number) => String(n).padStart(2, "0");
+
+/** Short code of a screen: "07", or "IA-01" for a screen outside the deck. */
+export const screenShort = (n: number) => findStep(n)?.ref ?? pad(n);
+
+/** Full code of a screen: "07 / 56", or "IA-01". */
+export const screenCode = (n: number) => findStep(n)?.ref ?? `${pad(n)} / ${TOTAL_SCREENS}`;
+
 export function nextStepOf(n: number | null) {
   if (n === null) return undefined;
   const i = GUIDE_STEPS.findIndex((s) => s.n === n);
@@ -446,9 +487,10 @@ export function prevStepOf(n: number | null) {
   return i > 0 ? GUIDE_STEPS[i - 1] : undefined;
 }
 
-/** Runs the story transitions of every step up to `n` (idempotent). */
+/** Runs the story transitions of every step up to `n`, in the order of the tour (idempotent). */
 export function prepareUntil(s: DemoState, n: number) {
-  return GUIDE_STEPS.filter((step) => step.n <= n && step.prepare).reduce((acc, step) => step.prepare!(acc), s);
+  const last = GUIDE_STEPS.findIndex((step) => step.n === n);
+  return GUIDE_STEPS.slice(0, last + 1).reduce((acc, step) => (step.prepare ? step.prepare(acc) : acc), s);
 }
 
 /** Moves the story forward to screen `n` (keeps what was done by hand). */

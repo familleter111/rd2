@@ -188,7 +188,7 @@ export function ProjectFrame({ slug, children }: { slug: string; children: React
         <EmptyState
           icon={FolderX}
           title="Projet introuvable"
-          description={`Aucun projet ne correspond au code « ${slug.toUpperCase()} ». Il a peut-être été créé dans une autre session de démonstration.`}
+          description={`Aucun projet ne correspond au code « ${slug.toUpperCase()} ». Il a peut-être été créé dans une autre session.`}
           action={<LinkButton href="/projets">Retour aux projets</LinkButton>}
         />
       </Card>

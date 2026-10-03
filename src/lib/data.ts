@@ -55,6 +55,8 @@ import type {
 } from "./types";
 
 export interface DemoState {
+  /** True when the fictitious demonstration dataset (and its guided tour) is loaded. */
+  demo: boolean;
   projects: Project[];
   prerequisites: Prerequisite[];
   requests: SupplyRequest[];
@@ -1276,8 +1278,56 @@ function notifications(): Notification[] {
   ];
 }
 
+/**
+ * Blank workspace, as delivered to the client: no project and no data. Only the settings every
+ * workspace starts with are kept (roles without members, pathway templates, notification channels);
+ * the team and the bookable resources are added in "Configuration".
+ */
+export function createEmpty(): DemoState {
+  return {
+    demo: false,
+    projects: [],
+    prerequisites: [],
+    requests: [],
+    activities: [],
+    priorities: [],
+    reviews: [],
+    decisions: [],
+    formulas: [],
+    lots: [],
+    samples: [],
+    tests: [],
+    documents: [],
+    history: [],
+    formulaDecisions: [],
+    methods: [],
+    analysisRequests: [],
+    testPlans: [],
+    analyses: [],
+    resources: [],
+    events: [],
+    pilotLots: [],
+    deviations: [],
+    studies: [],
+    dossiers: [],
+    dossierReviews: [],
+    reserves: [],
+    transfers: [],
+    roles: roles().map((r) => ({ ...r, members: [] })),
+    templates: templates(),
+    notificationSettings: notificationSettings(),
+    configLog: [],
+    notifications: [],
+    filters: { ...DEFAULT_FILTERS },
+    savedViews: [],
+    draft: null,
+    draftBannerDismissed: false,
+  };
+}
+
 export function createSeed(): DemoState {
   return {
+    demo: true,
     projects: projects(),
     prerequisites: prerequisites(),
     requests: [],

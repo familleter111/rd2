@@ -24,7 +24,7 @@ export function ComingSoon({
         </span>
         <h2 className="mt-5 text-xl font-bold text-ink-900">Écran prévu dans une prochaine étape</h2>
         <p className="mt-2 max-w-lg text-[15px] text-ink-600">
-          La maquette de cet écran n&apos;a pas encore été fournie. Les éléments suivants y seront regroupés :
+          Cet écran sera disponible dans une prochaine version. Les éléments suivants y seront regroupés :
         </p>
         <ul className="mt-5 flex max-w-2xl flex-wrap justify-center gap-2">
           {items.map((item) => (

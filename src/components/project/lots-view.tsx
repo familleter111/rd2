@@ -361,7 +361,7 @@ function LotDetail({ lot, project, onSample }: { lot: Lot; project: Project; onS
             onClick={() =>
               pilot
                 ? router.push(`/projets/${project.slug}/lots/${lot.code.toLowerCase()}`)
-                : toast.show({ title: `Lot ${lot.code}`, description: "Le dossier de fabrication détaillé est disponible pour les lots pilotes (ex. LP-01).", tone: "info" })
+                : toast.show({ title: `Lot ${lot.code}`, description: "Le dossier de fabrication détaillé n'est pas disponible pour ce lot.", tone: "info" })
             }
           >
             Ouvrir le lot

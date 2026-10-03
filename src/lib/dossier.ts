@@ -5,6 +5,7 @@
  * by the guided tour), and adds a traceability event.
  */
 import type { DemoState } from "./data";
+import { blankModules } from "./data-dossier";
 import { DEMO_TODAY, formatNumeric } from "./format";
 import { nextNumber, pad2, projectLabel, stamp, uid, withEvent, type NewEvent } from "./state-utils";
 import type {
@@ -527,6 +528,32 @@ export const dossier = {
       motif: comment,
       icon: "alert",
       href: `/dossiers/${slug(code)}/transfert`,
+    });
+  },
+
+  /** Creates the empty CTD dossier (and its transfer file) of a project that has none. */
+  initDossier(s: DemoState, code: string): DemoState {
+    const project = s.projects.find((p) => p.code === code);
+    if (!project || s.dossiers.some((d) => d.projectCode === code)) return s;
+    const formulas = s.formulas.filter((f) => f.projectCode === code && f.status !== "Archivée");
+    const formula = (formulas.find((f) => f.status === "Retenue") ?? formulas.at(-1))?.code ?? "à définir";
+    const next: DemoState = {
+      ...s,
+      dossiers: [...s.dossiers, { projectCode: code, formula, modules: blankModules(), requirements: [], exports: [] }],
+      transfers: s.transfers.some((t) => t.projectCode === code)
+        ? s.transfers
+        : [...s.transfers, { projectCode: code, status: "À préparer", sourceTeam: "Équipe R&D", targetTeam: "Équipe Production", owner: project.team.find((m) => m.role.startsWith("Responsable production"))?.person || project.owner, documents: [] }],
+    };
+    return withEvent(next, {
+      projectCode: code,
+      title: "Dossier CTD initialisé",
+      context: projectLabel(next, code),
+      object: "Dossier",
+      objectLabel: `${code} • Dossier CTD`,
+      type: "Création",
+      description: "Structure CTD créée (modules 1 à 5), à compléter section par section.",
+      icon: "folder",
+      href: `/dossiers/${code.toLowerCase()}`,
     });
   },
 

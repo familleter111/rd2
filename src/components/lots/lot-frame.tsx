@@ -52,7 +52,7 @@ export function LotFrame({ slug, lotSlug, children }: { slug: string; lotSlug: s
         <EmptyState
           icon={Box}
           title="Fiche lot pilote indisponible"
-          description={`Le lot « ${lotSlug.toUpperCase()} » n'a pas de dossier de fabrication pilote dans la démonstration.`}
+          description={`Le lot « ${lotSlug.toUpperCase()} » n'a pas de dossier de fabrication pilote.`}
           action={<LinkButton href={`/projets/${slug}/formules/lots`}>Voir les lots du projet</LinkButton>}
         />
       </Card>

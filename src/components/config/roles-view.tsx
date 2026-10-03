@@ -4,7 +4,7 @@ import { ChevronRight, Factory, FlaskConical, Info, Plus, Save, ShieldCheck, Tri
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Select, Toggle } from "@/components/ui/field";
+import { Input, Select, Toggle } from "@/components/ui/field";
 import { Menu } from "@/components/ui/menu";
 import { ScreenRef } from "@/components/ui/page";
 import { toast } from "@/components/ui/toast";
@@ -31,6 +31,41 @@ const initials = (name: string) =>
     .join("")
     .slice(0, 2)
     .toUpperCase();
+
+/** Blank workspace: the client types the members of the team (name and function). */
+function AddMemberForm({ role }: { role: TeamRole }) {
+  const [name, setName] = useState("");
+  const [job, setJob] = useState("");
+  const trimmed = name.trim();
+  const duplicate = role.members.some((m) => m.name.toLowerCase() === trimmed.toLowerCase());
+
+  return (
+    <form
+      className="mt-3 flex flex-wrap items-end gap-3 border-t border-line pt-3"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (!trimmed || duplicate) return;
+        dossierActions.addRoleMember(role.id, { name: trimmed, role: job.trim() || role.name });
+        toast.show({ title: "Membre ajouté", description: `${trimmed} → ${role.name}` });
+        setName("");
+        setJob("");
+      }}
+    >
+      <label className="min-w-48 flex-1 text-sm font-semibold text-ink-800">
+        Nom et prénom
+        <Input className="mt-1 font-normal" placeholder="Ex. Nom Prénom" value={name} invalid={duplicate} onChange={(e) => setName(e.target.value)} />
+      </label>
+      <label className="min-w-48 flex-1 text-sm font-semibold text-ink-800">
+        Fonction <span className="font-normal text-ink-500">(optionnel)</span>
+        <Input className="mt-1 font-normal" placeholder={role.name} value={job} onChange={(e) => setJob(e.target.value)} />
+      </label>
+      <Button type="submit" variant="outline" icon={<Plus className="h-5 w-5" />} disabled={!trimmed || duplicate}>
+        Ajouter un membre
+      </Button>
+      {duplicate && <p className="w-full text-sm text-danger-600">Ce membre est déjà affecté à ce rôle.</p>}
+    </form>
+  );
+}
 
 function RoleDetail({ role }: { role: TeamRole }) {
   const state = useDemo();
@@ -85,7 +120,7 @@ function RoleDetail({ role }: { role: TeamRole }) {
             <p className="font-semibold text-ink-900">{role.name}</p>
             <p className="text-sm text-ink-600">Membres affectés à ce rôle dans l&apos;organisation.</p>
           </div>
-          <Menu
+          {state.demo && <Menu
             label="Ajouter un membre"
             widthClass="w-72"
             triggerClassName="inline-flex h-11 items-center gap-2 rounded-lg border border-brand-300 bg-white px-4 font-semibold text-brand-700 hover:bg-brand-50"
@@ -108,7 +143,7 @@ function RoleDetail({ role }: { role: TeamRole }) {
                   }))
                 : [{ label: "Tous les membres sont déjà affectés", disabled: true }]
             }
-          />
+          />}
         </div>
         <ul className="mt-3 flex flex-wrap gap-2">
           {role.members.map((m) => (
@@ -133,6 +168,7 @@ function RoleDetail({ role }: { role: TeamRole }) {
           ))}
           {role.members.length === 0 && <li className="text-sm text-ink-500">Aucun membre.</li>}
         </ul>
+        {!state.demo && <AddMemberForm role={role} />}
       </div>
 
       <div className="mt-5 flex flex-wrap justify-end gap-3">

@@ -8,7 +8,7 @@ export default function Page() {
   return (
     <ComingSoon
       title="Chef de projet"
-      subtitle="Profil et préférences de l'utilisateur de démonstration"
+      subtitle="Profil et préférences de l'utilisateur"
       icon={User}
       items={["Informations du profil", "Notifications", "Vues enregistrées", "Délégations"]}
     />

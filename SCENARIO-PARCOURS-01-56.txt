@@ -1,3 +1,17 @@
+AVANT DE COMMENCER — L'APPLICATION DÉMARRE VIDE
+L'Espace R&D s'ouvre sur un espace vierge (aucun projet, aucune donnée), comme la version remise au
+client. Pour suivre ce scénario : menu « Espace de travail » (en haut à droite) → « Charger la
+démonstration ». Les cercles bleus et les références NN / 56 n'apparaissent qu'ensuite.
+« Quitter la démonstration » revient à l'espace vierge.
+
+Écran 07 : le champ « Produit de référence » est un dépôt de fichier (notice ou RCP, PDF ou DOCX)
+analysé par l'IA, qui affiche le nom du produit détecté et ses données ; ou cocher « Aucun produit de
+référence ». Écran 08 : la section « Famille et modèle » n'existe plus (informations de l'écran 07).
+
+Espace vierge, à vérifier : Configuration → ajouter un membre et une ressource ; créer un projet
+(notice déposée, nom détecté) ; ouvrir chaque menu (aucune donnée fictive) ; Dossiers & revues →
+« Initialiser ».
+
 ===============================================================================================
   LABORATOIRES SIMED — ESPACE R&D
   SCÉNARIO DE PARCOURS COMPLET — ÉCRANS 01 À 56 + DÉTECTION IA (IA-01 À IA-06)

@@ -15,10 +15,11 @@ import { PEOPLE_LAB } from "@/lib/data-lab";
 import { formatNumeric } from "@/lib/format";
 import { labActions, useDemo } from "@/lib/store";
 import type { StabilityAlert, StabilityAlertLevel, StabilityAlertStatus, StabilityStudy, Tone } from "@/lib/types";
+import { useTeam } from "@/lib/people";
 
 const LEVELS: StabilityAlertLevel[] = ["Faible", "Moyen", "Élevé"];
 const STATUSES: StabilityAlertStatus[] = ["Ouverte", "Prise en charge", "Résolue"];
-const ASSIGNEES = [PEOPLE_LAB.julie, PEOPLE_LAB.thomas, PEOPLE_LAB.sophie, PEOPLE_LAB.claireD, PEOPLE_LAB.marie];
+const DEMO_ASSIGNEES = [PEOPLE_LAB.julie, PEOPLE_LAB.thomas, PEOPLE_LAB.sophie, PEOPLE_LAB.claireD, PEOPLE_LAB.marie];
 
 const LEVEL_LOOK: Record<StabilityAlertLevel, { tone: Tone; icon: LucideIcon; iconClass: string; card: string; chip: string }> = {
   Faible: { tone: "info", icon: Info, iconClass: "fill-brand-600 text-white", card: "border-brand-300 bg-brand-50/60", chip: "bg-brand-50 text-brand-700" },
@@ -34,6 +35,7 @@ const TAB_OF: Record<StabilityAlert["origin"], string> = { Échéancier: "echean
 type Row = { study: StabilityStudy; alert: StabilityAlert };
 
 function AlertDetail({ row }: { row: Row }) {
+  const ASSIGNEES = useTeam(DEMO_ASSIGNEES);
   const router = useRouter();
   const { study, alert: a } = row;
   const look = LEVEL_LOOK[a.level];

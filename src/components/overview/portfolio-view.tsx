@@ -295,7 +295,20 @@ export function PortfolioView({ openFilters = false }: { openFilters?: boolean }
 
           <AppliedFiltersBar resultCount={visible.length} />
 
-          {visible.length === 0 ? (
+          {state.projects.length === 0 ? (
+            <Card>
+              <EmptyState
+                icon={Folder}
+                title="Aucun projet pour le moment"
+                description="Créez votre premier projet pour suivre ici le portefeuille R&D, les priorités et les décisions de l'équipe."
+                action={
+                  <LinkButton href="/projets/nouveau" icon={<Plus className="h-5 w-5" />}>
+                    Nouveau projet
+                  </LinkButton>
+                }
+              />
+            </Card>
+          ) : visible.length === 0 ? (
             <Card>
               <EmptyState
                 icon={FolderSearch}

@@ -6,7 +6,7 @@ import { Checkbox } from "@/components/ui/field";
 import { Modal } from "@/components/ui/modal";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
-import { GUIDE_STEPS, TOTAL_SCREENS, findStep, guideUi, replayTo, screenCode, screenShort, useGuideUi } from "@/lib/guide";
+import { GUIDE_STEPS, TOTAL_SCREENS, findStep, guideUi, replayTo, screenCode, screenShort, useDemoMode, useGuideUi } from "@/lib/guide";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
@@ -111,7 +111,10 @@ function GuidePanel() {
 /** Top bar control: current screen ("Écran 23 / 56") opening the list of screens. */
 export function GuideControl() {
   const { current } = useGuideUi();
+  const demo = useDemoMode();
   const here = current !== null ? findStep(current) : undefined;
+  // The tour of the mock-ups only exists with the demonstration dataset.
+  if (!demo) return null;
 
   return (
     <>

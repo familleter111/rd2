@@ -1,13 +1,14 @@
 /**
- * In-memory demonstration store.
+ * In-memory store.
  *
  * A tiny external store read through `useSyncExternalStore`: state survives
- * client-side navigation, resets on reload (or via "Réinitialiser la démo").
+ * client-side navigation, resets on reload. It starts blank (`createEmpty()`);
+ * the demonstration dataset is loaded on request (menu "Espace de travail").
  * Actions are plain functions so they can return created identifiers synchronously.
  */
 import { useSyncExternalStore } from "react";
 import { FAMILY_LABEL, PREREQUISITE_TEMPLATES, TEAM_ROLES, kindForForm } from "./catalog";
-import { createSeed, type DemoState } from "./data";
+import { createEmpty, createSeed, type DemoState } from "./data";
 import { DEMO_TODAY, addDays } from "./format";
 import { dossier } from "./dossier";
 import { decisionCircuit, lab } from "./lab";
@@ -25,11 +26,12 @@ import type {
   ProjectDocument,
   ProjectDraft,
   RequestType,
+  Resource,
   ReviewParticipant,
   Sample,
 } from "./types";
 
-let state: DemoState = createSeed();
+let state: DemoState = createEmpty();
 const initialState = state;
 const listeners = new Set<() => void>();
 
@@ -83,8 +85,37 @@ function nextLotCode(projectCode: string, type: LotType) {
 /* ------------------------------------------------------------------ */
 
 export const actions = {
+  /** Back to the starting point of the current mode: blank workspace, or original demonstration data. */
   reset() {
+    commit(state.demo ? createSeed() : createEmpty());
+  },
+  /** Loads the fictitious demonstration dataset (and its guided tour). */
+  loadDemo() {
     commit(createSeed());
+  },
+  /** Leaves the demonstration: blank workspace. */
+  clearAll() {
+    commit(createEmpty());
+  },
+
+  /* Configuration — bookable resources */
+  addResource(input: Omit<Resource, "id">) {
+    const id = `RES-${pad2(nextNumber(state.resources.map((r) => r.id), /^RES-(\d+)$/))}`;
+    commit({
+      ...state,
+      resources: [...state.resources, { ...input, id }],
+      configLog: [{ id: uid("cfg"), at: stamp(), author: "Administrateur", text: `Ressource « ${input.name} » ajoutée (${input.category.toLowerCase()}).` }, ...state.configLog],
+    });
+    return id;
+  },
+  removeResource(id: string) {
+    const resource = state.resources.find((r) => r.id === id);
+    if (!resource) return;
+    commit({
+      ...state,
+      resources: state.resources.filter((r) => r.id !== id),
+      configLog: [{ id: uid("cfg"), at: stamp(), author: "Administrateur", text: `Ressource « ${resource.name} » retirée.` }, ...state.configLog],
+    });
   },
 
   /* Notifications */
@@ -186,7 +217,7 @@ export const actions = {
       dci: draft.dci.trim(),
       dosage,
       countries: draft.countries,
-      referenceProduct: draft.referenceProduct,
+      referenceProduct: draft.referenceProduct.trim(),
       template: draft.template,
       stage: { label: "Cadrage", icon: "compass" },
       phase: "Cadrage",
@@ -255,6 +286,23 @@ export const actions = {
       fileType: (f.name.split(".").pop()?.toUpperCase() as ProjectDocument["fileType"]) ?? "PDF",
       versions: [{ version: 1, date: stamp(), author: chef, note: "Pièce initiale du projet" }],
     }));
+    if (draft.referenceDoc) {
+      const ref = draft.referenceDoc;
+      documents.push({
+        id: uid("doc"),
+        projectCode: code,
+        category: "Références",
+        name: `${ref.kind} — ${draft.referenceProduct.trim()}`,
+        type: `${ref.kind} du produit de référence`,
+        version: 1,
+        owner: chef,
+        updatedAt: stamp(),
+        status: "Brouillon",
+        size: ref.size,
+        fileType: ref.name.toLowerCase().endsWith(".docx") ? "DOCX" : "PDF",
+        versions: [{ version: 1, date: stamp(), author: chef, note: "Document du produit de référence analysé par l'IA à la création du projet" }],
+      });
+    }
 
     const activity = (title: string, detail: string, tag: string, due: string, icon: Activity["icon"]): Activity => ({
       id: uid("act"),

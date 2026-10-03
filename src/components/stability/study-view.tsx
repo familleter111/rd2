@@ -45,11 +45,12 @@ import { useGuideTarget } from "@/lib/guide";
 import { stabilitySpec } from "@/lib/lab";
 import { labActions, useDemo } from "@/lib/store";
 import type { StabilityMilestone, StabilityProtocol, StabilityResult, StabilityResultStatus, StabilityStudy } from "@/lib/types";
+import { useTeamNames } from "@/lib/people";
 
 export type StudyTab = "protocole" | "echeancier" | "resultats" | "documents" | "historique";
 
 const PACKAGING = ["Blister de démonstration", "Flacon PEHD", "Flacon verre type I", "Tube aluminium"];
-const RESPONSIBLES = [PEOPLE_LAB.julie.name, PEOPLE_LAB.marie.name, PEOPLE_LAB.sophie.name, PEOPLE_LAB.thomas.name];
+const DEMO_RESPONSIBLES = [PEOPLE_LAB.julie.name, PEOPLE_LAB.marie.name, PEOPLE_LAB.sophie.name, PEOPLE_LAB.thomas.name];
 const EXTRA_MILESTONES: [string, number][] = [
   ["M1", 1],
   ["M9", 9],
@@ -72,6 +73,7 @@ const MILESTONE_TONE: Record<StabilityMilestone["status"], "info" | "success" | 
 /* ------------------------------------------------------------------ */
 
 function ProtocolForm({ study, protocol, onSchedule }: { study: StabilityStudy; protocol: StabilityProtocol; onSchedule: () => void }) {
+  const RESPONSIBLES = useTeamNames(DEMO_RESPONSIBLES);
   const state = useDemo();
   const fileRef = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState(protocol);
@@ -350,6 +352,7 @@ function ProtocolForm({ study, protocol, onSchedule }: { study: StabilityStudy; 
 /* ------------------------------------------------------------------ */
 
 function ScheduleTab({ study, protocol, onProtocol, onResults }: { study: StabilityStudy; protocol: StabilityProtocol; onProtocol: () => void; onResults: () => void }) {
+  const RESPONSIBLES = useTeamNames(DEMO_RESPONSIBLES);
   const initial = { startDate: protocol.startDate, storage: protocol.storage, responsible: protocol.responsible, milestones: protocol.milestones };
   const [draft, setDraft] = useState(initial);
   const [editing, setEditing] = useState<{ milestone: StabilityMilestone; date: string } | null>(null);

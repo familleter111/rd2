@@ -59,6 +59,9 @@ export function decisionCircuit(date: string): CircuitStep[] {
 /* Internal helpers                                                    */
 /* ------------------------------------------------------------------ */
 
+/** Simulated reviewer: the fictitious person in the demonstration, the function alone in a blank workspace. */
+const actor = (s: DemoState, p: Person): Person => (s.demo ? p : { name: p.role, role: p.role });
+
 const who = (p: Person) => ({ author: p.name, authorRole: p.role });
 
 function notify(s: DemoState, n: { title: string; detail: string; href: string; tone: "info" | "warn" | "danger" | "success" }): DemoState {
@@ -328,7 +331,7 @@ export const lab = {
       object: "Décision",
       objectLabel: `${projectCode} • Décision : formule ${d.formula}`,
       type: "Approbation",
-      ...who(PEOPLE_LAB.claireM),
+      ...who(actor(s, PEOPLE_LAB.claireM)),
       description: "Décision transmise au pharmacien responsable pour approbation finale.",
       icon: "check",
       href: `/projets/${projectCode.toLowerCase()}/formules/comparaison?examen=1`,
@@ -384,7 +387,7 @@ export const lab = {
       object: "Décision",
       objectLabel: `${projectCode} • Décision : formule ${d.formula}`,
       type: "Approbation",
-      ...who(PEOPLE_LAB.paul),
+      ...who(actor(s, PEOPLE_LAB.paul)),
       description: pilot
         ? `Formule ${d.formula} retenue : la préparation du lot pilote ${pilot} est autorisée.`
         : `Décision « ${d.choice} » approuvée.`,
@@ -399,7 +402,7 @@ export const lab = {
     const d = s.formulaDecisions.find((x) => x.projectCode === projectCode);
     if (!d || d.status !== "Soumise" || !d.circuit) return s;
     const index = d.step - 1;
-    const reviewer = index === 2 ? PEOPLE_LAB.paul : PEOPLE_LAB.claireM;
+    const reviewer = index === 2 ? actor(s, PEOPLE_LAB.paul) : actor(s, PEOPLE_LAB.claireM);
     const circuit = d.circuit.map((c, i) => (i === index ? { ...c, status: "Correction demandée" as const, date: DEMO_TODAY } : c));
     let next: DemoState = {
       ...s,
@@ -580,13 +583,13 @@ export const lab = {
         approvedAt: DEMO_TODAY,
         reviewers: x.protocol.reviewers.map((r) => ({ ...r, status: "Approuvé", date: DEMO_TODAY })),
       },
-      versions: x.versions.map((v) => (v.version === version ? { ...v, status: "Approuvé", date: stamp(), by: PEOPLE_LAB.paul.name, note: "Protocole approuvé" } : v.status === "Approuvé" ? { ...v, status: "Remplacée" } : v)),
+      versions: x.versions.map((v) => (v.version === version ? { ...v, status: "Approuvé", date: stamp(), by: actor(s, PEOPLE_LAB.paul).name, note: "Protocole approuvé" } : v.status === "Approuvé" ? { ...v, status: "Remplacée" } : v)),
       documents: x.documents.map((d) => (d.id === "d-protocol" ? { ...d, status: "Disponible", file: `protocole-${version}.pdf`, date: DEMO_TODAY } : d)),
     }));
     next = methodEvent(next, m, {
       title: "Protocole approuvé",
       type: "Approbation",
-      by: PEOPLE_LAB.paul,
+      by: actor(s, PEOPLE_LAB.paul),
       description: `Approbation de la version ${version} du protocole.`,
       version: { label: `${version} • Approuvé`, tone: "success" },
       icon: "check",
@@ -859,7 +862,7 @@ export const lab = {
     next = methodEvent(next, m, {
       title: "Demande de correction",
       type: "Correction",
-      by: PEOPLE_LAB.claireM,
+      by: actor(s, PEOPLE_LAB.claireM),
       description: "Une correction a été demandée sur les résultats de la méthode.",
       motif: input.reason,
       field: "Destinataire",
@@ -885,7 +888,7 @@ export const lab = {
     next = methodEvent(next, m, {
       title: "Résultats validés",
       type: "Approbation",
-      by: PEOPLE_LAB.paul,
+      by: actor(s, PEOPLE_LAB.paul),
       description: `Les résultats de l'essai ${id} sont validés.`,
       version: { label: `${id} • Validé`, tone: "success" },
       icon: "check",
@@ -1466,7 +1469,7 @@ export const lab = {
       object: "Déviation",
       objectLabel: `${d.projectCode} • Déviation ${d.id}`,
       type: "Approbation",
-      ...who(PEOPLE_LAB.marieL),
+      ...who(actor(s, PEOPLE_LAB.marieL)),
       description: `${d.actions.length} action(s) jugée(s) efficace(s).`,
       icon: "check",
       href: `/projets/${d.projectCode.toLowerCase()}/deviations/${d.id.toLowerCase()}?onglet=efficacite`,
@@ -1487,7 +1490,7 @@ export const lab = {
       object: "Déviation",
       objectLabel: `${d.projectCode} • Déviation ${d.id}`,
       type: "Approbation",
-      ...who(PEOPLE_LAB.marieL),
+      ...who(actor(s, PEOPLE_LAB.marieL)),
       description: "Déviation clôturée après vérification de l'efficacité des actions.",
       icon: "check",
       href: `/projets/${d.projectCode.toLowerCase()}/deviations/${d.id.toLowerCase()}`,
@@ -1529,7 +1532,7 @@ export const lab = {
     const tablet = study.projectCode === "CS-01";
     const protocol: StabilityProtocol = {
       status: "Brouillon",
-      responsible: PEOPLE_LAB.marie.name,
+      responsible: actor(s, PEOPLE_LAB.marie).name,
       formula: study.formula,
       lot: study.lotCode,
       startDate: "",
@@ -1621,7 +1624,7 @@ export const lab = {
     const study = s.studies.find((x) => x.id === id);
     const p = study?.protocol;
     if (!study || !p || p.status !== "Soumis") return s;
-    const approver = PEOPLE_LAB.marieL;
+    const approver = actor(s, PEOPLE_LAB.marieL);
     let next = mapStudy(s, id, (x) => ({
       ...x,
       status: "Protocole approuvé",
@@ -1764,7 +1767,7 @@ export const lab = {
     const study = s.studies.find((x) => x.id === studyId);
     const r = study?.results.find((x) => x.id === resultId);
     if (!study || !r || r.status !== "Soumis") return s;
-    const reviewer = PEOPLE_LAB.marieL;
+    const reviewer = actor(s, PEOPLE_LAB.marieL);
     let next = mapStudy(s, studyId, (x) => ({
       ...x,
       results: x.results.map((y) => (y.id === resultId ? { ...y, status: "Validé", report: `Rapport ${r.point}`, updatedAt: stamp() } : y)),

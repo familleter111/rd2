@@ -318,6 +318,21 @@ function modules(): DossierModule[] {
   ];
 }
 
+/** Empty CTD structure of a dossier initialised for a new project. */
+export function blankModules(): DossierModule[] {
+  return modules().map((m) => ({
+    ...m,
+    sections: m.sections.map((s) => ({
+      ...s,
+      submittedAt: undefined,
+      status: s.status === "À évaluer" ? s.status : "À compléter",
+      parts: s.parts.map((p) => ({ ...p, text: "" })),
+      proofs: [],
+      links: [],
+    })),
+  }));
+}
+
 export function dossiers(): Dossier[] {
   return [
     {

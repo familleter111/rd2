@@ -2,12 +2,13 @@
 
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useEffect } from "react";
-import { guideUi, nextStepOf, prevStepOf, screenCode, screenShort } from "@/lib/guide";
+import { guideUi, nextStepOf, prevStepOf, screenCode, screenShort, useDemoMode } from "@/lib/guide";
 import { useGuideNav } from "./guide-mark";
 
 /**
  * Mock-up reference ("23 / 56 — Méthode — référence · Maquette • Données de démonstration").
  * Also registers the current screen for the guided tour and links the previous / next screens.
+ * Only shown with the demonstration dataset: a blank workspace has no mock-up reference.
  */
 export function ScreenRef({ n, label }: { n?: number; label: string }) {
   const go = useGuideNav();
@@ -18,8 +19,10 @@ export function ScreenRef({ n, label }: { n?: number; label: string }) {
     return () => guideUi.clearCurrent(current);
   }, [current]);
 
+  const demo = useDemoMode();
   const prev = prevStepOf(current);
   const next = nextStepOf(current);
+  if (!demo) return null;
 
   return (
     <footer className="mt-8 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t border-line/70 pt-3 text-xs text-ink-500">

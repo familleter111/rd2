@@ -23,6 +23,7 @@ import { findProject } from "@/lib/selectors";
 import { getDemoState, labActions, useDemo } from "@/lib/store";
 import type { StabilityStudy, StudyStatus, Tone } from "@/lib/types";
 import { StabilityAlerts } from "./stability-alerts";
+import { useTeamNames } from "@/lib/people";
 
 export const STUDY_TONE: Record<StudyStatus, Tone> = {
   "À préparer": "warn",
@@ -34,9 +35,10 @@ export const STUDY_TONE: Record<StudyStatus, Tone> = {
 };
 
 type Tab = "etudes" | "echeances" | "alertes";
-const OWNERS = [PEOPLE_LAB.sophie.name, PEOPLE_LAB.thomas.name, PEOPLE_LAB.claireD.name, PEOPLE_LAB.marie.name];
+const DEMO_OWNERS = [PEOPLE_LAB.sophie.name, PEOPLE_LAB.thomas.name, PEOPLE_LAB.claireD.name, PEOPLE_LAB.marie.name];
 
 function NewStudyDrawer({ projectCode, open, onClose, onCreated }: { projectCode: string; open: boolean; onClose: () => void; onCreated: (id: string) => void }) {
+  const OWNERS = useTeamNames(DEMO_OWNERS);
   const state = useDemo();
   const [project, setProject] = useState(projectCode);
   const lots = state.lots.filter((l) => l.projectCode === project);
@@ -204,7 +206,7 @@ function StudyDetail({ study }: { study: StabilityStudy }) {
 
 export function StabilityView({ slug, initialTab, initialStudy, initialAlert }: { slug: string; initialTab: Tab; initialStudy?: string; initialAlert?: string }) {
   const state = useDemo();
-  const [project, setProject] = useState(findProject(state, slug)?.code ?? "CS-01");
+  const [project, setProject] = useState(findProject(state, slug)?.code ?? (state.demo ? "CS-01" : "Tous"));
   const [lot, setLot] = useState("Tous");
   const [status, setStatus] = useState("Tous");
   const [order, setOrder] = useState<"asc" | "desc">("asc");
@@ -396,7 +398,7 @@ export function StabilityView({ slug, initialTab, initialStudy, initialAlert }: 
 
       <NewStudyDrawer
         key={`ns-${drawer}`}
-        projectCode={project === "Tous" ? "CS-01" : project}
+        projectCode={project === "Tous" ? (state.demo ? "CS-01" : (state.projects[0]?.code ?? "")) : project}
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         onCreated={(id) => {

@@ -36,7 +36,7 @@ import { DEMO_TODAY, addDays, daysBetween, downloadText, formatMonth, formatNume
 import { activityState } from "@/lib/lab-selectors";
 import { labActions, useDemo } from "@/lib/store";
 import type { Activity, ActivityState } from "@/lib/types";
-import { ASSIGNEES, ReassignModal, STATE_LABEL, completionBlocker, dueLabel, isUrgent } from "./activity-bits";
+import { ReassignModal, STATE_LABEL, completionBlocker, dueLabel, isUrgent, useAssignees } from "./activity-bits";
 
 const DUE_FILTERS = [
   { value: "toutes", label: "Toutes les échéances" },
@@ -386,6 +386,7 @@ function CalendarView({ activities, onSelect }: { activities: Activity[]; onSele
 }
 
 function NewActivityDrawer({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: (id: string) => void }) {
+  const ASSIGNEES = useAssignees();
   const { projects } = useDemo();
   const active = projects.filter((p) => !p.archived);
   const [projectCode, setProjectCode] = useState(active[0]?.code ?? "");

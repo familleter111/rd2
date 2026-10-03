@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/cn";
-import { TOTAL_SCREENS, advanceTo, findStep, guideUi, nextStepOf, screenCode, useGuideTarget, useGuideUi, type GuideStep } from "@/lib/guide";
+import { TOTAL_SCREENS, advanceTo, findStep, guideUi, nextStepOf, screenCode, useDemoMode, useGuideTarget, useGuideUi, type GuideStep } from "@/lib/guide";
 
 /** Returns `go(step)`: moves the story to `step` and opens its screen. */
 export function useGuideNav() {
@@ -188,7 +188,8 @@ const FLOATING = "fixed bottom-7 right-7 z-[55]";
  */
 export function GuideFloatingDot() {
   const { enabled, current, dots, dotsInView, dotSide } = useGuideUi();
-  if (!enabled || current === null) return null;
+  const demo = useDemoMode();
+  if (!demo || !enabled || current === null) return null;
   const next = nextStepOf(current);
   const enter = { initial: { opacity: 0, scale: 0.6 }, animate: { opacity: 1, scale: 1 }, transition: { delay: 0.4, type: "spring" as const, stiffness: 380, damping: 22 } };
 

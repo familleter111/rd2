@@ -21,8 +21,9 @@ import { ANALYSIS_STATUS, analysesOf, inSpec } from "@/lib/lab-selectors";
 import { labActions, useDemo } from "@/lib/store";
 import type { Analysis, CircuitStatus, Method, Person, Tone } from "@/lib/types";
 import { findMethodBySlug } from "./method-frame";
+import { useTeam } from "@/lib/people";
 
-const RECIPIENTS: Person[] = [PEOPLE_LAB.marie, PEOPLE_LAB.julien, PEOPLE_LAB.thomas];
+const DEMO_RECIPIENTS: Person[] = [PEOPLE_LAB.marie, PEOPLE_LAB.julien, PEOPLE_LAB.thomas];
 
 const CIRCUIT_TONE: Record<CircuitStatus, Tone> = {
   Soumis: "info",
@@ -34,6 +35,7 @@ const CIRCUIT_TONE: Record<CircuitStatus, Tone> = {
 };
 
 function CorrectionModal({ method, analysis, open, onClose }: { method: Method; analysis: Analysis; open: boolean; onClose: () => void }) {
+  const RECIPIENTS = useTeam(DEMO_RECIPIENTS);
   const router = useRouter();
   const go = useGuideNav();
   const guideSend = useGuideTarget(28);

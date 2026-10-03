@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Check, ChevronDown, Database, ListOrdered, RotateCcw, Search, X } from "lucide-react";
+import { Bell, Check, ChevronDown, Database, ListOrdered, LogOut, PlayCircle, RotateCcw, Search, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState, type FormEvent } from "react";
@@ -13,6 +13,8 @@ import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
 import { advanceTo, guideUi, useGuideTarget } from "@/lib/guide";
 import { actions, useDemo } from "@/lib/store";
+
+const menuItem = "flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-ink-800 hover:bg-brand-50";
 
 const searchShell =
   "flex h-12 min-w-0 flex-1 max-w-[720px] items-center gap-3 rounded-xl border border-line-strong bg-white/90 px-4 transition-[border-color,box-shadow] focus-within:border-brand-500 focus-within:ring-3 focus-within:ring-brand-100";
@@ -108,6 +110,7 @@ function Notifications() {
               )}
             </div>
             <ul className="max-h-96 overflow-y-auto p-1.5">
+              {notifications.length === 0 && <li className="px-3 py-6 text-center text-sm text-ink-500">Aucune notification pour le moment.</li>}
               {notifications.map((n) => (
                 <li key={n.id}>
                   <button
@@ -138,22 +141,28 @@ function Notifications() {
 
 function EnvironmentMenu() {
   const [open, setOpen] = useState(false);
-  const [confirm, setConfirm] = useState(false);
+  const [confirm, setConfirm] = useState<"reset" | "demo" | "quit" | null>(null);
   const router = useRouter();
+  const { demo } = useDemo();
   const ref = useDismissable<HTMLDivElement>(open, () => setOpen(false));
+  const label = demo ? "Démonstration" : "Espace de travail";
+  const ask = (kind: "reset" | "demo" | "quit") => {
+    setOpen(false);
+    setConfirm(kind);
+  };
 
   return (
     <div ref={ref} className="relative">
       <button
         type="button"
-        aria-label="Démonstration"
+        aria-label={label}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
         className="flex h-12 cursor-pointer items-center gap-2 rounded-xl border border-line-strong bg-white px-2.5 text-[16px] font-semibold text-brand-700 shadow-card transition-colors hover:border-brand-300 sm:gap-3 sm:px-4 xl:min-w-[236px]"
       >
         <Database className="h-5 w-5 text-ink-700" strokeWidth={1.8} aria-hidden />
-        <span className="hidden flex-1 text-left xl:inline">Démonstration</span>
+        <span className="hidden flex-1 text-left xl:inline">{label}</span>
         <ChevronDown className={cn("h-5 w-5 text-ink-600 transition-transform", open && "rotate-180")} aria-hidden />
       </button>
       <AnimatePresence>
@@ -170,48 +179,91 @@ function EnvironmentMenu() {
             <div className="flex items-start gap-3 rounded-lg bg-brand-50 px-3 py-2.5">
               <Check className="mt-0.5 h-4 w-4 text-brand-700" aria-hidden />
               <span>
-                <span className="block text-sm font-semibold text-brand-700">Démonstration</span>
-                <span className="block text-xs text-ink-500">Données fictives de démonstration</span>
+                <span className="block text-sm font-semibold text-brand-700">{label}</span>
+                <span className="block text-xs text-ink-500">{demo ? "Données fictives de démonstration" : "Vos projets et vos données"}</span>
               </span>
             </div>
             <div className="my-1.5 border-t border-line" />
-            <button
-              type="button"
-              role="menuitem"
-              onClick={() => {
-                setOpen(false);
-                guideUi.openPanel();
-              }}
-              className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-ink-800 hover:bg-brand-50"
-            >
-              <ListOrdered className="h-4 w-4 text-ink-500" aria-hidden />
-              Parcours des écrans
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              onClick={() => {
-                setOpen(false);
-                setConfirm(true);
-              }}
-              className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-ink-800 hover:bg-brand-50"
-            >
-              <RotateCcw className="h-4 w-4 text-ink-500" aria-hidden />
-              Réinitialiser les données
-            </button>
+            {demo ? (
+              <>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setOpen(false);
+                    guideUi.openPanel();
+                  }}
+                  className={menuItem}
+                >
+                  <ListOrdered className="h-4 w-4 text-ink-500" aria-hidden />
+                  Parcours des écrans
+                </button>
+                <button type="button" role="menuitem" onClick={() => ask("reset")} className={menuItem}>
+                  <RotateCcw className="h-4 w-4 text-ink-500" aria-hidden />
+                  Réinitialiser la démonstration
+                </button>
+                <button type="button" role="menuitem" onClick={() => ask("quit")} className={menuItem}>
+                  <LogOut className="h-4 w-4 text-ink-500" aria-hidden />
+                  Quitter la démonstration
+                </button>
+              </>
+            ) : (
+              <>
+                <button type="button" role="menuitem" onClick={() => ask("demo")} className={menuItem}>
+                  <PlayCircle className="h-4 w-4 text-ink-500" aria-hidden />
+                  Charger la démonstration
+                </button>
+                <button type="button" role="menuitem" onClick={() => ask("reset")} className={menuItem}>
+                  <RotateCcw className="h-4 w-4 text-ink-500" aria-hidden />
+                  Tout remettre à zéro
+                </button>
+              </>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
       <ConfirmDialog
-        open={confirm}
-        onClose={() => setConfirm(false)}
-        title="Réinitialiser la démonstration ?"
-        message="Les projets, documents, décisions et vues enregistrées créés pendant la session seront remplacés par les données de démonstration d'origine."
-        confirmLabel="Réinitialiser"
+        open={confirm === "reset"}
+        onClose={() => setConfirm(null)}
+        title={demo ? "Réinitialiser la démonstration ?" : "Tout remettre à zéro ?"}
+        message={
+          demo
+            ? "Les projets, documents, décisions et vues enregistrées créés pendant la session seront remplacés par les données de démonstration d'origine."
+            : "Tous les projets, documents, activités et réglages de l'espace R&D seront supprimés. Cette action est définitive."
+        }
+        confirmLabel={demo ? "Réinitialiser" : "Tout supprimer"}
         onConfirm={() => {
           actions.reset();
           router.push("/vue-ensemble");
-          toast.show({ title: "Données réinitialisées", description: "Les données de démonstration d'origine sont restaurées.", tone: "info" });
+          toast.show(
+            demo
+              ? { title: "Données réinitialisées", description: "Les données de démonstration d'origine sont restaurées.", tone: "info" }
+              : { title: "Espace remis à zéro", description: "Aucun projet ni donnée : l'espace est prêt à être configuré.", tone: "info" },
+          );
+        }}
+      />
+      <ConfirmDialog
+        open={confirm === "demo"}
+        onClose={() => setConfirm(null)}
+        title="Charger la démonstration ?"
+        message="Vos projets et vos données seront remplacés par un jeu de données fictif, avec le parcours guidé des écrans. Vous pourrez quitter la démonstration pour revenir à un espace vierge."
+        confirmLabel="Charger la démonstration"
+        onConfirm={() => {
+          actions.loadDemo();
+          router.push("/vue-ensemble");
+          toast.show({ title: "Démonstration chargée", description: "Données fictives et parcours guidé des écrans.", tone: "info" });
+        }}
+      />
+      <ConfirmDialog
+        open={confirm === "quit"}
+        onClose={() => setConfirm(null)}
+        title="Quitter la démonstration ?"
+        message="Les données fictives seront retirées : l'espace R&D revient à un état vierge, sans projet ni donnée."
+        confirmLabel="Quitter la démonstration"
+        onConfirm={() => {
+          actions.clearAll();
+          router.push("/vue-ensemble");
+          toast.show({ title: "Démonstration quittée", description: "L'espace R&D est vierge, prêt à être configuré.", tone: "info" });
         }}
       />
     </div>

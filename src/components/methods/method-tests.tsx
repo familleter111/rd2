@@ -42,8 +42,9 @@ import { ANALYSIS_STATUS, analysesOf } from "@/lib/lab-selectors";
 import { getDemoState, labActions, useDemo } from "@/lib/store";
 import type { Method, Person, TestPlan } from "@/lib/types";
 import { findMethodBySlug } from "./method-frame";
+import { useTeam } from "@/lib/people";
 
-const ANALYSTS: Person[] = [PEOPLE_LAB.marie, PEOPLE_LAB.julien, PEOPLE_LAB.thomas];
+const DEMO_ANALYSTS: Person[] = [PEOPLE_LAB.marie, PEOPLE_LAB.julien, PEOPLE_LAB.thomas];
 const CONSUMABLES = ["Phase mobile préparée", "Filtres seringue 0,45 µm", "Flacons d'injection", "Étalon de référence", "Colonne de rechange"];
 const STEPS = [
   { title: "Échantillons", subtitle: "Sélection des échantillons" },
@@ -79,6 +80,7 @@ function CheckRow({ ok, warn, title, detail, action }: { ok: boolean; warn?: boo
 }
 
 function PlanWizard({ method, initial, onCancel }: { method: Method; initial: TestPlan; onCancel?: () => void }) {
+  const ANALYSTS = useTeam(DEMO_ANALYSTS);
   const state = useDemo();
   const router = useRouter();
   const go = useGuideNav();

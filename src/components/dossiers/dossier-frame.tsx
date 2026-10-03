@@ -4,13 +4,13 @@ import { FolderX } from "lucide-react";
 import type { ReactNode } from "react";
 import { MetaLine } from "@/components/project-context-header";
 import { StatusDot } from "@/components/ui/badge";
-import { LinkButton } from "@/components/ui/button";
+import { Button, LinkButton } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Breadcrumb } from "@/components/ui/page";
 import { LinkTabs } from "@/components/ui/tabs";
 import { findDossier } from "@/lib/dossier-selectors";
-import { useDemo } from "@/lib/store";
+import { dossierActions, useDemo } from "@/lib/store";
 import type { Project } from "@/lib/types";
 
 /** Project + dossier of a `/dossiers/[code]` page. */
@@ -79,13 +79,22 @@ export function FormulaMeta({ formula, prefix = "" }: { formula: string; prefix?
 }
 
 export function DossierMissing({ slug }: { slug: string }) {
+  const state = useDemo();
+  const project = state.projects.find((p) => p.slug === slug.toLowerCase());
   return (
     <Card className="mt-6">
       <EmptyState
         icon={FolderX}
         title="Dossier non initialisé"
         description={`Aucun dossier CTD n'est encore préparé pour ${slug.toUpperCase()}. Le dossier est initialisé à l'étape « Déposer & transférer » du parcours.`}
-        action={<LinkButton href="/dossiers">Voir les dossiers</LinkButton>}
+        action={
+          <span className="flex flex-wrap justify-center gap-3">
+            {project && !project.archived && <Button onClick={() => dossierActions.initDossier(project.code)}>Initialiser le dossier</Button>}
+            <LinkButton href="/dossiers" variant="outline">
+              Voir les dossiers
+            </LinkButton>
+          </span>
+        }
       />
     </Card>
   );

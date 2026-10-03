@@ -934,6 +934,8 @@ export interface ProjectDraft {
   dosageUnit: string;
   countries: string[];
   referenceProduct: string;
+  /** Leaflet or SmPC of the reference product, read by the AI analysis (step 1). */
+  referenceDoc?: ReferenceDoc;
   files: { name: string; size: string }[];
   template: string;
   galenic: boolean;
@@ -947,6 +949,17 @@ export interface ProjectDraft {
   sourceProject?: string;
   /** What the "Détection IA" applied to the form (screens IA-01 → IA-06). */
   ai?: AiPrefill;
+}
+
+/** Document of the reference product and what the AI analysis found in it. */
+export interface ReferenceDoc {
+  name: string;
+  size: string;
+  /** "Notice", "RCP" or "Document produit". */
+  kind: string;
+  data: { label: string; value: string }[];
+  /** Headings of the document the analysis located. */
+  sections: string[];
 }
 
 export interface AiPrefill {

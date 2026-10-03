@@ -16,9 +16,10 @@ import { formatDuration, formatNumeric, toMinutes } from "@/lib/format";
 import { findConflicts } from "@/lib/lab-selectors";
 import { labActions, useDemo } from "@/lib/store";
 import { ConflictModal, ResourceTile, TIME_OPTIONS, type SlotRequest } from "./planning-bits";
+import { useTeamNames } from "@/lib/people";
 
 const ACTIVITIES = ["Analyse Dosage PA", "Mélange", "Contrôle en cours", "Essai de dissolution", "Autre activité"];
-const ANALYSTS = ["Laboratoire", PEOPLE_LAB.julien.name, PEOPLE_LAB.marie.name, PEOPLE_LAB.thomas.name];
+const DEMO_ANALYSTS = ["Laboratoire", PEOPLE_LAB.julien.name, PEOPLE_LAB.marie.name, PEOPLE_LAB.thomas.name];
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -42,12 +43,15 @@ export interface ReservationPreset {
 }
 
 export function ReservationForm({ preset }: { preset: ReservationPreset }) {
+  const ANALYSTS = [...new Set(["Laboratoire", ...useTeamNames(DEMO_ANALYSTS)])];
   const state = useDemo();
   const router = useRouter();
-  const [resourceId, setResourceId] = useState(preset.resourceId);
-  const [projectCode, setProjectCode] = useState(preset.projectCode);
-  const [lotCode, setLotCode] = useState(preset.lotCode);
-  const [activity, setActivity] = useState(preset.activity);
+  // The defaults of the page come from the mock-up: outside the demonstration, only existing objects are kept.
+  const knownProject = state.projects.some((p) => p.code === preset.projectCode) ? preset.projectCode : (state.projects[0]?.code ?? "");
+  const [resourceId, setResourceId] = useState(state.resources.some((r) => r.id === preset.resourceId) ? preset.resourceId : (state.resources[0]?.id ?? ""));
+  const [projectCode, setProjectCode] = useState(knownProject);
+  const [lotCode, setLotCode] = useState(state.lots.some((l) => l.projectCode === knownProject && l.code === preset.lotCode) || state.demo ? preset.lotCode : "");
+  const [activity, setActivity] = useState(state.demo ? preset.activity : "");
   const [analyst, setAnalyst] = useState(ANALYSTS[0]);
   const [date, setDate] = useState(preset.date);
   const [start, setStart] = useState(preset.start);

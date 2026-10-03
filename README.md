@@ -4,8 +4,14 @@ Prototype interactif de l'Espace R&D (maquettes 01 → 56) : portefeuille, proje
 décisions, méthodes et essais, activités, planning, lot pilote, déviations, stabilité, documents,
 dossier CTD, revues, transfert, configuration et clôture de projet.
 
-Données **de démonstration** uniquement (projets et personnes fictifs), date de référence fixée au
-**24 septembre 2026**.
+L'application démarre sur un **espace vierge** : aucun projet, aucune donnée, aucune personne ni
+ressource. Le client configure tout lui-même (équipe dans *Configuration → Équipe & rôles*, ressources
+dans *Configuration → Ressources*, puis ses projets). Seuls les réglages de départ sont fournis : rôles
+sans membre, trois modèles de parcours, canaux de notification.
+
+Le jeu **de démonstration** (projets et personnes fictifs) et son parcours guidé restent disponibles à la
+demande : menu **Espace de travail → Charger la démonstration** (en haut à droite). *Quitter la
+démonstration* revient à l'espace vierge. La date de référence reste fixée au **24 septembre 2026**.
 
 Application **web pour ordinateur** : la barre latérale reste affichée et la page demande 1 200 px de
 large au minimum (défilement horizontal en dessous). Il n'y a pas de version mobile.
@@ -29,6 +35,10 @@ npm run dev        # http://localhost:3000
 > `R & D new vision` casse les raccourcis `.cmd` de npm sous Windows.
 
 ## Parcours guidé
+
+Disponible uniquement une fois la démonstration chargée (menu **Espace de travail → Charger la
+démonstration**) : cercles bleus, références `NN / 56` et bouton *Écran NN / 56* n'apparaissent pas dans
+l'espace vierge.
 
 Le prototype se parcourt écran par écran, dans l'ordre des maquettes :
 
@@ -198,13 +208,28 @@ Les maquettes divergent parfois ; les choix suivants rendent le prototype cohér
   placée sur la ligne du libellé, pour que la valeur reste lisible ; elle disparaît si le champ est
   modifié à la main. À la création, les activités retenues sont créées en brouillon, les pièces non
   trouvées deviennent des prérequis et l'historique trace le préremplissage.
+- **Produit de référence** (écran 07) : plus de liste. On dépose la notice du produit (le papier fourni
+  dans la boîte) ou son document le plus détaillé (RCP), en PDF ou DOCX ; l'analyse IA en tire le nom du
+  produit (modifiable) et ses données, ou l'on coche « Aucun produit de référence ». L'analyse est
+  simulée (`analyseReferenceDocument`, `lib/data-ai.ts`) : le nom vient du nom du fichier, la DCI, la
+  forme et le dosage des valeurs du projet. Le document est ajouté aux documents du projet (Références).
+- **Parcours & équipe** (écran 08) : la section « Famille et modèle » est retirée, ces deux informations
+  étant fixées à l'étape Produit (le modèle suit la famille) ; elles restent rappelées dans l'aperçu,
+  avec un lien « Modifier ».
+- **Espace vierge** : les listes de personnes proposent l'utilisateur connecté et les membres saisis dans
+  la configuration (`lib/people.ts`) ; les relecteurs simulés sont désignés par leur fonction. Le dossier
+  CTD d'un projet se crée par « Initialiser le dossier » (page Dossiers & revues). Le dossier de
+  fabrication détaillé d'un lot pilote (préparation, exécution, contrôles) n'existe que pour le lot de la
+  démonstration.
 
 ## Données et état
 
-- `src/lib/data.ts` + `src/lib/data-lab.ts` + `src/lib/data-dossier.ts` : jeu de démonstration (`createSeed()`).
+- `src/lib/data.ts` + `src/lib/data-lab.ts` + `src/lib/data-dossier.ts` : espace vierge (`createEmpty()`, état de
+  départ) et jeu de démonstration (`createSeed()`).
 - `src/lib/data-ai.ts` : documents, données détectées, sources et suggestions de la détection IA (IA-01 → IA-06).
 - `src/lib/store.ts` : store en mémoire (`useDemo()`, `actions.*`, `labActions.*`). L'état survit à la
-  navigation, pas au rechargement. Menu **Démonstration → Réinitialiser les données**.
+  navigation, pas au rechargement. Menu **Espace de travail** : charger ou quitter la démonstration, tout
+  remettre à zéro.
 - `src/lib/prerequisites.ts` : transitions des prérequis (écrans 12 → 14) : détail, ajout, import
   vérifié, retrait de pièce, relance.
 - `src/lib/lab.ts` : transitions métier pures des écrans 21 → 44 (décision, méthode, essais, activités,

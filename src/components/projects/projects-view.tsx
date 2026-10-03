@@ -312,7 +312,16 @@ export function ProjectsView({ initialView }: { initialView: View }) {
           )
         ) : active.length === 0 ? (
           <Card>
-            <EmptyState icon={FolderSearch} title="Aucun projet ne correspond" description="Modifiez la recherche ou les filtres." />
+            {state.projects.length === 0 ? (
+              <EmptyState
+                icon={FolderSearch}
+                title="Aucun projet pour le moment"
+                description="Créez votre premier projet : déposez vos documents, l'IA préremplit les informations produit."
+                action={<LinkButton href="/projets/nouveau">Nouveau projet</LinkButton>}
+              />
+            ) : (
+              <EmptyState icon={FolderSearch} title="Aucun projet ne correspond" description="Modifiez la recherche ou les filtres." />
+            )}
           </Card>
         ) : view === "cartes" ? (
           <div className={cn("grid gap-5 md:grid-cols-2 2xl:grid-cols-3", active.length >= 3 && "xl:grid-cols-3")}>

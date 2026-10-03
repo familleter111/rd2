@@ -14,7 +14,7 @@ import { dossier, versionEventId } from "./dossier";
 import { DEMO_TODAY } from "./format";
 import { lab } from "./lab";
 import { prerequisite } from "./prerequisites";
-import { applyState, replaceState } from "./store";
+import { applyState, replaceState, useDemo } from "./store";
 
 export interface GuideStep {
   n: number;
@@ -583,8 +583,14 @@ export function useGuideUi() {
   );
 }
 
+/** True when the demonstration dataset is loaded: the guided tour only exists there. */
+export function useDemoMode() {
+  return useDemo().demo;
+}
+
 /** True when `step` is the next screen of the tour and the blue circles are on. */
 export function useGuideTarget(step: number | undefined) {
   const { enabled, current } = useGuideUi();
-  return step !== undefined && enabled && nextStepOf(current)?.n === step;
+  const demo = useDemoMode();
+  return demo && step !== undefined && enabled && nextStepOf(current)?.n === step;
 }

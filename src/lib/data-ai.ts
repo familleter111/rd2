@@ -3,7 +3,8 @@
  * when creating GL-01, what the simulated detection finds in them, and where.
  * The detection is simulated: these results are shown whatever files were dropped.
  */
-import type { Family, Tone } from "./types";
+import { NO_REFERENCE_PRODUCT } from "./catalog";
+import type { Family, ProjectDraft, ReferenceDoc, Tone } from "./types";
 
 /** Screen of the series opened by the guided tour (`/projets/nouveau?ia=…`). */
 export type AiStage = "depot" | "analyse" | "donnees" | "ecart" | "parcours" | "applique";
@@ -122,8 +123,50 @@ export const AI_PREFILL: { name: string; dci: string; family: Family; form: stri
   family: "Sèche",
   form: "Gélule",
   countries: ["Maroc", "Tunisie"],
-  referenceProduct: "Aucun (développement innovant)",
+  referenceProduct: NO_REFERENCE_PRODUCT,
 };
+
+/* ------------------------------------------------------------------ */
+/* Reference product: leaflet or SmPC read by the AI analysis          */
+/* ------------------------------------------------------------------ */
+
+const REFERENCE_NOISE = /^(notice|rcp|smpc|pil|resume|résumé|caracteristiques|caractéristiques|produit|reference|référence|ref|document|scan|final|copie|de|du|des|la|le|v\d+)$/i;
+
+/** "Notice_Doliprane_500mg.pdf" → "Doliprane 500 mg" (the name stays editable in the form). */
+export function referenceNameFromFile(file: string) {
+  const words = file
+    .replace(/\.[^.]+$/, "")
+    .replace(/(\d)(mg|g|ml|ui|%)/gi, "$1 $2")
+    .split(/[\s_\-.()]+/)
+    .filter((w) => w && !REFERENCE_NOISE.test(w));
+  const name = words.join(" ").replace(/\bml\b/gi, "mL");
+  return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
+const referenceKind = (file: string) =>
+  /rcp|smpc|caract/i.test(file) ? "RCP" : /notice|pil|leaflet/i.test(file) ? "Notice" : "Document produit";
+
+/**
+ * Simulated analysis of the document of the reference product: the product name comes from the file
+ * name, the identity of the product (active substance, form, dosage) from the values of the project.
+ */
+export function analyseReferenceDocument(file: { name: string; size: string }, draft: ProjectDraft): ReferenceDoc {
+  const kind = referenceKind(file.name);
+  const dosage = file.name.match(/(\d+(?:[.,]\d+)?)\s?(mg\/ml|mg|g|ui|%)/i);
+  return {
+    ...file,
+    kind,
+    data: [
+      { label: "Substance active (DCI)", value: draft.dci.trim() || "À confirmer" },
+      { label: "Forme pharmaceutique", value: draft.form },
+      { label: "Dosage", value: dosage ? `${dosage[1]} ${dosage[2].replace(/ml/i, "mL")}` : draft.dosage.trim() ? `${draft.dosage.trim()} ${draft.dosageUnit}` : "À confirmer" },
+    ],
+    sections:
+      kind === "Notice"
+        ? ["Composition", "Excipients à effet notoire", "Posologie", "Conservation", "Titulaire et fabricant"]
+        : ["Composition qualitative et quantitative", "Liste des excipients", "Durée et conditions de conservation", "Nature du conditionnement", "Titulaire de l'AMM"],
+  };
+}
 
 /** The two values of the dosage found in the documents (screen IA-04). */
 export const AI_DOSAGE_OPTIONS = [

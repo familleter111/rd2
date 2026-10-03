@@ -35,15 +35,17 @@ import { PEOPLE_LAB } from "@/lib/data-lab";
 import { DEMO_TODAY, addDays, formatNumeric, plural } from "@/lib/format";
 import { nextMethodRef } from "@/lib/lab";
 import { ANALYSIS_STATUS, methodNextAction, methodStatus, methodTodo } from "@/lib/lab-selectors";
+import { NoProject } from "@/components/no-project";
 import { findProject } from "@/lib/selectors";
 import { actions, getDemoState, labActions, useDemo } from "@/lib/store";
 import type { Method, Person, Project } from "@/lib/types";
+import { useTeam } from "@/lib/people";
 
 type Tab = "methodes" | "demandes" | "resultats";
 
 const TYPES: Method["type"][] = ["Méthode analytique", "Essai pharmacotechnique"];
 const ANALYSES = ["Dosage", "Dissolution", "Caractéristiques", "Identification", "Impuretés", "Microbiologie"];
-const OWNERS: Person[] = [PEOPLE_LAB.sophie, PEOPLE_LAB.thomas, PEOPLE_LAB.claireD, PEOPLE_LAB.marc];
+const DEMO_OWNERS: Person[] = [PEOPLE_LAB.sophie, PEOPLE_LAB.thomas, PEOPLE_LAB.claireD, PEOPLE_LAB.marc];
 
 function Detail({ icon: Icon, label, value, sub }: { icon: typeof User; label: string; value: ReactNode; sub?: ReactNode }) {
   return (
@@ -202,6 +204,7 @@ function TodoPanel({ methods, project }: { methods: Method[]; project: Project }
 }
 
 function NewMethodDrawer({ project, open, onClose }: { project: Project; open: boolean; onClose: () => void }) {
+  const OWNERS = useTeam(DEMO_OWNERS);
   const router = useRouter();
   const [name, setName] = useState("");
   const [technique, setTechnique] = useState("");
@@ -400,6 +403,10 @@ export function MethodsView({
   const [requestOpen, setRequestOpen] = useState(openNewRequest);
   const [requestKey, setRequestKey] = useState(0);
   const [archiving, setArchiving] = useState<Method | null>(null);
+
+  if (!project) {
+    return <NoProject title="Méthodes & essais" subtitle="Catalogue des méthodes, demandes d'analyse et résultats." description="Les méthodes sont rattachées à un projet : créez un premier projet pour ajouter des méthodes et demander des analyses." />;
+  }
 
   const all = state.methods.filter((m) => m.projectCode === project.code);
   const statuses = [...new Set(all.map((m) => methodStatus(state, m).label))];

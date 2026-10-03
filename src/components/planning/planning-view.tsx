@@ -47,6 +47,7 @@ import {
   toMinutes,
 } from "@/lib/format";
 import { DAY_END, DAY_START, EVENT_STYLE, findConflicts, nextAvailability } from "@/lib/lab-selectors";
+import { NoProject } from "@/components/no-project";
 import { findProject } from "@/lib/selectors";
 import { labActions, useDemo } from "@/lib/store";
 import type { PlanningEvent, PlanningKind, Resource } from "@/lib/types";
@@ -697,6 +698,9 @@ export function PlanningView({ slug, initialTab, week, day, eventId }: { slug: s
   const state = useDemo();
   const project = findProject(state, slug) ?? state.projects[0];
   const [tab, setTab] = useState<PlanningTab>(initialTab);
+  if (!project) {
+    return <NoProject title="Planning" subtitle="Agenda de l'équipe, ressources et réservations." description="Le planning s'organise autour des projets : créez un premier projet pour planifier des activités et réserver des ressources." />;
+  }
   const pilot = state.lots.find((l) => l.projectCode === project.code && l.type === "Pilote");
 
   return (

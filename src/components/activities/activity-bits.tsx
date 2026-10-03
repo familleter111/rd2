@@ -12,6 +12,7 @@ import { DEMO_TODAY, daysBetween } from "@/lib/format";
 import { activityState, lotConditions } from "@/lib/lab-selectors";
 import { labActions } from "@/lib/store";
 import type { Activity, ActivityState } from "@/lib/types";
+import { useTeam } from "@/lib/people";
 
 export const STATE_LABEL: Record<ActivityState, string> = {
   "a-faire": "À faire",
@@ -21,10 +22,10 @@ export const STATE_LABEL: Record<ActivityState, string> = {
 };
 
 /** Named people and roles an activity can be assigned to. */
-export const ASSIGNEES: { name: string; role?: string }[] = [
-  ...Object.values(PEOPLE_LAB).map((p) => ({ name: p.name, role: p.role })),
-  ...PEOPLE.map((name) => ({ name })),
-];
+export function useAssignees(): { name: string; role?: string }[] {
+  const team = useTeam(Object.values(PEOPLE_LAB));
+  return [...team, ...PEOPLE.filter((name) => !team.some((p) => p.name === name)).map((name) => ({ name }))];
+}
 
 /** "aujourd'hui", "dans 2 jours", "en retard de 3 jours". */
 export function dueLabel(due: string) {
@@ -61,6 +62,7 @@ export function activityProgress(s: DemoState, a: Activity) {
 }
 
 export function ReassignModal({ activity, open, onClose }: { activity: Activity; open: boolean; onClose: () => void }) {
+  const ASSIGNEES = useAssignees();
   const [owner, setOwner] = useState(activity.owner);
   const options = ASSIGNEES.some((p) => p.name === activity.owner) ? ASSIGNEES : [{ name: activity.owner, role: activity.ownerRole }, ...ASSIGNEES];
   return (

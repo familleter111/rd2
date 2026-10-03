@@ -19,6 +19,7 @@ import { methodContext } from "@/lib/lab-selectors";
 import { labActions, useDemo } from "@/lib/store";
 import type { Method, MethodProtocol, ProtocolParams, Tone } from "@/lib/types";
 import { findMethodBySlug } from "./method-frame";
+import { useTeam } from "@/lib/people";
 
 const STATUS_TONE: Record<MethodProtocol["status"], Tone> = { Brouillon: "neutral", "En revue": "warn", Approuvé: "success" };
 
@@ -64,6 +65,7 @@ function RowLabel({ children, required }: { children: ReactNode; required?: bool
 }
 
 function ProtocolEditor({ method, protocol }: { method: Method; protocol: MethodProtocol }) {
+  const team = useTeam(Object.values(PEOPLE_LAB));
   const state = useDemo();
   const go = useGuideNav();
   const guideApprove = useGuideTarget(25);
@@ -75,7 +77,7 @@ function ProtocolEditor({ method, protocol }: { method: Method; protocol: Method
   const ctx = methodContext(state, method);
   const project = state.projects.find((p) => p.code === method.projectCode);
   const equipment = state.resources.filter((r) => r.category === "Équipement");
-  const people = Object.values(PEOPLE_LAB).filter((p) => !draft.reviewers.some((r) => r.name === p.name));
+  const people = team.filter((p) => !draft.reviewers.some((r) => r.name === p.name));
 
   const setParam = (key: keyof ProtocolParams, value: string) => setDraft((d) => ({ ...d, params: { ...d.params, [key]: value } }));
   const setCriterion = (id: string, patch: Partial<{ value: string; unit: string }>) =>

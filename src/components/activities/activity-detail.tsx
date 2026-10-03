@@ -153,7 +153,7 @@ export function ActivityDetail({ id }: { id: string }) {
           <EmptyState
             icon={Folder}
             title="Activité introuvable"
-            description="Cette activité n'existe pas (encore) dans la démonstration."
+            description="Cette activité n'existe pas ou a été supprimée."
             action={<LinkButton href="/activites">Retour à mes activités</LinkButton>}
           />
         </Card>

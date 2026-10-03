@@ -1,13 +1,14 @@
 "use client";
 
-import { ArrowRight, FileText, FolderOpen } from "lucide-react";
+import { ArrowRight, FileText, FolderOpen, Plus } from "lucide-react";
 import { ProductVisual } from "@/components/product-visual";
 import { Badge } from "@/components/ui/badge";
-import { LinkButton } from "@/components/ui/button";
+import { Button, LinkButton } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader, ScreenRef } from "@/components/ui/page";
 import { allSections, missingElements, projectReviews } from "@/lib/dossier-selectors";
-import { useDemo } from "@/lib/store";
+import { dossierActions, useDemo } from "@/lib/store";
 
 /** "Dossiers & revues" entry of the menu: one card per project dossier. */
 export function DossiersList() {
@@ -17,6 +18,20 @@ export function DossiersList() {
   return (
     <>
       <PageHeader title="Dossiers & revues" subtitle="Dossiers CTD, revues de dossier, réserves et transferts industriels." />
+      {projects.length === 0 && (
+        <Card className="mt-6">
+          <EmptyState
+            icon={FolderOpen}
+            title="Aucun dossier pour le moment"
+            description="Les dossiers CTD, les revues et les transferts sont rattachés aux projets : créez un premier projet pour préparer son dossier."
+            action={
+              <LinkButton href="/projets/nouveau" icon={<Plus className="h-5 w-5" />}>
+                Créer un projet
+              </LinkButton>
+            }
+          />
+        </Card>
+      )}
       <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-2 2xl:grid-cols-3">
         {projects.map((p) => {
           const dossier = state.dossiers.find((d) => d.projectCode === p.code);
@@ -31,6 +46,11 @@ export function DossiersList() {
                   <p className="text-sm text-ink-500">{p.formLabel}</p>
                   <p className="mt-2 text-sm text-ink-600">Dossier non initialisé : il le sera à l&apos;étape « Déposer & transférer » du parcours.</p>
                 </div>
+                {!p.archived && (
+                  <Button variant="outline" onClick={() => dossierActions.initDossier(p.code)}>
+                    Initialiser
+                  </Button>
+                )}
               </Card>
             );
           }

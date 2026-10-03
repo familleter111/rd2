@@ -12,14 +12,12 @@ import {
   CircleCheck,
   Clock,
   Copy,
-  Cylinder,
   Factory,
   FileText,
   FlaskConical,
   Info,
   Network,
   Package,
-  Pill,
   Settings,
   ShieldCheck,
   User,
@@ -42,11 +40,10 @@ import {
   FAMILY_LABEL,
   FORMS_BY_FAMILY,
   OPTIONAL_STUDIES,
+  NO_REFERENCE_PRODUCT,
   PREREQUISITE_TEMPLATES,
-  REFERENCE_PRODUCTS,
   TEAM_ROLES,
   TEMPLATE_BY_FAMILY,
-  TEMPLATES,
 } from "@/lib/catalog";
 import type { DemoState } from "@/lib/data";
 import { AI_EXTRACTS, type AiStage } from "@/lib/data-ai";
@@ -64,6 +61,7 @@ import {
   DocumentsStart,
   DosageConflictModal,
   FilePreviewModal,
+  ReferenceProductField,
   SourceTag,
   aiDraft,
   aiScreen,
@@ -121,7 +119,7 @@ function demoDraft(): ProjectDraft {
     dosage: "250",
     dosageUnit: "mg",
     countries: ["Maroc", "Tunisie"],
-    referenceProduct: REFERENCE_PRODUCTS[3],
+    referenceProduct: NO_REFERENCE_PRODUCT,
     team: { chef: "Chef de projet", developpement: "Responsable développement", qualite: "Responsable contrôle qualité", production: "Responsable production" },
     startDate: "2026-10-01",
     targetDate: "2027-03-31",
@@ -191,7 +189,11 @@ function validateProduct(d: ProjectDraft, existingCodes: string[]): Errors {
   if (!d.dosage.trim()) e.dosage = "Renseignez le dosage.";
   else if (!(Number(d.dosage.replace(",", ".")) > 0)) e.dosage = "Le dosage doit être un nombre positif.";
   if (!d.countries.length) e.countries = "Sélectionnez au moins un pays.";
-  if (!d.referenceProduct) e.referenceProduct = "Sélectionnez un produit de référence.";
+  if (!d.referenceProduct.trim()) {
+    e.referenceProduct = d.referenceDoc
+      ? "Renseignez le nom du produit de référence."
+      : "Ajoutez la notice ou le RCP du produit de référence, ou indiquez qu'il n'y en a pas.";
+  }
   return e;
 }
 
@@ -264,6 +266,7 @@ type AiFieldKey = keyof NonNullable<ProjectDraft["ai"]>["fields"];
 function ProductStep({
   draft,
   setDraft,
+  updateDraft,
   errors,
   ai,
   onDetect,
@@ -274,6 +277,8 @@ function ProductStep({
 }: {
   draft: ProjectDraft;
   setDraft: (d: ProjectDraft) => void;
+  /** Update from the latest draft (the analysis of the reference document ends after a delay). */
+  updateDraft: (update: (d: ProjectDraft) => ProjectDraft) => void;
   errors: Errors;
   ai: AiState;
   onDetect: () => void;
@@ -354,17 +359,9 @@ function ProductStep({
               invalid={Boolean(errors.countries)}
             />
           </Field>
-          <Field label="Produit de référence" required htmlFor="field-referenceProduct" error={errors.referenceProduct} aside={tag("referenceProduct")}>
-            <Select
-              id="field-referenceProduct"
-              placeholder="Sélectionner un produit de référence"
-              options={REFERENCE_PRODUCTS}
-              value={draft.referenceProduct}
-              invalid={Boolean(errors.referenceProduct)}
-              onChange={(e) => set("referenceProduct", e.target.value)}
-            />
-          </Field>
         </div>
+
+        <ReferenceProductField draft={draft} updateDraft={updateDraft} error={errors.referenceProduct} aside={tag("referenceProduct")} className="mt-5" />
 
         {draft.ai && (
           <div className="mt-6 border-t border-line pt-5">
@@ -396,6 +393,8 @@ function ProductStep({
               <dd><SummaryValue value={draft.family} /></dd>
               <dt className="text-ink-600">Forme</dt>
               <dd><SummaryValue value={draft.form} /></dd>
+              <dt className="text-ink-600">Modèle</dt>
+              <dd><SummaryValue value={draft.template} /></dd>
               <dt className="text-ink-600">Dosage</dt>
               <dd className="flex gap-6">
                 <SummaryValue value={draft.dosage} />
@@ -417,8 +416,6 @@ function ProductStep({
 /* ------------------------------------------------------------------ */
 /* Step 2 — Parcours & équipe                                          */
 /* ------------------------------------------------------------------ */
-
-const FAMILY_FORM_OPTIONS = FAMILIES.flatMap((f) => FORMS_BY_FAMILY[f].map((form) => ({ value: `${f}|${form}`, label: `${f} / ${form}` })));
 
 const PATHWAYS = [
   {
@@ -462,26 +459,6 @@ function PathwayStep({ draft, setDraft, errors }: { draft: ProjectDraft; setDraf
 
   return (
     <div className="space-y-5">
-      <Section icon={Cylinder} title="Famille et modèle">
-        <div className="grid gap-5 md:grid-cols-2">
-          <Field label="Famille de produit" required htmlFor="field-familyForm">
-            <Select
-              id="field-familyForm"
-              icon={Pill}
-              options={FAMILY_FORM_OPTIONS}
-              value={`${draft.family}|${draft.form}`}
-              onChange={(e) => {
-                const [family, form] = e.target.value.split("|") as [Family, string];
-                setDraft({ ...draft, family, form, template: family === draft.family ? draft.template : TEMPLATE_BY_FAMILY[family] });
-              }}
-            />
-          </Field>
-          <Field label="Modèle" required htmlFor="field-template">
-            <Select id="field-template" icon={FileText} options={TEMPLATES} value={draft.template} onChange={(e) => set("template", e.target.value)} />
-          </Field>
-        </div>
-      </Section>
-
       <Section icon={Network} title="Parcours de développement">
         <div className="grid gap-4 md:grid-cols-2">
           {PATHWAYS.map((p) => (
@@ -738,6 +715,7 @@ function ReviewStep({ draft, goTo }: { draft: ProjectDraft; goTo: (step: 1 | 2) 
   const studies = OPTIONAL_STUDIES.filter((s) => draft.studies.includes(s.key)).map((s) => s.title);
   const activities = 1 + (draft.galenic ? 1 : 0) + (draft.analytic ? 1 : 0) + (draft.ai?.activities.length ?? 0);
   const prerequisites = prerequisiteCount(draft);
+  const documents = draft.files.length + (draft.referenceDoc ? 1 : 0);
   return (
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
       <div className="space-y-5">
@@ -751,7 +729,7 @@ function ReviewStep({ draft, goTo }: { draft: ProjectDraft; goTo: (step: 1 | 2) 
             ["Famille / forme", `${draft.family} / ${draft.form}`],
             ["Dosage", `${draft.dosage} ${draft.dosageUnit}`],
             ["Pays cible", draft.countries.join(", ")],
-            ["Produit de référence", draft.referenceProduct],
+            ["Produit de référence", draft.referenceDoc ? `${draft.referenceProduct} — ${draft.referenceDoc.kind} : ${draft.referenceDoc.name} (analyse IA)` : draft.referenceProduct],
             ["Pièces initiales", draft.files.length ? draft.files.map((f) => f.name).join(", ") : "Aucune"],
             ...(draft.ai
               ? [["Détection IA", `${Object.keys(draft.ai.fields).length} champs repris des documents — dosage retenu : ${draft.dosage} ${draft.dosageUnit}`] as [string, string]]
@@ -790,7 +768,7 @@ function ReviewStep({ draft, goTo }: { draft: ProjectDraft; goTo: (step: 1 | 2) 
               label: `${activities} ${plural(activities, "activité")}`,
               detail: draft.ai ? `Cadrage, parcours et ${draft.ai.activities.length} activités proposées (brouillon)` : "Cadrage et planification des parcours",
             },
-            { icon: FileText, label: `${draft.files.length} ${plural(draft.files.length, "document")}`, detail: "Pièces initiales (catégorie Références)" },
+            { icon: FileText, label: `${documents} ${plural(documents, "document")}`, detail: "Pièces initiales et document du produit de référence (catégorie Références)" },
           ].map((item) => (
             <li key={item.label} className="flex items-start gap-3 rounded-xl border border-line p-3">
               <IconTile icon={item.icon} size="sm" className="bg-brand-50 text-brand-600" />
@@ -816,7 +794,7 @@ function ReviewStep({ draft, goTo }: { draft: ProjectDraft; goTo: (step: 1 | 2) 
 
 const STEPS = [
   { title: "Produit", subtitle: "Informations générales" },
-  { title: "Parcours & équipe", subtitle: "Modèle et responsables" },
+  { title: "Parcours & équipe", subtitle: "Parcours et responsables" },
   { title: "Vérification", subtitle: "Récapitulatif avant création" },
 ];
 
@@ -938,6 +916,7 @@ export function NewProjectWizard({ source }: { source: WizardSource }) {
           <ProductStep
             draft={draft}
             setDraft={setDraft}
+            updateDraft={setDraft}
             errors={shownErrors}
             ai={ai}
             onDetect={detection.start}

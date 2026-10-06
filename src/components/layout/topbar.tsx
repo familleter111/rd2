@@ -13,6 +13,7 @@ import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
 import { advanceTo, guideUi, useGuideTarget } from "@/lib/guide";
 import { actions, useDemo } from "@/lib/store";
+import { BackButton } from "./back-button";
 
 const menuItem = "flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-ink-800 hover:bg-brand-50";
 
@@ -246,7 +247,7 @@ function EnvironmentMenu() {
         open={confirm === "demo"}
         onClose={() => setConfirm(null)}
         title="Charger la démonstration ?"
-        message="Vos projets et vos données seront remplacés par un jeu de données fictif, avec le parcours guidé des écrans. Vous pourrez quitter la démonstration pour revenir à un espace vierge."
+        message="Un jeu de données fictif s'affiche à la place de vos projets, avec le parcours guidé des écrans. Vos projets et vos données sont conservés : vous les retrouverez en quittant la démonstration."
         confirmLabel="Charger la démonstration"
         onConfirm={() => {
           actions.loadDemo();
@@ -258,12 +259,12 @@ function EnvironmentMenu() {
         open={confirm === "quit"}
         onClose={() => setConfirm(null)}
         title="Quitter la démonstration ?"
-        message="Les données fictives seront retirées : l'espace R&D revient à un état vierge, sans projet ni donnée."
+        message="Les données fictives seront retirées : vous retrouverez vos projets et vos données tels que vous les aviez laissés. Ce qui a été fait dans la démonstration n'est pas conservé."
         confirmLabel="Quitter la démonstration"
         onConfirm={() => {
           actions.clearAll();
           router.push("/vue-ensemble");
-          toast.show({ title: "Démonstration quittée", description: "L'espace R&D est vierge, prêt à être configuré.", tone: "info" });
+          toast.show({ title: "Démonstration quittée", description: "Vous retrouvez votre espace de travail.", tone: "info" });
         }}
       />
     </div>
@@ -274,6 +275,7 @@ export function Topbar() {
   return (
     <header className="sticky top-0 z-20 border-b border-line/70 bg-canvas/85 backdrop-blur-md">
       <div className="mx-auto flex h-[76px] max-w-[1600px] items-center gap-3 px-8">
+        <BackButton />
         <Suspense fallback={<div className={searchShell} />}>
           <SearchBox />
         </Suspense>

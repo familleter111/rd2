@@ -39,6 +39,8 @@ import type {
 let state: DemoState = createEmpty();
 const initialState = state;
 const listeners = new Set<() => void>();
+/** The user's own data, set aside while the demonstration is displayed. */
+let workspace: DemoState | null = null;
 
 function subscribe(listener: () => void) {
   listeners.add(listener);
@@ -94,13 +96,15 @@ export const actions = {
   reset() {
     commit(state.demo ? createSeed() : createEmpty());
   },
-  /** Loads the fictitious demonstration dataset (and its guided tour). */
+  /** Loads the fictitious demonstration dataset (and its guided tour); the user's own workspace is kept aside. */
   loadDemo() {
+    if (!state.demo) workspace = state;
     commit(createSeed());
   },
-  /** Leaves the demonstration: blank workspace. */
+  /** Leaves the demonstration: back to the user's workspace as it was (blank if there was none). */
   clearAll() {
-    commit(createEmpty());
+    commit(workspace ?? createEmpty());
+    workspace = null;
   },
 
   /* Configuration — bookable resources */

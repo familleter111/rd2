@@ -9,8 +9,11 @@ import {
   ExternalLink,
   FileText,
   Filter,
+  Flag,
   FlaskConical,
   List,
+  SquareCheck,
+  Users,
   Pencil,
   Plus,
   ServerCog,
@@ -19,6 +22,7 @@ import {
   User,
   X,
 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ProjectContextHeader } from "@/components/project-context-header";
@@ -38,6 +42,7 @@ import {
   addDays,
   formatDayShort,
   formatDuration,
+  formatLong,
   formatMonth,
   formatNumeric,
   formatWeekRange,
@@ -280,6 +285,36 @@ function PlanActivityDrawer({ projectCode, open, onClose, onCreated }: { project
   );
 }
 
+/** Dated item of a project shown above the time grid: milestone, activity to finish, review to hold. */
+interface Deadline {
+  id: string;
+  date: string;
+  title: string;
+  kind: "jalon" | "echeance" | "revue";
+  projectCode: string;
+  href: string;
+}
+
+const DEADLINE_LOOK: Record<Deadline["kind"], { label: string; icon: typeof Flag; chip: string }> = {
+  jalon: { label: "Jalon", icon: Flag, chip: "border-warn-200 bg-warn-50 text-warn-700 hover:border-warn-500" },
+  echeance: { label: "Échéance d'activité", icon: SquareCheck, chip: "border-brand-200 bg-white text-brand-700 hover:border-brand-500" },
+  revue: { label: "Revue planifiée", icon: Users, chip: "border-violet-200 bg-violet-50 text-violet-700 hover:border-violet-500" },
+};
+
+function DeadlineChip({ item, compact }: { item: Deadline; compact?: boolean }) {
+  const look = DEADLINE_LOOK[item.kind];
+  return (
+    <Link
+      href={item.href}
+      title={`${look.label} — ${item.projectCode} • ${item.title}`}
+      className={cn("flex items-center gap-1.5 rounded-md border font-semibold transition-colors", compact ? "px-1.5 py-0.5 text-[11px]" : "px-2 py-1 text-xs", look.chip)}
+    >
+      <look.icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+      <span className="truncate">{item.title}</span>
+    </Link>
+  );
+}
+
 function Agenda({ projectCode, initialWeek, initialEventId }: { projectCode: string; initialWeek: string; initialEventId?: string }) {
   const state = useDemo();
   const [week, setWeek] = useState(startOfWeek(initialWeek));
@@ -295,10 +330,32 @@ function Agenda({ projectCode, initialWeek, initialEventId }: { projectCode: str
   const days = Array.from({ length: 5 }, (_, i) => addDays(week, i));
   const visible = state.events.filter((e) => kinds.includes(e.kind) && (allProjects || e.projectCode === projectCode));
   const selected = visible.find((e) => e.id === selectedId);
+  // Milestones, activity deadlines and planned reviews: a project has dates before it has booked slots.
+  const mine = (code: string) => allProjects || code === projectCode;
+  const deadlines: Deadline[] = [
+    ...state.projects
+      .filter((p) => !p.archived && mine(p.code))
+      .map((p): Deadline => ({ id: `jalon-${p.code}`, date: p.milestone.date, title: p.milestone.title, kind: "jalon", projectCode: p.code, href: `/projets/${p.slug}` })),
+    ...(kinds.includes("activite")
+      ? state.activities
+          .filter((a) => !a.done && mine(a.projectCode) && !state.events.some((e) => e.activityId === a.id))
+          .map((a): Deadline => ({ id: a.id, date: a.due, title: a.title, kind: "echeance", projectCode: a.projectCode, href: `/activites/${a.id}` }))
+      : []),
+    ...(kinds.includes("revue")
+      ? state.reviews
+          .filter((r) => r.status !== "cloturee" && mine(r.projectCode))
+          .map((r): Deadline => ({ id: r.id, date: r.date, title: r.title, kind: "revue", projectCode: r.projectCode, href: "/vue-ensemble/revues" }))
+      : []),
+  ].sort((a, b) => a.date.localeCompare(b.date));
+  const dated = [...visible.map((e) => ({ date: e.date, title: e.title })), ...deadlines.map((d) => ({ date: d.date, title: d.title }))].sort((a, b) => a.date.localeCompare(b.date));
   const hours = Array.from({ length: (AGENDA_END - AGENDA_START) / 60 }, (_, i) => fromMinutes(AGENDA_START + i * 60));
   const monthStart = startOfWeek(`${week.slice(0, 7)}-01`);
   const monthDays = Array.from({ length: 35 }, (_, i) => addDays(monthStart, i));
   const shift = (delta: number) => setWeek(addDays(week, mode === "semaine" ? delta * 7 : delta * 28));
+  const weekDeadlines = deadlines.filter((d) => d.date >= days[0] && d.date <= addDays(week, 6));
+  const emptyWeek = mode === "semaine" && !weekDeadlines.length && !visible.some((e) => e.date >= days[0] && e.date <= days[4]);
+  /** Nearest dated item when the displayed week is empty (the next one, else the last one). */
+  const nearest = emptyWeek ? (dated.find((x) => x.date > days[4]) ?? dated.filter((x) => x.date < days[0]).at(-1)) : undefined;
 
   return (
     <Card className="mt-4 p-4">
@@ -363,6 +420,21 @@ function Agenda({ projectCode, initialWeek, initialEventId }: { projectCode: str
         </div>
       </div>
 
+      {emptyWeek && (
+        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-brand-100 bg-brand-50/70 px-4 py-3 text-[15px] text-ink-700">
+          <CalendarDays className="h-5 w-5 text-brand-600" aria-hidden />
+          <span className="flex-1">
+            Rien de planifié cette semaine{allProjects ? "" : ` pour ${projectCode}`}.
+            {nearest ? ` ${nearest.date > days[4] ? "Prochaine date" : "Dernière date"} : ${nearest.title}, le ${formatLong(nearest.date)}.` : " Planifiez une activité pour remplir l'agenda."}
+          </span>
+          {nearest && (
+            <Button variant="outline" onClick={() => setWeek(startOfWeek(nearest.date))}>
+              Afficher cette semaine
+            </Button>
+          )}
+        </div>
+      )}
+
       <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
         {mode === "semaine" ? (
           <div className="relative overflow-x-auto rounded-xl border border-line">
@@ -380,6 +452,21 @@ function Agenda({ projectCode, initialWeek, initialEventId }: { projectCode: str
                   </div>
                 );
               })}
+              {weekDeadlines.length > 0 && (
+                <>
+                  <div className="flex items-center justify-center border-b border-line px-1 text-center text-[11px] font-semibold leading-tight text-ink-600">Jalons et échéances</div>
+                  {days.map((d, i) => (
+                    <div key={d} className="min-w-0 space-y-1 border-b border-l border-line p-1.5">
+                      {weekDeadlines
+                        // Week-end dates are shown on the Friday, with their date.
+                        .filter((x) => x.date === d || (i === 4 && x.date > d))
+                        .map((x) => (
+                          <DeadlineChip key={x.id} item={x.date === d ? x : { ...x, title: `${x.title} (${formatNumeric(x.date).slice(0, 5)})` }} />
+                        ))}
+                    </div>
+                  ))}
+                </>
+              )}
               <div>
                 {hours.map((h) => (
                   <div key={h} className="border-b border-line/60 px-2 text-center text-xs text-ink-600" style={{ height: ROW, lineHeight: `${ROW}px` }}>
@@ -441,6 +528,13 @@ function Agenda({ projectCode, initialWeek, initialEventId }: { projectCode: str
                 <div key={d} className={cn("min-h-24 bg-white p-1.5", !d.startsWith(week.slice(0, 7)) && "bg-slate-50")}>
                   <p className={cn("text-xs font-semibold", d === DEMO_TODAY ? "text-brand-700" : "text-ink-500")}>{Number(d.slice(8))}</p>
                   <ul className="mt-1 space-y-1">
+                    {deadlines
+                      .filter((x) => x.date === d)
+                      .map((x) => (
+                        <li key={x.id}>
+                          <DeadlineChip item={x} compact />
+                        </li>
+                      ))}
                     {visible
                       .filter((e) => e.date === d)
                       .map((e) => (
@@ -486,6 +580,15 @@ function Agenda({ projectCode, initialWeek, initialEventId }: { projectCode: str
             {EVENT_STYLE[k].label}
           </span>
         ))}
+        {(Object.keys(DEADLINE_LOOK) as Deadline["kind"][]).map((k) => {
+          const look = DEADLINE_LOOK[k];
+          return (
+            <span key={k} className="flex items-center gap-2">
+              <look.icon className="h-4 w-4 text-ink-500" aria-hidden />
+              {look.label}
+            </span>
+          );
+        })}
       </div>
       {selected && <EditEventModal key={`edit-${editing}`} event={selected} open={editOpen} onClose={() => setEditOpen(false)} />}
       <PlanActivityDrawer

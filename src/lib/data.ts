@@ -14,6 +14,7 @@ import {
   planningEvents,
   resources,
   studies,
+  starterEquipment,
 } from "./data-lab";
 import type {
   Activity,
@@ -1304,7 +1305,7 @@ export function createEmpty(): DemoState {
     analysisRequests: [],
     testPlans: [],
     analyses: [],
-    resources: [],
+    resources: starterEquipment(),
     events: [],
     pilotLots: [],
     deviations: [],

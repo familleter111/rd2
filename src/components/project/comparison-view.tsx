@@ -37,9 +37,9 @@ import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
 import { downloadText, formatDateTime, formatNumber, formatNumeric, toCsv } from "@/lib/format";
 import { useGuideTarget } from "@/lib/guide";
-import { criteriaFor, findProject, pendingTests, projectFormulas, testsForFormula } from "@/lib/selectors";
+import { criteriaFor, decisionFor, decisionLocked, findProject, pendingTests, projectDecisions, projectFormulas, testsForFormula } from "@/lib/selectors";
 import { actions, useDemo } from "@/lib/store";
-import type { DecisionChoice, Formula, FormulaStatus, LotType, Project, TestStatus, Tone } from "@/lib/types";
+import type { DecisionChoice, Formula, FormulaDecision, FormulaStatus, LotType, Project, TestStatus, Tone } from "@/lib/types";
 import { DecisionReviewModal } from "./decision-review";
 import { CRITERION_ICONS, FormulaStatusBadge } from "./formula-bits";
 import { FormulaSubTabs, ProjectTabs } from "./project-frame";
@@ -72,21 +72,42 @@ function DecisionModal({
   const state = useDemo();
   const go = useGuideNav();
   const guideSubmit = useGuideTarget(21);
-  const existing = state.formulaDecisions.find((d) => d.projectCode === project.code);
-  const [formula, setFormula] = useState(existing?.formula ?? initialFormula);
-  const [choice, setChoice] = useState<DecisionChoice>(existing?.choice ?? "poursuivre");
-  const [justification, setJustification] = useState(existing?.justification ?? "");
-  const [attachments, setAttachments] = useState<string[]>(
-    () => existing?.attachments ?? state.documents.filter((d) => d.projectCode === project.code && d.formula === initialFormula && d.type === "Rapport d'essais").map((d) => d.id),
-  );
+  /** Decision being written for a formula: its draft (or correction), else a blank one. */
+  const draftOf = (code: string) => {
+    const d = decisionFor(state, project.code, code);
+    const open = d && (decisionLocked(d) || d.status !== "Approuvée") ? d : undefined;
+    return {
+      choice: open?.choice ?? ("poursuivre" as DecisionChoice),
+      justification: open?.justification ?? "",
+      attachments: open?.attachments ?? state.documents.filter((x) => x.projectCode === project.code && x.formula === code && x.type === "Rapport d'essais").map((x) => x.id),
+    };
+  };
+  const [formula, setFormula] = useState(initialFormula);
+  const [choice, setChoice] = useState<DecisionChoice>(() => draftOf(initialFormula).choice);
+  const [justification, setJustification] = useState(() => draftOf(initialFormula).justification);
+  const [attachments, setAttachments] = useState<string[]>(() => draftOf(initialFormula).attachments);
   const [submitted, setSubmitted] = useState(false);
 
+  /** Each formula has its own decision: changing the formula loads its decision (or a blank form). */
+  const pickFormula = (code: string) => {
+    const d = draftOf(code);
+    setFormula(code);
+    setChoice(d.choice);
+    setJustification(d.justification);
+    setAttachments(d.attachments);
+    setSubmitted(false);
+  };
+
+  const stored = decisionFor(state, project.code, formula);
+  const isSubmitted = decisionLocked(stored);
+  /** « Poursuivre » or « revoir » already approved: the form prepares the next decision on the formula. */
+  const previous = stored?.status === "Approuvée" && !isSubmitted ? stored : undefined;
+  const existing = previous ? undefined : stored;
   const current = formulas.find((f) => f.code === formula);
   const pending = pendingTests(testsForFormula(state, project.code, formula));
   const docs = state.documents.filter((d) => d.projectCode === project.code);
   const justificationError = justification.trim().length < 20 ? "Rédigez une justification (20 caractères minimum)." : null;
   const blockedByTests = choice === "retenir" && pending.length > 0;
-  const isSubmitted = existing?.status === "Soumise" || existing?.status === "Approuvée";
   const step = existing?.step ?? 1;
 
   const save = (submit: boolean) => {
@@ -129,20 +150,40 @@ function DecisionModal({
       }
     >
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
-        <fieldset disabled={isSubmitted} className="min-w-0 space-y-5">
-          <Field label="Formule concernée" htmlFor="dec-formula">
+        <div className="min-w-0 space-y-5">
+          <Field label="Formule concernée" htmlFor="dec-formula" hint={formulas.length > 1 ? "Chaque formule a sa propre décision." : undefined}>
             <div className="flex items-center gap-3">
               <Select
                 id="dec-formula"
                 className="flex-1"
                 options={formulas.map((f) => ({ value: f.code, label: `${f.code} — ${f.label}` }))}
                 value={formula}
-                onChange={(e) => setFormula(e.target.value)}
+                onChange={(e) => pickFormula(e.target.value)}
               />
               {current && <FormulaStatusBadge status={current.status} size="sm" />}
             </div>
           </Field>
 
+          {isSubmitted && stored && (
+            <p className="flex items-start gap-3 rounded-xl border border-brand-100 bg-brand-50/70 p-4 text-sm text-ink-700">
+              <Info className="h-5 w-5 shrink-0 fill-brand-600 text-white" aria-hidden />
+              <span>
+                La décision sur la formule {formula} est {stored.status === "Approuvée" ? "approuvée" : "en cours d'examen"} : elle n&apos;est plus modifiable.
+                {formulas.length > 1 && " Choisissez une autre formule pour préparer sa décision."}
+              </span>
+            </p>
+          )}
+          {previous && (
+            <p className="flex items-start gap-3 rounded-xl border border-success-100 bg-success-50 p-4 text-sm text-ink-700">
+              <CircleCheck className="h-5 w-5 shrink-0 fill-success-500 text-white" aria-hidden />
+              <span>
+                Décision précédente sur {formula} — « {CHOICES.find((c) => c.value === previous.choice)?.label} » — approuvée
+                {previous.approvedAt ? ` le ${formatDateTime(previous.approvedAt)}` : ""}. Préparez ici la nouvelle décision, une fois les essais complétés.
+              </span>
+            </p>
+          )}
+
+        <fieldset disabled={isSubmitted} className="min-w-0 space-y-5">
           <fieldset>
             <legend className="mb-2 text-[15px] font-semibold text-ink-800">
               Décision proposée <span className="text-danger-600">*</span>
@@ -249,6 +290,7 @@ function DecisionModal({
             </div>
           )}
         </fieldset>
+        </div>
 
         <div className="flex flex-col gap-4">
           <div className="rounded-xl border border-line p-4">
@@ -371,6 +413,8 @@ export function ComparisonView({
   const [decisionKey, setDecisionKey] = useState(0);
   const [examOpen, setExamOpen] = useState(openExam);
   const [examKey, setExamKey] = useState(0);
+  /** Formula whose decision is shown in the dialogs (the focused one by default). */
+  const [modalFormula, setModalFormula] = useState<string | undefined>();
   const guideDecision = useGuideTarget(20);
 
   if (!project) return null;
@@ -380,7 +424,9 @@ export function ComparisonView({
   const focusFormula = candidates.find((f) => f.code === focus);
   const focusTests = testsForFormula(state, project.code, focus);
   const focusDocs = state.documents.filter((d) => d.projectCode === project.code && d.formula === focus);
-  const decision = state.formulaDecisions.find((d) => d.projectCode === project.code);
+  const decisions = projectDecisions(state, project.code);
+  /** Decision of the formula shown in the right panel. */
+  const decision = decisionFor(state, project.code, focus);
 
   /** Lot tested for a formula (the most recent one), or the reference product. */
   const lotOf = (f: Formula) => {
@@ -404,17 +450,21 @@ export function ComparisonView({
     if (!checked && code === focus) setFocus(next.find((c) => c !== reference?.code) ?? next[0] ?? "");
   };
 
-  const openModal = () => {
+  const openModal = (formula?: string) => {
+    setModalFormula(formula);
     setExamOpen(false);
     setDecisionKey((k) => k + 1);
     setDecisionOpen(true);
   };
-  const openExamModal = () => {
+  const openExamModal = (formula?: string) => {
+    setModalFormula(formula);
     setDecisionOpen(false);
     setExamKey((k) => k + 1);
     setExamOpen(true);
   };
-  const examinable = decision && decision.status !== "Brouillon";
+  /** Approved « poursuivre » / « revoir »: closed, a new decision can be prepared on the formula. */
+  const renewable = (d: FormulaDecision) => d.status === "Approuvée" && !decisionLocked(d);
+  const examinable = decision && decision.status !== "Brouillon" && !renewable(decision);
 
   const exportCsv = () => {
     const rows = [
@@ -441,7 +491,7 @@ export function ComparisonView({
               </>
             }
             items={[
-              { label: "Préparer la décision", icon: Scale, onSelect: openModal, disabled: !formulas.length },
+              { label: "Préparer la décision", icon: Scale, onSelect: () => openModal(focus !== reference?.code ? focus : undefined), disabled: !formulas.length },
               { label: "Nouvelle version de formule", icon: Copy, href: `/projets/${slug}/formules/nouvelle${focus ? `?parent=${focus}` : ""}` },
               { label: "Créer un lot", icon: Package, href: `/projets/${slug}/formules/lots?creer=1${focus ? `&formule=${focus}` : ""}` },
               { label: "Exporter la comparaison (CSV)", icon: Download, onSelect: exportCsv, separatorBefore: true },
@@ -463,31 +513,32 @@ export function ComparisonView({
       ) : (
         <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
           <div className="min-w-0 space-y-5">
-            {decision && (
-              <div className="flex flex-wrap items-center gap-4 rounded-xl border border-brand-100 bg-brand-50/70 p-4">
+            {decisions.map((d, i) => (
+              <div key={d.formula} className="flex flex-wrap items-center gap-4 rounded-xl border border-brand-100 bg-brand-50/70 p-4">
                 <Scale className="h-6 w-6 text-brand-600" aria-hidden />
-                <div className="flex-1">
+                <div className="min-w-0 flex-1">
                   <p className="font-semibold text-ink-900">
-                    Décision sur la formule {decision.formula} — {CHOICES.find((c) => c.value === decision.choice)?.label}
+                    Décision sur la formule {d.formula} — {CHOICES.find((c) => c.value === d.choice)?.label}
                   </p>
                   <p className="text-sm text-ink-600">
-                    {DECISION_BANNER[decision.status].text} · mis à jour le {formatDateTime(decision.updatedAt)}
+                    {DECISION_BANNER[d.status].text} · mis à jour le {formatDateTime(d.updatedAt)}
                   </p>
                 </div>
-                <Badge tone={DECISION_BANNER[decision.status].tone} size="md">
-                  {DECISION_BANNER[decision.status].badge}
+                <Badge tone={DECISION_BANNER[d.status].tone} size="md">
+                  {DECISION_BANNER[d.status].badge}
                 </Badge>
-                {examinable ? (
-                  <Button variant="outline" onClick={openExamModal} guide={21}>
-                    {decision.status === "Soumise" ? "Examiner la décision" : "Consulter"}
+                {d.status !== "Brouillon" ? (
+                  <Button variant="outline" onClick={() => openExamModal(d.formula)} guide={i === 0 && !renewable(d) ? 21 : undefined}>
+                    {d.status === "Soumise" ? "Examiner la décision" : "Consulter"}
                   </Button>
                 ) : (
-                  <Button variant="outline" onClick={openModal}>
+                  <Button variant="outline" onClick={() => openModal(d.formula)}>
                     Reprendre
                   </Button>
                 )}
+                {renewable(d) && <Button onClick={() => openModal(d.formula)}>Nouvelle décision</Button>}
               </div>
-            )}
+            ))}
 
             <Card className="p-5">
               <div className="flex flex-wrap items-start justify-between gap-4">
@@ -720,17 +771,23 @@ export function ComparisonView({
                   size="lg"
                   className="mt-5 w-full justify-start"
                   icon={<FileText className="h-5 w-5" />}
-                  onClick={examinable ? openExamModal : openModal}
+                  onClick={() => (examinable ? openExamModal(focus) : openModal(focus))}
                   guide={examinable ? undefined : guideDecision ? 20 : 21}
                   guideHint="Préparez la décision sur la formule F2."
                   iconRight={
                     <span className="ml-auto inline-flex items-center gap-1.5 rounded-md bg-white/20 px-2.5 py-1 text-xs font-semibold">
                       <span className="h-2 w-2 rounded-sm bg-current" aria-hidden />
-                      {decision ? DECISION_BANNER[decision.status].badge : "Brouillon"}
+                      {decision && !renewable(decision) ? DECISION_BANNER[decision.status].badge : "À préparer"}
                     </span>
                   }
                 >
-                  {examinable ? "Consulter la décision" : "Préparer la décision"}
+                  {examinable
+                    ? decision?.status === "Soumise"
+                      ? `Examiner la décision ${focus}`
+                      : `Consulter la décision ${focus}`
+                    : decision && renewable(decision)
+                      ? `Préparer une nouvelle décision ${focus}`
+                      : `Préparer la décision ${focus}`}
                 </Button>
               )}
             </Card>
@@ -743,7 +800,7 @@ export function ComparisonView({
           key={decisionKey}
           project={project}
           formulas={formulas}
-          initialFormula={focus && focus !== reference?.code ? focus : defaultFocus}
+          initialFormula={modalFormula ?? (focus && focus !== reference?.code ? focus : defaultFocus)}
           open={decisionOpen}
           onClose={() => {
             setDecisionOpen(false);
@@ -754,6 +811,7 @@ export function ComparisonView({
       <DecisionReviewModal
         key={`exam-${examKey}`}
         project={project}
+        formula={modalFormula}
         open={examOpen}
         onClose={() => {
           setExamOpen(false);

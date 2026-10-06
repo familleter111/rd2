@@ -13,9 +13,11 @@ import { DEMO_TODAY, addDays } from "./format";
 import { dossier } from "./dossier";
 import { decisionCircuit, lab } from "./lab";
 import { prerequisite } from "./prerequisites";
+import { decisionFor, testsForFormula } from "./selectors";
 import { nextNumber, pad2, projectLabel, stamp, uid, withEvent } from "./state-utils";
 import type {
   Activity,
+  AnalysisRequest,
   DecisionChoice,
   DocCategory,
   Formula,
@@ -25,10 +27,13 @@ import type {
   Project,
   ProjectDocument,
   ProjectDraft,
+  ProjectScope,
   RequestType,
   Resource,
+  ReviewOutcome,
   ReviewParticipant,
   Sample,
+  TestResult,
 } from "./types";
 
 let state: DemoState = createEmpty();
@@ -189,6 +194,34 @@ export const actions = {
       }),
     );
   },
+  /** Scoping sheet of the project (activity « Lancer le cadrage »). */
+  saveProjectScope(code: string, scope: Omit<ProjectScope, "savedAt" | "validatedAt">) {
+    const project = state.projects.find((p) => p.code === code);
+    if (!project) return;
+    const s: DemoState = {
+      ...state,
+      projects: state.projects.map((p) => (p.code === code ? { ...p, countries: scope.markets, scope: { ...scope, savedAt: stamp(), validatedAt: p.scope?.validatedAt } } : p)),
+      // Writing the sheet starts the scoping activity.
+      activities: state.activities.map((a) =>
+        a.projectCode === code && a.kind === "cadrage" && !a.done && (a.state ?? "a-faire") === "a-faire"
+          ? { ...a, state: "en-cours", status: { label: "En cours", tone: "info" } }
+          : a,
+      ),
+    };
+    commit(
+      withEvent(s, {
+        projectCode: code,
+        title: project.scope ? "Fiche de cadrage modifiée" : "Fiche de cadrage enregistrée",
+        context: projectLabel(s, code),
+        object: "Projet",
+        objectLabel: `${projectLabel(s, code)} • Fiche de cadrage`,
+        type: project.scope ? "Modification" : "Création",
+        description: `${scope.strategy}. Marchés visés : ${scope.markets.join(", ") || "à préciser"}. Objectif : ${scope.objective}`,
+        icon: "doc",
+        href: `/projets/${code.toLowerCase()}`,
+      }),
+    );
+  },
   saveDraft(draft: ProjectDraft) {
     commit({ ...state, draft, draftBannerDismissed: false });
   },
@@ -317,12 +350,12 @@ export const actions = {
       done: false,
     });
     const activities: Activity[] = [
-      activity("Lancer le cadrage", "Valider le périmètre et les prérequis du projet", "Cadrage", start, "doc"),
+      { ...activity("Lancer le cadrage", "Valider le périmètre et les prérequis du projet", "Cadrage", start, "doc"), kind: "cadrage" },
       ...(draft.galenic
-        ? [activity("Planifier le développement galénique", "Créer les activités et jalons associés", "Galénique", addDays(start, 7), "flask")]
+        ? [{ ...activity("Planifier le développement galénique", "Créer la formule candidate, le lot d'essai et ses analyses", "Galénique", addDays(start, 7), "flask"), kind: "plan-galenique" as const }]
         : []),
       ...(draft.analytic
-        ? [activity("Planifier le développement analytique", "Planifier les méthodes et essais", "Analytique", addDays(start, 7), "flask")]
+        ? [{ ...activity("Planifier le développement analytique", "Créer les méthodes et demander les premières analyses", "Analytique", addDays(start, 7), "flask"), kind: "plan-analytique" as const }]
         : []),
       ...(draft.ai?.activities ?? []).map((a) => ({
         ...activity(a.title, a.detail, "Détection IA", addDays(start, 7), "doc"),
@@ -376,8 +409,8 @@ export const actions = {
     const item = state.priorities.find((p) => p.id === id);
     if (!item) return { ok: false, reason: "Activité introuvable." };
     if (!item.done && item.requiresDecision) {
-      const decision = state.formulaDecisions.find((d) => d.projectCode === item.projectCode);
-      if (!decision || (decision.status !== "Soumise" && decision.status !== "Approuvée")) {
+      const decided = state.formulaDecisions.some((d) => d.projectCode === item.projectCode && (d.status === "Soumise" || d.status === "Approuvée"));
+      if (!decided) {
         return { ok: false, reason: "Cette activité ne peut pas être clôturée sans document de décision associé." };
       }
     }
@@ -425,7 +458,7 @@ export const actions = {
       ...state,
       reviews: state.reviews.map((r) =>
         r.id === id
-          ? { ...r, status: "en-cours", submittedAt: DEMO_TODAY, badge: { label: "Soumise", tone: "info" } }
+          ? { ...r, status: "en-cours", submittedAt: DEMO_TODAY, badge: { label: "Soumise", tone: "info" }, cta: { label: "Clôturer la revue" } }
           : r,
       ),
     };
@@ -442,6 +475,54 @@ export const actions = {
         href: "/vue-ensemble/revues",
       }),
     );
+  },
+  /** The review has been held: its conclusion and minutes are recorded, it moves to « Clôturées ». */
+  closeReview(id: string, input: { outcome: ReviewOutcome; summary: string }) {
+    const review = state.reviews.find((r) => r.id === id);
+    if (!review || review.status !== "en-cours") return;
+    const s: DemoState = {
+      ...state,
+      reviews: state.reviews.map((r) =>
+        r.id === id
+          ? {
+              ...r,
+              status: "cloturee",
+              closedAt: DEMO_TODAY,
+              outcome: input.outcome,
+              summary: input.summary,
+              badge: { label: "Clôturée", tone: "success" },
+              cta: { label: "Voir le compte rendu" },
+            }
+          : r,
+      ),
+    };
+    commit(
+      withEvent(s, {
+        projectCode: review.projectCode,
+        title: `Revue « ${review.title} » clôturée`,
+        context: `${review.projectCode} • ${review.type}`,
+        object: "Revue",
+        objectLabel: `${review.projectCode} • Revue : ${review.title}`,
+        type: "Approbation",
+        field: "Conclusion",
+        oldValue: "Soumise",
+        newValue: input.outcome,
+        description: input.summary,
+        icon: "check",
+        href: "/vue-ensemble/revues",
+      }),
+    );
+  },
+  /** A submitted review goes back to preparation (wrong date, missing item…). */
+  reopenReview(id: string) {
+    const review = state.reviews.find((r) => r.id === id);
+    if (!review || review.status !== "en-cours") return;
+    commit({
+      ...state,
+      reviews: state.reviews.map((r) =>
+        r.id === id ? { ...r, status: "a-preparer", submittedAt: undefined, badge: { label: "À préparer", tone: "info" }, cta: { label: "Préparer la revue" } } : r,
+      ),
+    });
   },
   addReview(input: { projectCode: string; title: string; type: string; date: string; participants: string[] }) {
     const review = {
@@ -509,7 +590,16 @@ export const actions = {
     commit({ ...state, activities: [...state.activities, activity] });
   },
   toggleActivity(id: string) {
-    commit({ ...state, activities: state.activities.map((a) => (a.id === id ? { ...a, done: !a.done } : a)) });
+    commit({
+      ...state,
+      activities: state.activities.map((a) =>
+        a.id !== id
+          ? a
+          : a.done
+            ? { ...a, done: false, state: "a-faire", status: { label: "À faire", tone: "warn" } }
+            : { ...a, done: true, state: "terminee", status: { label: "Terminée", tone: "success" } },
+      ),
+    });
   },
 
   /* Prerequisites & supply requests */
@@ -846,22 +936,130 @@ export const actions = {
     commit({ ...state, samples: state.samples.filter((x) => x.id !== id) });
   },
 
+  /* Analyses of a lot */
+  /** Asks for controls on a lot: each one becomes an expected result (and a request to the lab when a method is named). */
+  addLotTests(input: { projectCode: string; lotCode: string; due: string; tests: { criterion: string; spec?: string; method?: string }[] }) {
+    const lot = state.lots.find((l) => l.projectCode === input.projectCode && l.code === input.lotCode);
+    if (!lot) return 0;
+    const already = state.tests.filter((t) => t.projectCode === input.projectCode && t.lotCode === input.lotCode).map((t) => t.criterion);
+    const added = input.tests.filter((t) => t.criterion.trim() && !already.includes(t.criterion.trim()));
+    if (!added.length) return 0;
+    const tests: TestResult[] = added.map((t) => ({
+      id: uid("t"),
+      projectCode: input.projectCode,
+      lotCode: lot.code,
+      formula: lot.formula,
+      criterion: t.criterion.trim(),
+      method: t.method || undefined,
+      status: "En attente",
+      spec: t.spec?.trim() || undefined,
+    }));
+    let n = nextNumber(state.analysisRequests.map((r) => r.ref), /^DA-(\d+)$/);
+    const requests: AnalysisRequest[] = tests
+      .filter((t) => t.method)
+      .map((t) => ({
+        ref: `DA-${pad2(n++)}`,
+        projectCode: input.projectCode,
+        lotCode: lot.code,
+        analysis: t.criterion,
+        method: t.method!,
+        due: input.due,
+        requester: "Chef de projet",
+        status: { label: "À planifier", tone: "neutral" },
+      }));
+    const s: DemoState = {
+      ...state,
+      tests: [...state.tests, ...tests],
+      analysisRequests: [...requests, ...state.analysisRequests],
+      lots: state.lots.map((l) => (l.id === lot.id && l.status === "Planifié" ? { ...l, status: "En cours" } : l)),
+      formulas: state.formulas.map((f) =>
+        f.projectCode === input.projectCode && f.code === lot.formula && ["Brouillon", "Essais terminés", "À améliorer"].includes(f.status)
+          ? { ...f, status: "Essais en cours" }
+          : f,
+      ),
+    };
+    commit(
+      withEvent(s, {
+        projectCode: input.projectCode,
+        title: `${tests.length} analyse${tests.length > 1 ? "s" : ""} demandée${tests.length > 1 ? "s" : ""} sur le lot ${lot.code}`,
+        context: `${input.projectCode} • Lot ${lot.code}`,
+        object: "Essai",
+        objectLabel: `${input.projectCode} • Lot ${lot.code} (${lot.formula})`,
+        type: "Ajout",
+        description: `${tests.map((t) => t.criterion).join(", ")} — résultats attendus pour le ${input.due.split("-").reverse().join("/")}.`,
+        icon: "flask",
+        lotCode: lot.code,
+        href: `/projets/${input.projectCode.toLowerCase()}/formules/lots?lot=${lot.code}&onglet=analyses`,
+      }),
+    );
+    return tests.length;
+  },
+  /** Records (or corrects) the result of a control; once every control of the lot is known, the formula trials are over. */
+  recordTestResult(id: string, input: { result: string; status: "Conforme" | "Non conforme"; date: string }) {
+    const test = state.tests.find((t) => t.id === id);
+    if (!test) return;
+    let s: DemoState = { ...state, tests: state.tests.map((t) => (t.id === id ? { ...t, ...input } : t)) };
+    const lotTests = s.tests.filter((t) => t.projectCode === test.projectCode && t.lotCode === test.lotCode);
+    const complete = lotTests.every((t) => t.status === "Conforme" || t.status === "Non conforme");
+    s = {
+      ...s,
+      analysisRequests: s.analysisRequests.map((r) =>
+        r.projectCode === test.projectCode && r.lotCode === test.lotCode && r.method === test.method && r.analysis === test.criterion
+          ? { ...r, status: { label: "Terminée", tone: "success" } }
+          : r,
+      ),
+    };
+    if (complete) {
+      const latest = testsForFormula(s, test.projectCode, test.formula);
+      const failed = latest.some((t) => t.status === "Non conforme");
+      s = {
+        ...s,
+        lots: s.lots.map((l) => (l.projectCode === test.projectCode && l.code === test.lotCode ? { ...l, status: "Disponible" } : l)),
+        formulas: s.formulas.map((f) =>
+          f.projectCode === test.projectCode && f.code === test.formula && ["Brouillon", "Essais en cours", "Essais terminés", "À améliorer"].includes(f.status)
+            ? { ...f, status: failed ? "À améliorer" : "Essais terminés" }
+            : f,
+        ),
+      };
+    }
+    commit(
+      withEvent(s, {
+        projectCode: test.projectCode,
+        title: `Résultat ${test.result ? "corrigé" : "saisi"} — ${test.criterion} (${test.lotCode})`,
+        context: `${test.projectCode} • Lot ${test.lotCode}`,
+        object: "Essai",
+        objectLabel: `${test.projectCode} • ${test.criterion} — lot ${test.lotCode} (${test.formula})`,
+        type: "Modification",
+        field: "Résultat",
+        oldValue: test.result ?? "En attente",
+        newValue: `${input.result} — ${input.status.toLowerCase()}`,
+        icon: "flask",
+        lotCode: test.lotCode,
+        href: `/projets/${test.projectCode.toLowerCase()}/formules/lots?lot=${test.lotCode}&onglet=analyses`,
+      }),
+    );
+  },
+
   /* Formula decision */
   saveDecision(
     input: { projectCode: string; formula: string; choice: DecisionChoice; justification: string; attachments: string[] },
     submit: boolean,
   ) {
-    const previous = state.formulaDecisions.find((d) => d.projectCode === input.projectCode);
+    const stored = decisionFor(state, input.projectCode, input.formula);
+    // An approved « poursuivre » / « revoir » is closed: what is saved now is a new decision on the formula.
+    const previous = stored?.status === "Approuvée" ? undefined : stored;
+    const lot = testsForFormula(state, input.projectCode, input.formula)[0]?.lotCode;
     const decision = {
       ...input,
       status: submit ? ("Soumise" as const) : ("Brouillon" as const),
       step: submit ? (2 as const) : (1 as const),
       updatedAt: stamp(),
+      lot,
       circuit: submit ? decisionCircuit(DEMO_TODAY) : undefined,
     };
     let s: DemoState = {
       ...state,
-      formulaDecisions: [...state.formulaDecisions.filter((d) => d.projectCode !== input.projectCode), decision],
+      formulaDecisions: [...state.formulaDecisions.filter((d) => d !== stored), decision],
       decisions: submit
         ? state.decisions.map((d) =>
             d.projectCode === input.projectCode && d.href.includes("/formules")
@@ -877,7 +1075,9 @@ export const actions = {
         ? "Décision soumise pour avis"
         : previous
           ? "Décision modifiée"
-          : "Décision enregistrée en brouillon",
+          : stored
+            ? "Nouvelle décision enregistrée en brouillon"
+            : "Décision enregistrée en brouillon",
       context: `${input.projectCode} • Décision : formule ${input.formula}`,
       object: "Décision",
       objectLabel: `${input.projectCode} • Décision : formule ${input.formula}`,

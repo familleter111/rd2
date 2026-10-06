@@ -29,7 +29,7 @@ export interface GuideStep {
 }
 
 const CS = "CS-01";
-const decisionOf = (s: DemoState) => s.formulaDecisions.find((d) => d.projectCode === CS);
+const decisionOf = (s: DemoState) => s.formulaDecisions.find((d) => d.projectCode === CS && d.formula === "F2");
 const m01 = (s: DemoState) => s.methods.find((m) => m.ref === "M-01");
 const lastAnalysis = (s: DemoState) => s.analyses.filter((a) => a.methodRef === "M-01").at(-1);
 const lp01 = (s: DemoState) => s.pilotLots.find((l) => l.projectCode === CS && l.lotCode === "LP-01");
@@ -63,12 +63,12 @@ function decisionUnderReview(s: DemoState) {
   if (d?.choice === "retenir" && d.formula === "F2" && (d.status === "Approuvée" || (d.status === "Soumise" && d.step === 3))) return s;
   let n = lab.completeFormulaTests(s, CS, "F2");
   n = lab.submitRetainDecision(n, CS, "F2");
-  return lab.reviewDecision(n, CS);
+  return lab.reviewDecision(n, CS, "F2");
 }
 
 function decisionApproved(s: DemoState) {
   const n = decisionUnderReview(s);
-  return decisionOf(n)?.status === "Approuvée" ? n : lab.approveDecision(n, CS);
+  return decisionOf(n)?.status === "Approuvée" ? n : lab.approveDecision(n, CS, "F2");
 }
 
 function protocolDraft(s: DemoState) {

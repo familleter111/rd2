@@ -9,7 +9,7 @@
 import type { DemoState } from "./data";
 import { M01_SOURCE_CRITERIA, PEOPLE_LAB, STANDARD_MILESTONES, TABLET_STABILITY_TESTS, m01ProtocolDraft } from "./data-lab";
 import { DEMO_TODAY, addDays, addMonths, formatNumeric } from "./format";
-import { pendingTests, testsForFormula } from "./selectors";
+import { currentDecision, pendingTests, testsForFormula } from "./selectors";
 import { nextNumber, pad2, projectLabel, stamp, uid, withEvent } from "./state-utils";
 import type {
   Activity,
@@ -278,7 +278,7 @@ export const lab = {
       ...s,
       documents,
       formulaDecisions: [
-        ...s.formulaDecisions.filter((d) => d.projectCode !== projectCode),
+        ...s.formulaDecisions.filter((d) => d.projectCode !== projectCode || d.formula !== formula),
         {
           projectCode,
           formula,
@@ -311,15 +311,15 @@ export const lab = {
   },
 
   /** Current reviewer of the circuit gives a favourable opinion (step 2 → 3). */
-  reviewDecision(s: DemoState, projectCode: string): DemoState {
-    const d = s.formulaDecisions.find((x) => x.projectCode === projectCode);
+  reviewDecision(s: DemoState, projectCode: string, formula?: string): DemoState {
+    const d = currentDecision(s, projectCode, formula);
     if (!d || d.status !== "Soumise" || d.step !== 2 || !d.circuit) return s;
     const circuit = d.circuit.map((c, i) =>
       i === 1 ? { ...c, status: "Avis favorable" as const, date: DEMO_TODAY } : i === 2 ? { ...c, status: "À examiner" as const } : c,
     );
     let next: DemoState = {
       ...s,
-      formulaDecisions: s.formulaDecisions.map((x) => (x.projectCode === projectCode ? { ...x, step: 3, circuit, updatedAt: stamp() } : x)),
+      formulaDecisions: s.formulaDecisions.map((x) => (x === d ? { ...x, step: 3, circuit, updatedAt: stamp() } : x)),
       decisions: s.decisions.map((x) =>
         x.projectCode === projectCode && x.href.includes("/formules") ? { ...x, status: { label: "À approuver", tone: "warn" } } : x,
       ),
@@ -340,8 +340,8 @@ export const lab = {
   },
 
   /** Final approval by the qualified person: the retained formula can go to the pilot lot. */
-  approveDecision(s: DemoState, projectCode: string): DemoState {
-    const d = s.formulaDecisions.find((x) => x.projectCode === projectCode);
+  approveDecision(s: DemoState, projectCode: string, formula?: string): DemoState {
+    const d = currentDecision(s, projectCode, formula);
     if (!d || d.status !== "Soumise") return s;
     const circuit = (d.circuit ?? decisionCircuit(DEMO_TODAY)).map((c, i) =>
       i === 1 && c.status !== "Avis favorable" ? { ...c, status: "Avis favorable" as const, date: DEMO_TODAY } : i === 2 ? { ...c, status: "Approuvé" as const, date: DEMO_TODAY } : c,
@@ -350,12 +350,15 @@ export const lab = {
     let next: DemoState = {
       ...s,
       formulaDecisions: s.formulaDecisions.map((x) =>
-        x.projectCode === projectCode ? { ...x, status: "Approuvée", step: 3, circuit, approvedAt: stamp(), updatedAt: stamp() } : x,
+        x === d ? { ...x, status: "Approuvée", step: 3, circuit, approvedAt: stamp(), updatedAt: stamp() } : x,
       ),
+      // « Retenir » retains the formula; « revoir » sends it back to formulation: a new version or new trials follow.
       formulas:
         d.choice === "retenir"
           ? s.formulas.map((f) => (f.projectCode === projectCode && f.code === d.formula ? { ...f, status: "Retenue" } : f))
-          : s.formulas,
+          : d.choice === "revoir"
+            ? s.formulas.map((f) => (f.projectCode === projectCode && f.code === d.formula && f.status !== "Retenue" ? { ...f, status: "À améliorer" } : f))
+            : s.formulas,
       decisions: s.decisions.map((x) =>
         x.projectCode === projectCode && x.href.includes("/formules") ? { ...x, status: { label: "Approuvée", tone: "success" } } : x,
       ),
@@ -376,7 +379,7 @@ export const lab = {
     };
     next = notify(next, {
       title: "Décision approuvée",
-      detail: `${projectLabel(s, projectCode)} — formule ${d.formula} retenue`,
+      detail: `${projectLabel(s, projectCode)} — formule ${d.formula} ${d.choice === "retenir" ? "retenue" : d.choice === "revoir" ? ": hypothèses à revoir" : ": essais à poursuivre"}`,
       href: `/projets/${projectCode.toLowerCase()}/formules/comparaison`,
       tone: "success",
     });
@@ -390,7 +393,11 @@ export const lab = {
       ...who(actor(s, PEOPLE_LAB.paul)),
       description: pilot
         ? `Formule ${d.formula} retenue : la préparation du lot pilote ${pilot} est autorisée.`
-        : `Décision « ${d.choice} » approuvée.`,
+        : d.choice === "retenir"
+          ? `Formule ${d.formula} retenue.`
+          : d.choice === "revoir"
+            ? `Hypothèses à revoir pour la formule ${d.formula} : une nouvelle version ou de nouveaux essais peuvent être préparés, puis une nouvelle décision.`
+            : `Essais à poursuivre sur la formule ${d.formula} : une nouvelle décision sera préparée une fois les résultats disponibles.`,
       icon: "check",
       href: `/projets/${projectCode.toLowerCase()}/formules/comparaison`,
     });
@@ -398,8 +405,8 @@ export const lab = {
   },
 
   /** The current reviewer sends the decision back to the project manager. */
-  requestDecisionCorrection(s: DemoState, projectCode: string, reason: string): DemoState {
-    const d = s.formulaDecisions.find((x) => x.projectCode === projectCode);
+  requestDecisionCorrection(s: DemoState, projectCode: string, reason: string, formula?: string): DemoState {
+    const d = currentDecision(s, projectCode, formula);
     if (!d || d.status !== "Soumise" || !d.circuit) return s;
     const index = d.step - 1;
     const reviewer = index === 2 ? actor(s, PEOPLE_LAB.paul) : actor(s, PEOPLE_LAB.claireM);
@@ -407,7 +414,7 @@ export const lab = {
     let next: DemoState = {
       ...s,
       formulaDecisions: s.formulaDecisions.map((x) =>
-        x.projectCode === projectCode ? { ...x, status: "Correction demandée", circuit, correction: reason, updatedAt: stamp() } : x,
+        x === d ? { ...x, status: "Correction demandée", circuit, correction: reason, updatedAt: stamp() } : x,
       ),
       decisions: s.decisions.map((x) =>
         x.projectCode === projectCode && x.href.includes("/formules") ? { ...x, status: { label: "Correction demandée", tone: "danger" } } : x,
@@ -930,6 +937,25 @@ export const lab = {
     const a = s.activities.find((x) => x.id === id);
     if (!a || a.done) return s;
     let next = mapActivity(s, id, (x) => ({ ...x, done: true, state: "terminee", status: DONE_STATUS }));
+    if (a.kind === "cadrage") {
+      next = {
+        ...next,
+        projects: next.projects.map((p) =>
+          p.code === a.projectCode
+            ? {
+                ...p,
+                scope: p.scope ? { ...p.scope, validatedAt: stamp() } : p.scope,
+                phase: p.phase === "Cadrage" ? "Faisabilité" : p.phase,
+                stage: p.stage.label === "Cadrage" ? { ...p.stage, label: "Faisabilité" } : p.stage,
+                track: p.track.label === "Cadrage" ? { label: "Faisabilité", tone: "info" } : p.track,
+                objective: { title: "Tenir la revue de lancement", detail: "Cadrage validé" },
+                nextAction: { date: p.milestone.date, label: p.milestone.title },
+                nextStep: "Lever les prérequis et lancer le développement",
+              }
+            : p,
+        ),
+      };
+    }
     if (a.kind === "correction" && a.analysisId) {
       const analysis = findAnalysis(next, a.analysisId);
       const sample = /ECH-\d+/.exec(a.title)?.[0];

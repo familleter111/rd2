@@ -23,9 +23,11 @@ import {
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
+import { completionBlocker } from "@/components/activities/activity-bits";
+import { WorkSteps } from "@/components/activities/activity-work";
 import { JourneyStrip } from "@/components/project-bits";
 import { Badge, IconTile } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, LinkButton } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Drawer } from "@/components/ui/drawer";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -36,8 +38,9 @@ import { toast } from "@/components/ui/toast";
 import { PEOPLE, STATUS_OPTIONS } from "@/lib/catalog";
 import { cn } from "@/lib/cn";
 import { DEMO_TODAY, addDays, formatDateTime, formatLong, formatShort, formatTime, formatWeekday, relativeDue } from "@/lib/format";
+import { workSteps } from "@/lib/lab-selectors";
 import { findProject } from "@/lib/selectors";
-import { actions, useDemo } from "@/lib/store";
+import { actions, labActions, useDemo } from "@/lib/store";
 import type { Activity, GlobalStatus, HistoryEvent, Project } from "@/lib/types";
 import { ProjectTabs } from "./project-frame";
 
@@ -113,48 +116,96 @@ function ActivityRow({ activity, onOpen }: { activity: Activity; onOpen: () => v
   );
 }
 
+/**
+ * Panel of an activity. An activity created with the project (scoping, galenic or analytical
+ * planning) is done in the application: the panel lists its steps and leads to the work, and
+ * the activity can only be closed once they are done. Other activities are simple tasks.
+ */
 function ActivityDrawer({ activity, onClose }: { activity: Activity | null; onClose: () => void }) {
+  const state = useDemo();
+  const steps = activity ? workSteps(state, activity) : [];
+  const blocker = activity ? completionBlocker(state, activity) : null;
+  const guided = steps.length > 0;
+  const href = activity ? `/activites/${activity.id}` : "#";
   return (
     <Drawer
       open={Boolean(activity)}
       onClose={onClose}
       title={activity?.title ?? ""}
       subtitle={activity?.detail}
+      widthClass={guided ? "max-w-[600px]" : undefined}
       footer={
         activity && (
-          <div className="flex justify-end gap-3">
+          <div className="flex flex-wrap justify-end gap-3">
             <Button variant="secondary" size="lg" onClick={onClose}>
               Fermer
             </Button>
-            <Button
-              size="lg"
-              icon={<SquareCheck className="h-5 w-5" />}
-              onClick={() => {
-                actions.toggleActivity(activity.id);
-                toast.show({ title: activity.done ? "Activité rouverte" : "Activité terminée", description: activity.title });
-                onClose();
-              }}
-            >
-              {activity.done ? "Rouvrir l'activité" : "Marquer comme terminée"}
-            </Button>
+            <LinkButton href={href} variant="outline" size="lg">
+              Ouvrir l&apos;activité
+            </LinkButton>
+            {guided && !activity.done ? (
+              <Button
+                size="lg"
+                icon={<SquareCheck className="h-5 w-5" />}
+                disabled={Boolean(blocker)}
+                className="disabled:bg-slate-300"
+                onClick={() => {
+                  labActions.completeActivity(activity.id);
+                  toast.show(
+                    activity.kind === "cadrage"
+                      ? { title: "Cadrage validé", description: `${activity.projectCode} passe en faisabilité : la revue de lancement est la prochaine étape.` }
+                      : { title: "Activité terminée", description: activity.title },
+                  );
+                  onClose();
+                }}
+              >
+                {activity.kind === "cadrage" ? "Valider le cadrage" : "Terminer l'activité"}
+              </Button>
+            ) : (
+              <Button
+                size="lg"
+                icon={<SquareCheck className="h-5 w-5" />}
+                onClick={() => {
+                  actions.toggleActivity(activity.id);
+                  toast.show({ title: activity.done ? "Activité rouverte" : "Activité terminée", description: activity.title });
+                  onClose();
+                }}
+              >
+                {activity.done ? "Rouvrir l'activité" : "Marquer comme terminée"}
+              </Button>
+            )}
           </div>
         )
       }
     >
       {activity && (
-        <dl className="divide-y divide-line">
-          {[
-            ["Statut", activity.done ? "Terminée" : activity.status.label],
-            ["Échéance", `${formatLong(activity.due)} — ${relativeDue(activity.due)}`],
-            ["Responsable", activity.owner],
-            ["Étiquettes", activity.tags.join(", ")],
-          ].map(([k, v]) => (
-            <div key={k} className="grid grid-cols-[130px_1fr] gap-3 py-3 text-[15px]">
-              <dt className="text-ink-500">{k}</dt>
-              <dd className="text-ink-900">{v}</dd>
-            </div>
-          ))}
-        </dl>
+        <>
+          <dl className="divide-y divide-line">
+            {[
+              ["Statut", activity.done ? "Terminée" : activity.status.label],
+              ["Échéance", `${formatLong(activity.due)} — ${relativeDue(activity.due)}`],
+              ["Responsable", activity.owner],
+              ["Étiquettes", activity.tags.join(", ")],
+            ].map(([k, v]) => (
+              <div key={k} className="grid grid-cols-[130px_1fr] gap-3 py-3 text-[15px]">
+                <dt className="text-ink-500">{k}</dt>
+                <dd className="text-ink-900">{v}</dd>
+              </div>
+            ))}
+          </dl>
+          {guided && (
+            <section className="mt-5">
+              <h3 className="text-lg font-bold text-ink-900">Travail à réaliser</h3>
+              <p className="mt-1 text-sm text-ink-600">
+                Cette activité se réalise dans l&apos;application : chaque étape se coche d&apos;elle-même dès que le travail est enregistré.
+              </p>
+              <div className="mt-3">
+                <WorkSteps activity={activity} ficheHref={href} />
+              </div>
+              {blocker && !activity.done && <p className="mt-3 rounded-xl bg-subtle px-4 py-3 text-sm text-ink-700">{blocker}</p>}
+            </section>
+          )}
+        </>
       )}
     </Drawer>
   );
@@ -428,7 +479,7 @@ export function ProjectOverview({ slug, configure }: { slug: string; configure: 
                 <Goal className="h-7 w-7 text-ink-700" strokeWidth={1.6} aria-hidden />
                 Prochain jalon
               </h2>
-              <Link href="/planning" className="text-sm font-semibold text-brand-700 hover:underline underline-offset-4">
+              <Link href={`/planning?projet=${slug}&semaine=${project.milestone.date}`} className="text-sm font-semibold text-brand-700 hover:underline underline-offset-4">
                 Voir le planning
               </Link>
             </div>

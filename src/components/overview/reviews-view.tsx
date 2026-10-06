@@ -15,30 +15,33 @@ import {
   Plus,
   RefreshCw,
   Send,
+  SquareCheck,
   TriangleAlert,
+  Undo2,
   User,
   UserCog,
   Users,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Badge, IconTile } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Drawer } from "@/components/ui/drawer";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Checkbox, DateInput, Field, Input, Select } from "@/components/ui/field";
+import { Checkbox, DateInput, Field, Input, Radio, Select, Textarea } from "@/components/ui/field";
 import { Menu } from "@/components/ui/menu";
 import { Modal } from "@/components/ui/modal";
 import { ScreenRef } from "@/components/ui/page";
 import { SegmentTabs } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/toast";
-import { REVIEW_ROLES, REVIEW_TYPES } from "@/lib/catalog";
+import { REVIEW_OUTCOMES, REVIEW_ROLES, REVIEW_TYPES } from "@/lib/catalog";
 import { cn } from "@/lib/cn";
 import { DEMO_TODAY, formatLong, plural } from "@/lib/format";
 import { actions, useDemo } from "@/lib/store";
-import type { Review, ReviewParticipant, ReviewStatus } from "@/lib/types";
+import type { Review, ReviewOutcome, ReviewParticipant, ReviewStatus } from "@/lib/types";
 import { OverviewHeader } from "./overview-header";
 
 const REVIEW_ICONS: Record<Review["icon"], LucideIcon> = {
@@ -84,7 +87,7 @@ function ReviewCard({ review, selected, onSelect }: { review: Review; selected: 
       <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-[15px] text-ink-700">
         <span className="flex items-center gap-2">
           <CalendarDays className="h-5 w-5 text-ink-600" strokeWidth={1.7} aria-hidden />
-          {review.status === "cloturee" ? "Tenue le" : "Prévue le"} {formatLong(review.date)}
+          {review.status === "cloturee" ? "Tenue le" : "Prévue le"} {formatLong(review.closedAt ?? review.date)}
         </span>
         <span className="hidden h-6 w-px bg-line-strong sm:block" aria-hidden />
         <span className="flex items-center gap-2">
@@ -99,7 +102,7 @@ function ReviewCard({ review, selected, onSelect }: { review: Review; selected: 
         </Link>
       ) : (
         <button type="button" onClick={onSelect} className="mt-4 inline-flex cursor-pointer items-center gap-2 font-semibold text-brand-700 hover:underline underline-offset-4">
-          {review.cta.label}
+          {review.status === "en-cours" ? "Clôturer la revue" : review.status === "cloturee" ? "Voir le compte rendu" : review.cta.label}
           <ArrowRight className="h-4 w-4" aria-hidden />
         </button>
       )}
@@ -181,11 +184,92 @@ function ParticipantsModal({ review, open, onClose }: { review: Review; open: bo
   );
 }
 
-function ReviewDetail({ review }: { review: Review }) {
+const OUTCOME_DETAIL: Record<ReviewOutcome, string> = {
+  Favorable: "Les conclusions sont acceptées : le projet passe à l'étape suivante.",
+  "Favorable avec réserves": "Le projet avance ; les réserves sont à lever dans le délai convenu.",
+  Défavorable: "Les éléments présentés ne permettent pas d'avancer : une nouvelle revue sera planifiée.",
+};
+
+const OUTCOME_TONE: Record<ReviewOutcome, "success" | "warn" | "danger"> = {
+  Favorable: "success",
+  "Favorable avec réserves": "warn",
+  Défavorable: "danger",
+};
+
+/** The review has been held: its conclusion and minutes close it. */
+function CloseReviewModal({ review, open, onClose, onClosed }: { review: Review; open: boolean; onClose: () => void; onClosed: () => void }) {
+  const [outcome, setOutcome] = useState<ReviewOutcome>("Favorable");
+  const [summary, setSummary] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const error = summary.trim().length < 10 ? "Rédigez le compte rendu (10 caractères minimum)." : null;
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Clôturer la revue"
+      subtitle={`${review.projectCode} • ${review.title}`}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Annuler
+          </Button>
+          <Button
+            icon={<SquareCheck className="h-4 w-4" />}
+            onClick={() => {
+              setSubmitted(true);
+              if (error) return;
+              actions.closeReview(review.id, { outcome, summary: summary.trim() });
+              toast.show({ title: "Revue clôturée", description: `${review.projectCode} • ${review.title} — conclusion : ${outcome.toLowerCase()}.` });
+              onClose();
+              onClosed();
+            }}
+          >
+            Clôturer la revue
+          </Button>
+        </>
+      }
+    >
+      <fieldset>
+        <legend className="mb-2 text-[15px] font-semibold text-ink-800">
+          Conclusion de la revue <span className="text-danger-600">*</span>
+        </legend>
+        <div className="space-y-2.5">
+          {REVIEW_OUTCOMES.map((o) => (
+            <Radio
+              key={o}
+              name="review-outcome"
+              checked={outcome === o}
+              onChange={() => setOutcome(o)}
+              label={o}
+              description={OUTCOME_DETAIL[o]}
+              className={cn("rounded-xl border p-3.5 transition-colors", outcome === o ? "border-brand-400 bg-brand-50/60" : "border-line hover:border-brand-200")}
+            />
+          ))}
+        </div>
+      </fieldset>
+      <Field label="Compte rendu" required htmlFor="review-summary" className="mt-5" error={submitted ? error : null}>
+        <Textarea
+          id="review-summary"
+          rows={4}
+          maxLength={1000}
+          value={summary}
+          invalid={submitted && Boolean(error)}
+          placeholder="Ex. Faisabilité confirmée : matière active disponible auprès de deux fournisseurs, dissolution comparative à prévoir. Lancement du développement galénique validé."
+          onChange={(e) => setSummary(e.target.value)}
+        />
+      </Field>
+    </Modal>
+  );
+}
+
+function ReviewDetail({ review, onClosed }: { review: Review; onClosed: () => void }) {
   const { projects } = useDemo();
   const project = projects.find((p) => p.code === review.projectCode);
   const [participantsOpen, setParticipantsOpen] = useState(false);
   const [participantsKey, setParticipantsKey] = useState(0);
+  const [closeOpen, setCloseOpen] = useState(false);
+  const [closeKey, setCloseKey] = useState(0);
   const Icon = REVIEW_ICONS[review.icon];
   const editable = review.status === "a-preparer";
   const complete = review.checklist.every((c) => c.state === "done");
@@ -208,6 +292,19 @@ function ReviewDetail({ review }: { review: Review }) {
                 items={[
                   { label: "Ouvrir le projet", icon: FolderOpen, href: `/projets/${review.projectCode.toLowerCase()}` },
                   { label: "Voir les prérequis", icon: FileText, href: `/projets/${review.projectCode.toLowerCase()}/prerequis` },
+                  ...(review.status === "en-cours"
+                    ? [
+                        {
+                          label: "Renvoyer en préparation",
+                          icon: Undo2,
+                          separatorBefore: true,
+                          onSelect: () => {
+                            actions.reopenReview(review.id);
+                            toast.show({ title: "Revue renvoyée en préparation", description: `${review.projectCode} • ${review.title}`, tone: "info" });
+                          },
+                        },
+                      ]
+                    : []),
                 ]}
               />
             </div>
@@ -220,7 +317,7 @@ function ReviewDetail({ review }: { review: Review }) {
       <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-line pb-5 text-[15px] text-ink-800">
         <span className="flex items-center gap-2.5">
           <CalendarDays className="h-5 w-5 text-ink-600" strokeWidth={1.7} aria-hidden />
-          {review.status === "cloturee" ? "Tenue le" : "Prévue le"} {formatLong(review.date)}
+          {review.status === "cloturee" ? "Tenue le" : "Prévue le"} {formatLong(review.closedAt ?? review.date)}
         </span>
         <span className="hidden h-6 w-px bg-line-strong sm:block" aria-hidden />
         <span className="flex items-center gap-2.5">
@@ -312,27 +409,59 @@ function ReviewDetail({ review }: { review: Review }) {
               {complete ? "Toutes les pièces sont complètes." : "Toutes les pièces doivent être complétées avant soumission."}
             </p>
           </>
+        ) : review.status === "en-cours" ? (
+          <>
+            <Button
+              size="lg"
+              className="min-w-72"
+              icon={<SquareCheck className="h-5 w-5" />}
+              onClick={() => {
+                setCloseKey((k) => k + 1);
+                setCloseOpen(true);
+              }}
+            >
+              Clôturer la revue
+            </Button>
+            <p className="text-sm text-ink-500">
+              Revue soumise{review.submittedAt ? ` le ${formatLong(review.submittedAt)}` : ""}. Une fois tenue, enregistrez sa conclusion et son compte rendu.
+            </p>
+          </>
         ) : (
-          <p className="flex items-center gap-2 text-sm text-ink-600">
-            <CircleCheck className="h-4 w-4 text-success-600" aria-hidden />
-            {review.status === "cloturee" ? "Revue clôturée" : "Revue soumise"}
-            {review.submittedAt ? ` le ${formatLong(review.submittedAt)}` : ""}.
-          </p>
+          <div className="w-full space-y-3">
+            {review.outcome && (
+              <div className="rounded-xl border border-line bg-subtle p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="font-semibold text-ink-900">Conclusion de la revue</p>
+                  <Badge tone={OUTCOME_TONE[review.outcome]} size="md">
+                    {review.outcome}
+                  </Badge>
+                </div>
+                {review.summary && <p className="mt-2 whitespace-pre-line text-[15px] leading-relaxed text-ink-700">{review.summary}</p>}
+              </div>
+            )}
+            <p className="flex items-center justify-end gap-2 text-sm text-ink-600">
+              <CircleCheck className="h-4 w-4 text-success-600" aria-hidden />
+              Revue clôturée{review.closedAt ? ` le ${formatLong(review.closedAt)}` : review.submittedAt ? ` le ${formatLong(review.submittedAt)}` : ""}.
+            </p>
+          </div>
         )}
       </div>
+
+      <CloseReviewModal key={`close-${closeKey}`} review={review} open={closeOpen} onClose={() => setCloseOpen(false)} onClosed={onClosed} />
 
       <ParticipantsModal key={participantsKey} review={review} open={participantsOpen} onClose={() => setParticipantsOpen(false)} />
     </Card>
   );
 }
 
-function PlanReviewDrawer({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: (id: string) => void }) {
+function PlanReviewDrawer({ open, onClose, onCreated, presetSlug }: { open: boolean; onClose: () => void; onCreated: (id: string) => void; presetSlug?: string }) {
   const { projects } = useDemo();
   const active = projects.filter((p) => !p.archived);
-  const [projectCode, setProjectCode] = useState("");
-  const [title, setTitle] = useState("");
-  const [type, setType] = useState(REVIEW_TYPES[0]);
-  const [date, setDate] = useState("");
+  const preset = active.find((p) => p.slug === presetSlug);
+  const [projectCode, setProjectCode] = useState(preset?.code ?? "");
+  const [title, setTitle] = useState(preset ? preset.milestone.title : "");
+  const [type, setType] = useState(preset ? "Revue de projet" : REVIEW_TYPES[0]);
+  const [date, setDate] = useState(preset && preset.milestone.date >= DEMO_TODAY ? preset.milestone.date : "");
   const [participants, setParticipants] = useState<string[]>(REVIEW_ROLES.slice(0, 3));
   const [submitted, setSubmitted] = useState(false);
 
@@ -417,12 +546,14 @@ const TABS: { value: ReviewStatus; label: string; icon: LucideIcon }[] = [
   { value: "cloturee", label: "Clôturées", icon: CircleCheck },
 ];
 
-export function ReviewsView() {
+export function ReviewsView({ planFor }: { planFor?: string }) {
   const { reviews } = useDemo();
+  const router = useRouter();
   const [tab, setTab] = useState<ReviewStatus>("a-preparer");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [planOpen, setPlanOpen] = useState(false);
+  const [planOpen, setPlanOpen] = useState(Boolean(planFor));
   const [planKey, setPlanKey] = useState(0);
+  const [presetSlug, setPresetSlug] = useState(planFor);
 
   const list = reviews.filter((r) => r.status === tab).sort((a, b) => (tab === "cloturee" ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date)));
   const selected = list.find((r) => r.id === selectedId) ?? list[0];
@@ -436,6 +567,7 @@ export function ReviewsView() {
             size="lg"
             icon={<Plus className="h-5 w-5" />}
             onClick={() => {
+              setPresetSlug(undefined);
               setPlanKey((k) => k + 1);
               setPlanOpen(true);
             }}
@@ -481,14 +613,27 @@ export function ReviewsView() {
               <ReviewCard key={r.id} review={r} selected={r.id === selected?.id} onSelect={() => setSelectedId(r.id)} />
             ))}
           </div>
-          {selected && <ReviewDetail key={selected.id} review={selected} />}
+          {selected && (
+            <ReviewDetail
+              key={selected.id}
+              review={selected}
+              onClosed={() => {
+                setTab("cloturee");
+                setSelectedId(selected.id);
+              }}
+            />
+          )}
         </div>
       )}
 
       <PlanReviewDrawer
         key={planKey}
         open={planOpen}
-        onClose={() => setPlanOpen(false)}
+        presetSlug={presetSlug}
+        onClose={() => {
+          setPlanOpen(false);
+          if (planFor) router.replace("/vue-ensemble/revues", { scroll: false });
+        }}
         onCreated={(id) => {
           setTab("a-preparer");
           setSelectedId(id);

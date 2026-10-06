@@ -3,6 +3,7 @@ import type { DemoState } from "./data";
 import { formatNumeric } from "./format";
 import type {
   DocStatus,
+  FormulaDecision,
   Labelled,
   LotStatus,
   OverviewFilters,
@@ -150,6 +151,37 @@ export function criteriaFor(s: DemoState, projectCode: string) {
 
 export function pendingTests(tests: TestResult[]) {
   return tests.filter((t) => t.status === "En attente" || t.status === "Non démarré");
+}
+
+/* ------------------------------------------------------------------ */
+/* Formula decisions (one per formula)                                 */
+/* ------------------------------------------------------------------ */
+
+/** Decisions of a project, most recent first. */
+export function projectDecisions(s: DemoState, projectCode: string) {
+  return s.formulaDecisions.filter((d) => d.projectCode === projectCode).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+}
+
+export function decisionFor(s: DemoState, projectCode: string, formula: string) {
+  return s.formulaDecisions.find((d) => d.projectCode === projectCode && d.formula === formula);
+}
+
+/** Decision the circuit works on: the given formula, else the most recent one of the project. */
+export function currentDecision(s: DemoState, projectCode: string, formula?: string) {
+  return formula ? decisionFor(s, projectCode, formula) : projectDecisions(s, projectCode)[0];
+}
+
+/** Approved decision that retains a formula (it opens the pilot lot), if any. */
+export function retainedDecision(s: DemoState, projectCode: string) {
+  return s.formulaDecisions.find((d) => d.projectCode === projectCode && d.status === "Approuvée" && d.choice === "retenir");
+}
+
+/**
+ * A decision under examination, or approved with « retenir », can no longer be edited.
+ * Once « poursuivre » or « revoir » is approved, a new decision can be prepared on the same formula.
+ */
+export function decisionLocked(d?: FormulaDecision) {
+  return Boolean(d && (d.status === "Soumise" || (d.status === "Approuvée" && d.choice === "retenir")));
 }
 
 /* ------------------------------------------------------------------ */

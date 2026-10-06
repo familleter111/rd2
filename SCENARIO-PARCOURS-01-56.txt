@@ -12,6 +12,26 @@ Espace vierge, à vérifier : Configuration → ajouter un membre et une ressour
 (notice déposée, nom détecté) ; ouvrir chaque menu (aucune donnée fictive) ; Dossiers & revues →
 « Initialiser ».
 
+RETOURS DU 06/10/2026 — À VÉRIFIER DANS L'ESPACE VIERGE (projet créé, ex. CS-01 • Gélule 250 mg)
+  1. Vue projet → « Voir le planning » : l'agenda s'ouvre sur la semaine du jalon ; la ligne « Jalons et
+     échéances » montre la revue de lancement et les échéances des activités. « Aujourd'hui » : une
+     semaine vide annonce la prochaine date (« Afficher cette semaine »).
+  2. Vue projet → « Voir tout » → « Lancer le cadrage » : le panneau liste le travail à réaliser ;
+     « Valider le cadrage » reste grisé. « Ouvrir l'activité » → « Renseigner la fiche » (fiche de cadrage
+     préremplie, à relire) → « Planifier la revue » → retour à l'activité : 3 / 3 étapes → « Valider le
+     cadrage » ; le projet passe en phase Faisabilité.
+  3. Vue d'ensemble → Revues : cocher les points, « Soumettre la revue » ; onglet « En cours » →
+     « Clôturer la revue » (conclusion + compte rendu obligatoire) → onglet « Clôturées ».
+  4. Formules & lots → Comparaison : décision « Revoir les hypothèses » sur F1, soumise, avis favorable,
+     approuvée → bloc « Et maintenant ? » → nouvelle version F2, lot, analyses → « Préparer la décision
+     F2 » : F2 a sa propre décision, indépendante de celle de F1.
+  5. Formules & lots → Lots → onglet « Analyses liées » → « Demander des analyses » (contrôles proposés
+     selon la forme) → « Saisir le résultat » sur chaque ligne ; la comparaison se remplit.
+  6. Méthodes & essais → « Nouvelle méthode » : la liste « Équipement principal » propose les
+     équipements du laboratoire (modifiables dans Configuration → Ressources).
+  7. Dossiers & revues → une section : rédiger chaque paragraphe (même court), lier une preuve à chacun →
+     « Soumettre la section » devient actif ; sinon la liste de ce qui manque est affichée.
+
 ===============================================================================================
   LABORATOIRES SIMED — ESPACE R&D
   SCÉNARIO DE PARCOURS COMPLET — ÉCRANS 01 À 56 + DÉTECTION IA (IA-01 À IA-06)
@@ -1139,8 +1159,8 @@ T21. Créer GL-01 avec la détection IA (« Parcours des écrans » → écran I
   [ ] 46  Nouvelle version refusée sans fichier ni motif ; la version approuvée reste en
           vigueur tant que la nouvelle n'est pas approuvée.
   [ ] 48  « Préparer une revue » indisponible tant que des éléments manquent.
-  [ ] 49  Section non soumise si un paragraphe est vide, sans preuve ou appuyé sur une
-          preuve non approuvée.
+  [ ] 49  Section non soumise si un paragraphe est vide ou sans preuve ; une preuve non
+          approuvée n'empêche pas la soumission mais bloque l'approbation de la section.
   [ ] 50  Revue non soumise sans justification (20 caractères), document ou participant.
   [ ] 51  Réserve incomplète ou échéance passée refusée ; justification obligatoire.
   [ ] 52  Export impossible sans section cochée.

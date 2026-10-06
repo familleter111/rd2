@@ -678,6 +678,41 @@ export function resources(): Resource[] {
   ];
 }
 
+/**
+ * Equipment of a formulation and control laboratory, offered from the start in a blank
+ * workspace (examples: the list is edited in "Configuration → Ressources").
+ */
+export function starterEquipment(): Resource[] {
+  const eq = (id: string, type: string, label: string, team: string, icon: Resource["icon"], next: string, status: Resource["qualification"]["status"] = "Qualifié"): Resource => ({
+    id,
+    name: id,
+    type,
+    label,
+    team,
+    category: "Équipement",
+    icon,
+    owner: `Équipe ${team}`,
+    qualification: { status, next },
+  });
+  return [
+    eq("HPLC-01", "HPLC", "Chromatographe HPLC (détecteur UV)", "Analytique", "hplc", "2027-01-20"),
+    eq("HPLC-02", "HPLC", "Chromatographe HPLC (barrette de diodes)", "Analytique", "hplc", "2026-10-15", "À vérifier"),
+    eq("UV-01", "Spectrophotomètre UV", "Spectrophotomètre UV-visible", "Analytique", "uv", "2026-12-10"),
+    eq("DIS-01", "Dissolution", "Appareil de dissolution (palettes, USP 2)", "Analytique", "dissolution", "2027-02-15"),
+    eq("DES-01", "Désagrégation", "Appareil de désagrégation", "Analytique", "dissolution", "2027-02-15"),
+    eq("KF-01", "Karl Fischer", "Titrateur Karl Fischer (teneur en eau)", "Analytique", "uv", "2027-03-10"),
+    eq("PHM-01", "pH-mètre", "pH-mètre de paillasse", "Analytique", "uv", "2026-11-05"),
+    eq("BAL-01", "Balance analytique", "Balance analytique (0,1 mg)", "Analytique", "balance", "2026-11-30"),
+    eq("DUR-01", "Duromètre", "Duromètre pour comprimés", "Galénique", "friability", "2027-01-10"),
+    eq("FRI-01", "Friabilimètre", "Friabilimètre", "Galénique", "friability", "2027-01-10"),
+    eq("MEL-01", "Mélangeur", "Mélangeur à retournement (10 L)", "Galénique", "mixer", "2027-03-01"),
+    eq("GEL-01", "Géluleuse", "Géluleuse semi-automatique", "Galénique", "mixer", "2027-03-01"),
+    eq("PRC-01", "Presse à comprimer", "Presse à comprimer rotative de laboratoire", "Galénique", "mixer", "2027-04-12"),
+    eq("ETU-01", "Étuve", "Enceinte climatique 40 °C / 75 % HR", "Stabilité", "oven", "2026-12-01"),
+    eq("ETU-02", "Étuve", "Enceinte climatique 25 °C / 60 % HR", "Stabilité", "oven", "2026-12-01"),
+  ];
+}
+
 export function planningEvents(): PlanningEvent[] {
   const { julien } = PEOPLE_LAB;
   return [

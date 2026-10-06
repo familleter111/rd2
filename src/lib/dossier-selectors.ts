@@ -113,7 +113,8 @@ export function dossierComplete(s: DemoState, dossier: Dossier) {
 /** Status, date and link of a proof (document or approved formula decision). */
 export function proofInfo(s: DemoState, dossier: Dossier, proof: DossierProof) {
   if (proof.decision) {
-    const d = s.formulaDecisions.find((x) => x.projectCode === dossier.projectCode);
+    const decisions = s.formulaDecisions.filter((x) => x.projectCode === dossier.projectCode);
+    const d = decisions.find((x) => x.formula === dossier.formula) ?? decisions.find((x) => x.status === "Approuvée" && x.choice === "retenir") ?? decisions[0];
     const approved = d?.status === "Approuvée";
     return {
       status: (approved ? "Approuvé" : "En revue") as DocStatus,
@@ -132,17 +133,22 @@ export function proofInfo(s: DemoState, dossier: Dossier, proof: DossierProof) {
   };
 }
 
-/** A section can be submitted when every paragraph is written and supported by an approved proof. */
+/** A section can be submitted when every paragraph is written and supported by a proof. */
 export function sectionIssues(s: DemoState, dossier: Dossier, section: DossierSection) {
   const issues: string[] = [];
   for (const part of section.parts) {
-    if (part.text.trim().length < 10) issues.push(`rédiger le paragraphe « ${part.title} ».`);
+    if (!part.text.trim()) issues.push(`rédiger le paragraphe « ${part.title} ».`);
     else if (!section.links.some((l) => l.partId === part.id)) issues.push(`lier une preuve au paragraphe « ${part.title} ».`);
   }
-  for (const proof of section.proofs) {
-    if (section.links.some((l) => l.proofId === proof.id) && !proofInfo(s, dossier, proof).approved) issues.push(`la preuve « ${proof.label} » n'est pas encore approuvée.`);
-  }
   return issues;
+}
+
+/**
+ * Linked proofs that are not approved yet: the section can still be submitted (the review
+ * sees them), but Quality cannot approve it before they are.
+ */
+export function unapprovedProofs(s: DemoState, dossier: Dossier, section: DossierSection) {
+  return section.proofs.filter((proof) => section.links.some((l) => l.proofId === proof.id) && !proofInfo(s, dossier, proof).approved);
 }
 
 /* ------------------------------------------------------------------ */

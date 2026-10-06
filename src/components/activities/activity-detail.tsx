@@ -43,10 +43,11 @@ import { mixerReservation } from "@/lib/data-lab";
 import { downloadText, formatDateTime, formatNumeric, formatWeekday } from "@/lib/format";
 import { useGuideTarget } from "@/lib/guide";
 import { EVENT_ICONS } from "@/components/project/project-overview";
-import { activityState, findConflicts, lotConditions } from "@/lib/lab-selectors";
+import { activityState, findConflicts, lotConditions, workSteps } from "@/lib/lab-selectors";
 import { labActions, useDemo } from "@/lib/store";
 import type { Activity } from "@/lib/types";
 import { ReassignModal, activityProgress, completionBlocker } from "./activity-bits";
+import { ScopeSummary, WorkSteps } from "./activity-work";
 
 const WISH = { from: "2026-10-05", to: "2026-10-06" };
 const TIMES = ["08:00", "09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"];
@@ -166,6 +167,7 @@ export function ActivityDetail({ id }: { id: string }) {
   const lot = activity.lotCode ? state.lots.find((l) => l.projectCode === activity.projectCode && l.code === activity.lotCode) : undefined;
   const steps = activity.kind === "preparation-lot" && activity.lotCode ? lotConditions(state, activity.projectCode, activity.lotCode) : [];
   const reservationStep = steps.find((s) => s.key === "reservation");
+  const work = workSteps(state, activity);
   const progress = activityProgress(state, activity);
   const blocker = completionBlocker(state, activity);
   const current = activityState(activity);
@@ -360,6 +362,32 @@ export function ActivityDetail({ id }: { id: string }) {
                   </Card>
                 )}
               </div>
+            )}
+
+            {work.length > 0 && (
+              <Card className="p-5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h2 className="text-xl font-bold text-ink-900">Travail à réaliser</h2>
+                  <Badge tone={work.every((s) => s.done) ? "success" : "info"} size="md" className="rounded-full">
+                    {work.filter((s) => s.done).length} / {work.length} étapes
+                  </Badge>
+                </div>
+                <p className="mt-1 text-sm text-ink-600">
+                  Cette activité se réalise dans l&apos;application : chaque étape se coche d&apos;elle-même dès que le travail correspondant est enregistré.
+                </p>
+                <div className="mt-3">
+                  <WorkSteps activity={activity} />
+                </div>
+              </Card>
+            )}
+
+            {activity.kind === "cadrage" && project?.scope && (
+              <Card className="p-5">
+                <h2 className="text-xl font-bold text-ink-900">Fiche de cadrage</h2>
+                <div className="mt-3">
+                  <ScopeSummary project={project} />
+                </div>
+              </Card>
             )}
 
             {steps.length === 0 && (activity.prerequisiteNote || activity.href) && (
@@ -593,10 +621,14 @@ export function ActivityDetail({ id }: { id: string }) {
               className="disabled:bg-slate-300"
               onClick={() => {
                 labActions.completeActivity(activity.id);
-                toast.show({ title: "Activité terminée", description: activity.title });
+                toast.show(
+                  activity.kind === "cadrage"
+                    ? { title: "Cadrage validé", description: `${activity.projectCode} passe en faisabilité : la revue de lancement est la prochaine étape.` }
+                    : { title: "Activité terminée", description: activity.title },
+                );
               }}
             >
-              Terminer l&apos;activité
+              {activity.kind === "cadrage" ? "Valider le cadrage" : "Terminer l'activité"}
             </Button>
             {blocker && (
               <p className="flex max-w-72 items-start gap-2 rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink-700 shadow-card">

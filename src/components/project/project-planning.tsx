@@ -29,7 +29,7 @@ export function ProjectPlanningView({ slug, initialDay, request }: { slug: strin
 
   const equipment = state.resources
     .filter((r) => r.category === "Équipement")
-    .sort((a, b) => EQUIPMENT_ORDER.indexOf(a.id) - EQUIPMENT_ORDER.indexOf(b.id));
+    .sort((a, b) => (EQUIPMENT_ORDER.indexOf(a.id) + 1 || 99) - (EQUIPMENT_ORDER.indexOf(b.id) + 1 || 99) || a.id.localeCompare(b.id));
 
   const toForm = (req: SlotRequest) => {
     const params = new URLSearchParams({ ressource: req.resourceId, date: req.date, debut: req.start, fin: req.end, projet: project.code });

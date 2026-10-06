@@ -216,7 +216,7 @@ function NewMethodDrawer({ project, open, onClose }: { project: Project; open: b
   const [description, setDescription] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const { resources } = useDemo();
-  const equipment = resources.filter((r) => r.category === "Équipement");
+  const equipment = resources.filter((r) => r.category === "Équipement").sort((a, b) => a.id.localeCompare(b.id, "fr", { numeric: true }));
   const errors = {
     name: !name.trim() ? "Renseignez l'intitulé." : null,
     technique: !technique.trim() ? "Précisez la technique (ex. CLHP)." : null,
@@ -287,12 +287,20 @@ function NewMethodDrawer({ project, open, onClose }: { project: Project; open: b
           <Field label="Équipement principal" required htmlFor="m-equip" error={show(errors.equipment)}>
             <Select
               id="m-equip"
-              placeholder="Sélectionner"
+              placeholder={equipment.length ? "Sélectionner" : "Aucun équipement"}
               options={equipment.map((r) => ({ value: r.id, label: `${r.id} — ${r.label}` }))}
               value={equipmentCode}
               invalid={Boolean(show(errors.equipment))}
               onChange={(e) => setEquipmentCode(e.target.value)}
             />
+            {equipment.length === 0 && (
+              <p className="mt-1.5 text-sm text-ink-600">
+                Aucun équipement n&apos;est enregistré.{" "}
+                <Link href="/configuration/ressources" className="font-semibold text-brand-700 hover:underline">
+                  Ajouter un équipement
+                </Link>
+              </p>
+            )}
           </Field>
           <Field label="Responsable" htmlFor="m-owner">
             <Select id="m-owner" options={OWNERS.map((o) => ({ value: o.name, label: `${o.name} — ${o.role}` }))} value={owner} onChange={(e) => setOwner(e.target.value)} />
@@ -553,9 +561,11 @@ export function MethodsView({
               title="Aucun résultat d'essai"
               description="Les résultats apparaissent ici dès qu'un essai est lancé depuis l'onglet « Essais » d'une méthode (protocole approuvé)."
               action={
-                <Button variant="outline" onClick={() => router.push("/methodes/m-01")}>
-                  Ouvrir la méthode M-01
-                </Button>
+                all[0] ? (
+                  <Button variant="outline" onClick={() => router.push(`/methodes/${all[0].ref.toLowerCase()}`)}>
+                    Ouvrir la méthode {all[0].ref}
+                  </Button>
+                ) : undefined
               }
             />
           ) : (

@@ -9,7 +9,7 @@ import { PEOPLE } from "@/lib/catalog";
 import type { DemoState } from "@/lib/data";
 import { PEOPLE_LAB } from "@/lib/data-lab";
 import { DEMO_TODAY, daysBetween } from "@/lib/format";
-import { activityState, lotConditions } from "@/lib/lab-selectors";
+import { activityState, lotConditions, workSteps } from "@/lib/lab-selectors";
 import { labActions } from "@/lib/store";
 import type { Activity, ActivityState } from "@/lib/types";
 import { useTeam } from "@/lib/people";
@@ -49,6 +49,9 @@ export function completionBlocker(s: DemoState, a: Activity): string | null {
     if (missing.length === 1 && reservation) return "Impossible de terminer : réservation du mélangeur en attente.";
     return `Impossible de terminer : ${missing.map((c) => c.title.toLowerCase()).join(", ")} en attente.`;
   }
+  // Activities created with the project are closed by doing their work in the application.
+  const todo = workSteps(s, a).filter((c) => !c.done);
+  if (todo.length) return `Reste à faire avant de terminer : ${todo.map((c) => (c.action ?? c.title).toLowerCase()).join(", ")}.`;
   return null;
 }
 
@@ -57,6 +60,8 @@ export function activityProgress(s: DemoState, a: Activity) {
     const steps = lotConditions(s, a.projectCode, a.lotCode);
     return { done: steps.filter((x) => x.done).length, total: steps.length };
   }
+  const work = workSteps(s, a);
+  if (work.length) return { done: a.done ? work.length : work.filter((x) => x.done).length, total: work.length };
   const state = activityState(a);
   return { done: state === "terminee" ? 1 : 0, total: 1 };
 }

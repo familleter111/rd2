@@ -11,6 +11,7 @@ import {
   Lock,
   MessageSquareText,
   Package,
+  Pencil,
   Plus,
   SquareArrowOutUpRight,
   Trash2,
@@ -31,12 +32,12 @@ import { ScreenRef } from "@/components/ui/page";
 import { VerticalStepper } from "@/components/ui/stepper";
 import { SegmentTabs, Tabs } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/toast";
-import { LOT_UNITS, PEOPLE } from "@/lib/catalog";
+import { LOT_UNITS, PEOPLE, STANDARD_TESTS } from "@/lib/catalog";
 import { cn } from "@/lib/cn";
-import { DEMO_TODAY, formatLong, formatNumber, formatShort, plural } from "@/lib/format";
+import { DEMO_TODAY, addDays, formatLong, formatNumber, formatNumeric, formatShort, plural } from "@/lib/format";
 import { findProject, LOT_STATUS_TONE, projectFormulas } from "@/lib/selectors";
 import { actions, useDemo } from "@/lib/store";
-import type { Lot, LotType, Project, Sample } from "@/lib/types";
+import type { Lot, LotType, Method, Project, Sample, TestResult } from "@/lib/types";
 import { TestStatusText } from "./formula-bits";
 import { FormulaSubTabs, ProjectTabs } from "./project-frame";
 
@@ -147,6 +148,171 @@ function SampleModal({ lot, open, onClose }: { lot: Lot; open: boolean; onClose:
         </Field>
         <Field label="Analyses prévues" htmlFor="smp-analyses">
           <Input id="smp-analyses" inputMode="numeric" value={analyses} onChange={(e) => setAnalyses(e.target.value.replace(/\D/g, ""))} />
+        </Field>
+      </div>
+    </Modal>
+  );
+}
+
+/** Method of the project that covers a control ("Dissolution" → the dissolution method), if any. */
+function methodFor(methods: Method[], criterion: string) {
+  const c = criterion.toLowerCase();
+  return methods.find((m) => m.analysis.toLowerCase() === c || m.name.toLowerCase().includes(c));
+}
+
+/** Asks for controls on a lot: the usual controls of the dosage form are proposed, others can be added. */
+function AddAnalysesModal({ lot, project, open, onClose }: { lot: Lot; project: Project; open: boolean; onClose: () => void }) {
+  const state = useDemo();
+  const methods = state.methods.filter((m) => m.projectCode === project.code && !m.archived);
+  const existing = state.tests.filter((t) => t.projectCode === project.code && t.lotCode === lot.code).map((t) => t.criterion);
+  const [rows, setRows] = useState(() => STANDARD_TESTS[project.kind].map((t) => ({ ...t, on: !existing.includes(t.criterion) })));
+  const [custom, setCustom] = useState("");
+  const [customSpec, setCustomSpec] = useState("");
+  const [due, setDue] = useState(addDays(DEMO_TODAY, 7));
+  const [submitted, setSubmitted] = useState(false);
+
+  const extra = custom.trim();
+  const selected = [
+    ...rows.filter((r) => r.on && !existing.includes(r.criterion)).map((r) => ({ criterion: r.criterion, spec: r.spec })),
+    ...(extra && !existing.includes(extra) && !rows.some((r) => r.criterion === extra) ? [{ criterion: extra, spec: customSpec.trim() }] : []),
+  ];
+  const errors = {
+    tests: !selected.length ? "Sélectionnez au moins une analyse." : null,
+    due: !due ? "Indiquez la date de résultat attendue." : due < DEMO_TODAY ? "La date ne peut pas être passée." : null,
+  };
+
+  const submit = () => {
+    setSubmitted(true);
+    if (errors.tests || errors.due) return;
+    const n = actions.addLotTests({
+      projectCode: project.code,
+      lotCode: lot.code,
+      due,
+      tests: selected.map((t) => ({ ...t, method: methodFor(methods, t.criterion)?.ref })),
+    });
+    toast.show({ title: `${n} ${plural(n, "analyse")} demandée${n > 1 ? "s" : ""}`, description: `Lot ${lot.code} — résultats attendus pour le ${formatNumeric(due)}.` });
+    onClose();
+  };
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      size="lg"
+      title="Demander des analyses"
+      subtitle={`Lot ${lot.code} — formule ${lot.formula} • ${project.form} ${project.dosage}`}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Annuler
+          </Button>
+          <Button icon={<FlaskConical className="h-4 w-4" />} onClick={submit}>
+            Demander {selected.length > 0 ? `${selected.length} ${plural(selected.length, "analyse")}` : "les analyses"}
+          </Button>
+        </>
+      }
+    >
+      <p className="text-[15px] text-ink-600">
+        Contrôles habituels pour la forme « {project.form.toLowerCase()} », avec leur critère d&apos;acceptation indicatif. Décochez ceux qui ne s&apos;appliquent pas.
+      </p>
+      <ul className="mt-3 divide-y divide-line rounded-xl border border-line">
+        {rows.map((r, i) => {
+          const done = existing.includes(r.criterion);
+          const method = methodFor(methods, r.criterion);
+          return (
+            <li key={r.criterion} className="flex items-center gap-3 px-4 py-3">
+              <Checkbox
+                className="flex-1"
+                checked={done || r.on}
+                disabled={done}
+                onChange={(on) => setRows((l) => l.map((x, j) => (j === i ? { ...x, on } : x)))}
+                label={<span className="font-semibold text-ink-900">{r.criterion}</span>}
+                description={r.spec}
+              />
+              <span className="shrink-0 rounded-md bg-slate-100 px-2.5 py-1 text-xs font-medium text-ink-700">
+                {done ? "Déjà demandée" : method ? `${method.ref} • ${method.technique}` : "Contrôle direct"}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+      {submitted && errors.tests && <p className="mt-2 text-sm text-danger-600">{errors.tests}</p>}
+
+      <div className="mt-5 grid gap-4 sm:grid-cols-2">
+        <Field label="Autre analyse" htmlFor="an-custom" optional>
+          <Input id="an-custom" placeholder="Ex. Uniformité de teneur" value={custom} onChange={(e) => setCustom(e.target.value)} />
+        </Field>
+        <Field label="Critère d'acceptation" htmlFor="an-custom-spec" optional>
+          <Input id="an-custom-spec" placeholder="Ex. VA ≤ 15,0 (Ph. Eur. 2.9.40)" value={customSpec} disabled={!extra} onChange={(e) => setCustomSpec(e.target.value)} />
+        </Field>
+        <Field label="Résultats attendus pour le" required htmlFor="an-due" error={submitted ? errors.due : null}>
+          <DateInput id="an-due" value={due} onChange={setDue} invalid={submitted && Boolean(errors.due)} />
+        </Field>
+      </div>
+      <p className="mt-3 text-sm text-ink-500">
+        Une demande d&apos;analyse est transmise au laboratoire pour chaque contrôle couvert par une méthode du projet ; les autres sont des contrôles directs.
+      </p>
+    </Modal>
+  );
+}
+
+/** Records the result of a control and its conformity to the acceptance criterion. */
+function ResultModal({ test, project, open, onClose }: { test: TestResult; project: Project; open: boolean; onClose: () => void }) {
+  const example = STANDARD_TESTS[project.kind].find((t) => t.criterion === test.criterion)?.example;
+  const [result, setResult] = useState(test.result ?? "");
+  const [status, setStatus] = useState<"Conforme" | "Non conforme">(test.status === "Non conforme" ? "Non conforme" : "Conforme");
+  const [date, setDate] = useState(test.date ?? DEMO_TODAY);
+  const [submitted, setSubmitted] = useState(false);
+  const error = !result.trim() ? "Saisissez le résultat obtenu." : null;
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={test.result ? "Corriger le résultat" : "Saisir le résultat"}
+      subtitle={`${test.criterion} — lot ${test.lotCode} (${test.formula})`}
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Annuler
+          </Button>
+          <Button
+            onClick={() => {
+              setSubmitted(true);
+              if (error || !date) return;
+              actions.recordTestResult(test.id, { result: result.trim(), status, date });
+              toast.show({ title: "Résultat enregistré", description: `${test.criterion} : ${result.trim()} — ${status.toLowerCase()}.`, tone: status === "Conforme" ? "success" : "warn" });
+              onClose();
+            }}
+          >
+            Enregistrer le résultat
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        {test.spec && (
+          <p className="rounded-xl bg-subtle px-4 py-3 text-[15px] text-ink-700">
+            <span className="font-semibold text-ink-900">Critère d&apos;acceptation : </span>
+            {test.spec}
+          </p>
+        )}
+        <Field label="Résultat obtenu" required htmlFor="res-value" error={submitted ? error : null}>
+          <Input id="res-value" data-autofocus placeholder={example ? `Ex. ${example}` : "Valeur mesurée ou observation"} value={result} invalid={submitted && Boolean(error)} onChange={(e) => setResult(e.target.value)} />
+        </Field>
+        <Field label="Conformité">
+          <Segmented
+            label="Conformité"
+            options={[
+              { value: "Conforme", label: "Conforme" },
+              { value: "Non conforme", label: "Non conforme" },
+            ]}
+            value={status}
+            onChange={setStatus}
+          />
+        </Field>
+        <Field label="Date du résultat" required htmlFor="res-date">
+          <DateInput id="res-date" value={date} onChange={setDate} />
         </Field>
       </div>
     </Modal>
@@ -330,11 +496,19 @@ function CreateLotDrawer({
 
 type InnerTab = "echantillons" | "analyses" | "documents";
 
-function LotDetail({ lot, project, onSample }: { lot: Lot; project: Project; onSample: () => void }) {
+function LotDetail({ lot, project, onSample, initialTab }: { lot: Lot; project: Project; onSample: () => void; initialTab?: InnerTab }) {
   const state = useDemo();
   const router = useRouter();
   const pilot = state.pilotLots.find((l) => l.projectCode === project.code && l.lotCode === lot.code);
-  const [tab, setTab] = useState<InnerTab>("echantillons");
+  const [tab, setTab] = useState<InnerTab>(initialTab ?? "echantillons");
+  const [addOpen, setAddOpen] = useState(false);
+  const [addKey, setAddKey] = useState(0);
+  const [resultId, setResultId] = useState<string | null>(null);
+  const openAdd = () => {
+    setTab("analyses");
+    setAddKey((k) => k + 1);
+    setAddOpen(true);
+  };
   const samples = state.samples.filter((s) => s.projectCode === project.code && s.lotCode === lot.code);
   const tests = state.tests.filter((t) => t.projectCode === project.code && t.lotCode === lot.code);
   const docs = state.documents.filter((d) => d.projectCode === project.code && d.lot === lot.code);
@@ -369,6 +543,7 @@ function LotDetail({ lot, project, onSample }: { lot: Lot; project: Project; onS
           <Menu
             label={`Plus d'actions pour ${lot.code}`}
             items={[
+              { label: "Demander des analyses", icon: FlaskConical, onSelect: openAdd },
               { label: "Enregistrer un prélèvement", icon: Plus, onSelect: onSample },
               { label: "Voir les documents du projet", icon: FileText, href: `/projets/${project.slug}/documents` },
             ]}
@@ -438,6 +613,10 @@ function LotDetail({ lot, project, onSample }: { lot: Lot; project: Project; onS
           tab === "echantillons" ? (
             <Button variant="outline" icon={<Plus className="h-4 w-4" />} onClick={onSample}>
               Enregistrer un prélèvement
+            </Button>
+          ) : tab === "analyses" ? (
+            <Button variant="outline" icon={<Plus className="h-4 w-4" />} onClick={openAdd}>
+              Demander des analyses
             </Button>
           ) : undefined
         }
@@ -515,32 +694,56 @@ function LotDetail({ lot, project, onSample }: { lot: Lot; project: Project; onS
                   <th className="rounded-l-lg px-4 py-2.5 font-semibold">Critère</th>
                   <th className="px-4 py-2.5 font-semibold">Méthode</th>
                   <th className="px-4 py-2.5 font-semibold">Résultat</th>
-                  <th className="rounded-r-lg px-4 py-2.5 font-semibold">Statut</th>
+                  <th className="px-4 py-2.5 font-semibold">Statut</th>
+                  <th className="rounded-r-lg px-4 py-2.5 font-semibold">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
                 {tests.map((t) => (
                   <tr key={t.id}>
-                    <td className="px-4 py-3 font-medium text-ink-900">{t.criterion}</td>
+                    <td className="px-4 py-3">
+                      <span className="block font-medium text-ink-900">{t.criterion}</span>
+                      {t.spec && <span className="block text-sm text-ink-500">{t.spec}</span>}
+                    </td>
                     <td className="px-4 py-3">
                       {t.method ? (
                         <Link href={`/methodes?ref=${t.method}`} className="text-brand-700 hover:underline">
                           {t.method}
                         </Link>
                       ) : (
-                        <span className="text-ink-500">Contrôle visuel</span>
+                        <span className="text-ink-500">Contrôle direct</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-ink-800">{t.result ?? "—"}</td>
                     <td className="px-4 py-3">
                       <TestStatusText status={t.status} short />
                     </td>
+                    <td className="px-4 py-3">
+                      {t.result ? (
+                        <Button variant="ghost" size="sm" icon={<Pencil className="h-3.5 w-3.5" />} onClick={() => setResultId(t.id)}>
+                          Corriger
+                        </Button>
+                      ) : (
+                        <Button variant="outline" size="sm" onClick={() => setResultId(t.id)}>
+                          Saisir le résultat
+                        </Button>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           ) : (
-            <EmptyState icon={FlaskConical} title="Aucune analyse liée" description="Les analyses apparaîtront ici dès qu'une demande d'analyse sera réalisée sur ce lot." />
+            <EmptyState
+              icon={FlaskConical}
+              title="Aucune analyse liée"
+              description="Demandez les contrôles à réaliser sur ce lot : leurs résultats alimentent la comparaison des formules et la décision."
+              action={
+                <Button icon={<Plus className="h-4 w-4" />} onClick={openAdd}>
+                  Demander des analyses
+                </Button>
+              }
+            />
           ))}
 
         {tab === "documents" &&
@@ -566,6 +769,13 @@ function LotDetail({ lot, project, onSample }: { lot: Lot; project: Project; onS
             <EmptyState icon={FileText} title="Aucun document source" description="Aucun document n'est rattaché à ce lot." />
           ))}
       </div>
+
+      <AddAnalysesModal key={`add-${addKey}`} lot={lot} project={project} open={addOpen} onClose={() => setAddOpen(false)} />
+      {tests
+        .filter((t) => t.id === resultId)
+        .map((t) => (
+          <ResultModal key={t.id} test={t} project={project} open onClose={() => setResultId(null)} />
+        ))}
     </Card>
   );
 }
@@ -575,11 +785,13 @@ export function LotsView({
   openCreate,
   presetFormula,
   initialLot,
+  initialTab,
 }: {
   slug: string;
   openCreate: boolean;
   presetFormula?: string;
   initialLot?: string;
+  initialTab?: string;
 }) {
   const state = useDemo();
   const router = useRouter();
@@ -659,7 +871,15 @@ export function LotsView({
               <LotCard key={l.id} lot={l} selected={l.code === selected?.code} onSelect={() => setSelectedCode(l.code)} onSample={() => openSample(l.code)} />
             ))}
           </div>
-          {selected && <LotDetail key={selected.id} lot={selected} project={project} onSample={() => openSample(selected.code)} />}
+          {selected && (
+            <LotDetail
+              key={selected.id}
+              lot={selected}
+              project={project}
+              onSample={() => openSample(selected.code)}
+              initialTab={initialTab === "analyses" || initialTab === "documents" ? initialTab : undefined}
+            />
+          )}
         </>
       )}
 

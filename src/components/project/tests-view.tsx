@@ -46,7 +46,16 @@ export function TestsView({ slug }: { slug: string }) {
 
       {lots.length === 0 ? (
         <Card className="mt-4">
-          <EmptyState icon={FlaskConical} title="Aucun essai" description="Les essais apparaissent ici dès qu'un lot est analysé." />
+          <EmptyState
+            icon={FlaskConical}
+            title="Aucun essai"
+            description="Les essais apparaissent ici dès que des analyses sont demandées sur un lot (onglet « Analyses liées » du lot)."
+            action={
+              <LinkButton href={`/projets/${slug}/formules/lots`} variant="outline">
+                Ouvrir les lots du projet
+              </LinkButton>
+            }
+          />
         </Card>
       ) : (
         <div className="mt-4 space-y-5">
@@ -91,7 +100,7 @@ export function TestsView({ slug }: { slug: string }) {
                                   {t.method}
                                 </Link>
                               ) : (
-                                <span className="text-ink-500">Contrôle visuel</span>
+                                <span className="text-ink-500">Contrôle direct</span>
                               )}
                             </td>
                             <td className="px-4 py-3 text-ink-800">{t.result ?? "—"}</td>

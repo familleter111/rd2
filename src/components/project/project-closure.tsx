@@ -32,7 +32,7 @@ export function ProjectClosure({ slug, confirm }: { slug: string; confirm: boole
 
   if (!project) return null;
 
-  const formula = state.dossiers.find((d) => d.projectCode === project.code)?.formula ?? state.formulaDecisions.find((d) => d.projectCode === project.code)?.formula;
+  const formula = state.dossiers.find((d) => d.projectCode === project.code)?.formula ?? (state.formulaDecisions.find((d) => d.projectCode === project.code && d.status === "Approuvée" && d.choice === "retenir") ?? state.formulaDecisions.find((d) => d.projectCode === project.code))?.formula;
   const blockers = checks.filter((c) => !c.ok);
   const reasonError = reason.trim().length < 10 ? "Indiquez le motif de clôture (10 caractères minimum)." : null;
 

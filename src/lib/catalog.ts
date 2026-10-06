@@ -112,6 +112,56 @@ export const PREREQUISITE_CATEGORIES = [
   { value: "Ressources" as const, detail: "Ressources nécessaires pour la revue." },
 ];
 
+/**
+ * Usual controls of a development lot for each dosage form, with a typical acceptance
+ * criterion and an example of result (examples to adapt to the product).
+ */
+export const STANDARD_TESTS: Record<ProductKind, { criterion: string; spec: string; example: string }[]> = {
+  gelule: [
+    { criterion: "Aspect", spec: "Gélules intactes, poudre homogène sans agglomérat", example: "Gélules intactes, poudre blanche homogène" },
+    { criterion: "Masse unitaire", spec: "Masse moyenne ± 7,5 % (Ph. Eur. 2.9.5)", example: "Masse moyenne 352 mg, écart max. 4,1 %" },
+    { criterion: "Désagrégation", spec: "≤ 30 min (Ph. Eur. 2.9.1)", example: "8 min" },
+    { criterion: "Dissolution", spec: "Q ≥ 80 % en 30 min", example: "92 % en 30 min" },
+    { criterion: "Dosage", spec: "95,0 – 105,0 % de la teneur déclarée", example: "99,4 %" },
+    { criterion: "Teneur en eau", spec: "≤ 5,0 % (Karl Fischer)", example: "2,8 %" },
+  ],
+  comprime: [
+    { criterion: "Aspect", spec: "Comprimé intact, surface lisse, sans clivage", example: "Comprimés blancs, lisses, sans défaut" },
+    { criterion: "Masse unitaire", spec: "Masse moyenne ± 5 % (Ph. Eur. 2.9.5)", example: "Masse moyenne 502 mg, écart max. 2,3 %" },
+    { criterion: "Dureté", spec: "60 – 100 N", example: "78 N" },
+    { criterion: "Friabilité", spec: "≤ 1,0 % (Ph. Eur. 2.9.7)", example: "0,4 %" },
+    { criterion: "Désagrégation", spec: "≤ 15 min (Ph. Eur. 2.9.1)", example: "6 min" },
+    { criterion: "Dissolution", spec: "Q ≥ 80 % en 30 min", example: "90 % en 30 min" },
+    { criterion: "Dosage", spec: "95,0 – 105,0 % de la teneur déclarée", example: "100,2 %" },
+  ],
+  solution: [
+    { criterion: "Aspect", spec: "Solution limpide, exempte de particules visibles", example: "Solution limpide, incolore" },
+    { criterion: "pH", spec: "4,5 – 6,5", example: "5,4" },
+    { criterion: "Densité", spec: "1,05 – 1,10 g/mL", example: "1,07 g/mL" },
+    { criterion: "Dosage", spec: "95,0 – 105,0 % de la teneur déclarée", example: "98,9 %" },
+    { criterion: "Volume extractible", spec: "≥ volume nominal (Ph. Eur. 2.9.17)", example: "101 mL pour 100 mL" },
+    { criterion: "Contamination microbienne", spec: "DGAT ≤ 10² UFC/mL, absence d'E. coli", example: "< 10 UFC/mL, absence d'E. coli" },
+  ],
+  creme: [
+    { criterion: "Aspect", spec: "Crème blanche homogène, sans séparation de phases", example: "Crème blanche homogène" },
+    { criterion: "pH", spec: "5,0 – 7,0", example: "6,1" },
+    { criterion: "Viscosité", spec: "20 000 – 40 000 mPa·s", example: "31 500 mPa·s" },
+    { criterion: "Dosage", spec: "95,0 – 105,0 % de la teneur déclarée", example: "99,1 %" },
+    { criterion: "Contamination microbienne", spec: "DGAT ≤ 10² UFC/g, absence de S. aureus et P. aeruginosa", example: "< 10 UFC/g, absence des germes spécifiés" },
+  ],
+};
+
+/** Regulatory strategies offered in the scoping sheet of a project. */
+export const SCOPE_STRATEGIES = [
+  "Générique — dossier abrégé avec bioéquivalence",
+  "Générique — dispense de bioéquivalence (biowaiver)",
+  "Générique — dissolution comparative uniquement",
+  "Extension de gamme (nouveau dosage ou nouvelle forme)",
+  "Développement innovant",
+];
+
+export const REVIEW_OUTCOMES = ["Favorable", "Favorable avec réserves", "Défavorable"] as const;
+
 /** Supplier of the demonstration document imported at screen 13. */
 export const EXAMPLE_SUPPLIER = "Fournisseur EXEMPLE";
 

@@ -4,10 +4,11 @@ Prototype interactif de l'Espace R&D (maquettes 01 → 56) : portefeuille, proje
 décisions, méthodes et essais, activités, planning, lot pilote, déviations, stabilité, documents,
 dossier CTD, revues, transfert, configuration et clôture de projet.
 
-L'application démarre sur un **espace vierge** : aucun projet, aucune donnée, aucune personne ni
-ressource. Le client configure tout lui-même (équipe dans *Configuration → Équipe & rôles*, ressources
-dans *Configuration → Ressources*, puis ses projets). Seuls les réglages de départ sont fournis : rôles
-sans membre, trois modèles de parcours, canaux de notification.
+L'application démarre sur un **espace vierge** : aucun projet, aucune donnée, aucune personne. Le
+client configure tout lui-même (équipe dans *Configuration → Équipe & rôles*, puis ses projets). Seuls les
+réglages de départ sont fournis : rôles sans membre, trois modèles de parcours, canaux de notification et
+un parc d'équipements de laboratoire d'exemple (HPLC, dissolution, balance, mélangeur, étuves…), à
+adapter dans *Configuration → Ressources*.
 
 Le jeu **de démonstration** (projets et personnes fictifs) et son parcours guidé restent disponibles à la
 demande : menu **Espace de travail → Charger la démonstration** (en haut à droite). *Quitter la
@@ -221,6 +222,29 @@ Les maquettes divergent parfois ; les choix suivants rendent le prototype cohér
   CTD d'un projet se crée par « Initialiser le dossier » (page Dossiers & revues). Le dossier de
   fabrication détaillé d'un lot pilote (préparation, exécution, contrôles) n'existe que pour le lot de la
   démonstration.
+
+## Travail réalisé dans l'application (retours du 06/10/2026)
+
+- **Activités du projet** : « Lancer le cadrage », « Planifier le développement galénique » et
+  « … analytique » ne se cochent plus à la main. Chacune liste son *travail à réaliser* ; les étapes se
+  cochent d'elles-mêmes d'après ce qui est fait dans l'application (`workSteps`, `lib/lab-selectors.ts`).
+  Cadrage : fiche de cadrage (objectif, stratégie réglementaire, marchés, périmètre, risques — préremplie
+  à partir du projet), prérequis identifiés, revue de lancement planifiée ; « Valider le cadrage » fait
+  passer le projet en faisabilité. Les activités ajoutées à la main restent de simples tâches.
+- **Planning** : l'agenda affiche aussi les jalons des projets, les échéances des activités et les revues
+  planifiées (ligne « Jalons et échéances ») ; une semaine vide indique la prochaine date et y mène.
+- **Revues** (Vue d'ensemble) : une revue soumise se clôture avec sa conclusion (favorable, avec réserves,
+  défavorable) et son compte rendu ; elle peut aussi être renvoyée en préparation.
+- **Décisions de formule** : une décision par formule. Une décision « Poursuivre » ou « Revoir »
+  approuvée est close : la formule passe « À améliorer » (revoir), on crée une nouvelle version ou un
+  nouveau lot, puis on prépare une nouvelle décision. Seule « Retenir » exige des essais terminés.
+- **Analyses d'un lot** : onglet *Analyses liées* → « Demander des analyses » (contrôles habituels de la
+  forme pharmaceutique et critères d'acceptation indicatifs, `STANDARD_TESTS` dans `lib/catalog.ts`), puis
+  « Saisir le résultat ». Les résultats alimentent la comparaison ; tous saisis, la formule passe
+  « Essais terminés » ou « À améliorer ».
+- **Section du dossier CTD** : un paragraphe non vide et lié à une preuve suffit pour soumettre ; tout ce
+  qui manque est listé. Une preuve encore en brouillon n'empêche plus la soumission (avertissement), mais
+  bloque l'approbation de la section par Qualité.
 
 ## Données et état
 

@@ -59,6 +59,20 @@ export interface Project {
   /** Closure of the project (screen 56): the project is then archived, read-only. */
   closedAt?: string;
   closeReason?: string;
+  /** Scoping sheet written during the "Lancer le cadrage" activity. */
+  scope?: ProjectScope;
+}
+
+export interface ProjectScope {
+  objective: string;
+  strategy: string;
+  markets: string[];
+  included: string;
+  excluded: string;
+  risks: string;
+  savedAt: string;
+  /** Set when the scoping activity is validated. */
+  validatedAt?: string;
 }
 
 export type PrerequisiteCategory = "Documents" | "Matières" | "Ressources";
@@ -168,8 +182,11 @@ export interface Activity {
   prerequisiteNote?: { title: string; detail: string };
   documents?: ActivityDocument[];
   comments?: ActivityComment[];
-  /** "preparation-lot": steps are derived from the pilot-lot conditions. */
-  kind?: "preparation-lot" | "correction" | "reservation" | "standard";
+  /**
+   * "preparation-lot": steps are derived from the pilot-lot conditions.
+   * "cadrage", "plan-galenique", "plan-analytique": steps are derived from the work done in the project.
+   */
+  kind?: "preparation-lot" | "correction" | "reservation" | "standard" | "cadrage" | "plan-galenique" | "plan-analytique";
   href?: string;
 }
 
@@ -221,7 +238,13 @@ export interface Review {
   icon: "flask" | "pill" | "chart" | "doc";
   checklist: { id: string; label: string; detail: string; state: ChecklistState }[];
   submittedAt?: string;
+  /* Closure of the review: conclusion and minutes. */
+  closedAt?: string;
+  outcome?: ReviewOutcome;
+  summary?: string;
 }
+
+export type ReviewOutcome = "Favorable" | "Favorable avec réserves" | "Défavorable";
 
 export interface PendingDecision {
   id: string;
@@ -310,6 +333,8 @@ export interface TestResult {
   status: TestStatus;
   result?: string;
   date?: string;
+  /** Acceptance criterion ("Q ≥ 80 % en 30 min"). */
+  spec?: string;
 }
 
 export type DocStatus = "Brouillon" | "Approuvé" | "À revoir" | "En revue";

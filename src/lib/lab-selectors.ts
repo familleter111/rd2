@@ -108,14 +108,138 @@ export interface PrepStep {
   detail: string;
   done: boolean;
   date?: string;
+  /** Where the work of the step is done. */
+  href?: string;
+  action?: string;
+}
+
+/**
+ * Work to carry out for an activity created with the project: the steps are read from what
+ * has really been done in the project (scoping sheet, formulas, lots, methods…), so the
+ * activity is closed by doing the work, not by ticking a box.
+ */
+export function workSteps(s: DemoState, a: Activity): PrepStep[] {
+  const code = a.projectCode;
+  const slug = code.toLowerCase();
+  const project = s.projects.find((p) => p.code === code);
+  if (!project) return [];
+  const many = (n: number) => (n > 1 ? "s" : "");
+
+  if (a.kind === "cadrage") {
+    const prerequisites = s.prerequisites.filter((p) => p.projectCode === code);
+    const verified = prerequisites.filter((p) => p.status === "Vérifié").length;
+    const review = s.reviews.find((r) => r.projectCode === code);
+    const day = (d: string) => d.split("-").reverse().join("/");
+    return [
+      {
+        key: "fiche",
+        title: "Fiche de cadrage renseignée",
+        detail: project.scope ? `Objectif, périmètre et marchés enregistrés — ${project.scope.strategy}.` : "Décrire l'objectif, le périmètre, les marchés visés et la stratégie réglementaire.",
+        done: Boolean(project.scope),
+        date: project.scope?.savedAt.slice(0, 10),
+        action: project.scope ? "Modifier la fiche" : "Renseigner la fiche",
+      },
+      {
+        key: "prerequis",
+        title: "Prérequis identifiés",
+        detail: prerequisites.length
+          ? `${prerequisites.length} prérequis listé${many(prerequisites.length)}, dont ${verified} vérifié${many(verified)}.`
+          : "Lister les documents, matières et ressources nécessaires au projet.",
+        done: prerequisites.length > 0,
+        href: `/projets/${slug}/prerequis`,
+        action: prerequisites.length ? "Voir les prérequis" : "Ajouter un prérequis",
+      },
+      {
+        key: "revue",
+        title: "Revue de lancement planifiée",
+        detail: review ? `« ${review.title} » prévue le ${day(review.date)}.` : "Planifier la revue qui valide le cadrage avec l'équipe.",
+        done: Boolean(review),
+        date: review?.date,
+        href: review ? "/vue-ensemble/revues" : `/vue-ensemble/revues?planifier=${slug}`,
+        action: review ? "Voir la revue" : "Planifier la revue",
+      },
+    ];
+  }
+
+  if (a.kind === "plan-galenique") {
+    const formulas = s.formulas.filter((f) => f.projectCode === code && f.status !== "Référence" && f.status !== "Archivée");
+    const lots = s.lots.filter((l) => l.projectCode === code && l.type === "Essai");
+    const tests = s.tests.filter((t) => t.projectCode === code && t.lotCode !== "REF");
+    return [
+      {
+        key: "formule",
+        title: "Formule candidate créée",
+        detail: formulas.length ? `${formulas.map((f) => f.code).join(", ")} — composition enregistrée.` : "Saisir la composition d'une première formule candidate.",
+        done: formulas.length > 0,
+        href: formulas.length ? `/projets/${slug}/formules` : `/projets/${slug}/formules/nouvelle`,
+        action: formulas.length ? "Voir les formules" : "Créer une formule",
+      },
+      {
+        key: "lot",
+        title: "Lot d'essai créé",
+        detail: lots.length ? `${lots.map((l) => l.code).join(", ")} — lot${many(lots.length)} de formulation.` : "Créer le lot d'essai à fabriquer à partir de la formule.",
+        done: lots.length > 0,
+        href: lots.length ? `/projets/${slug}/formules/lots` : `/projets/${slug}/formules/lots?creer=1`,
+        action: lots.length ? "Voir les lots" : "Créer un lot",
+      },
+      {
+        key: "analyses",
+        title: "Analyses demandées sur le lot",
+        detail: tests.length ? `${tests.length} analyse${many(tests.length)} demandée${many(tests.length)}.` : "Demander les contrôles du lot (aspect, masse, dissolution…).",
+        done: tests.length > 0,
+        href: lots[0] ? `/projets/${slug}/formules/lots?lot=${lots[0].code}&onglet=analyses` : `/projets/${slug}/formules/lots`,
+        action: tests.length ? "Voir les analyses" : "Demander des analyses",
+      },
+    ];
+  }
+
+  if (a.kind === "plan-analytique") {
+    const methods = s.methods.filter((m) => m.projectCode === code && !m.archived);
+    const confirmed = methods.filter((m) => m.reference.applicability === "Confirmée");
+    const requests = s.analysisRequests.filter((r) => r.projectCode === code);
+    const first = methods[0];
+    return [
+      {
+        key: "methode",
+        title: "Méthode d'analyse créée",
+        detail: methods.length ? `${methods.map((m) => `${m.ref} ${m.name}`).join(", ")}.` : "Créer la première méthode (dosage, dissolution…) du projet.",
+        done: methods.length > 0,
+        href: `/methodes?projet=${slug}`,
+        action: methods.length ? "Voir les méthodes" : "Créer une méthode",
+      },
+      {
+        key: "applicabilite",
+        title: "Applicabilité confirmée",
+        detail: confirmed.length ? `Applicabilité confirmée pour ${confirmed.map((m) => m.ref).join(", ")}.` : "Confirmer que la méthode s'applique au produit avant de rédiger le protocole.",
+        done: confirmed.length > 0,
+        href: first ? `/methodes/${first.ref.toLowerCase()}` : `/methodes?projet=${slug}`,
+        action: confirmed.length ? "Ouvrir la méthode" : "Confirmer l'applicabilité",
+      },
+      {
+        key: "demande",
+        title: "Demande d'analyse créée",
+        detail: requests.length ? `${requests.map((r) => r.ref).join(", ")} — transmise au laboratoire.` : "Demander une première analyse sur un lot du projet.",
+        done: requests.length > 0,
+        href: requests.length ? `/methodes?projet=${slug}&onglet=demandes` : `/methodes?projet=${slug}&onglet=demandes&nouvelle=1`,
+        action: requests.length ? "Voir les demandes" : "Créer une demande",
+      },
+    ];
+  }
+  return [];
+}
+
+/** Steps of an activity, whatever its kind (pilot-lot conditions or work done in the project). */
+export function activitySteps(s: DemoState, a: Activity): PrepStep[] {
+  if (a.kind === "preparation-lot" && a.lotCode) return lotConditions(s, a.projectCode, a.lotCode);
+  return workSteps(s, a);
 }
 
 /** Conditions of a pilot lot (screen 35) — also the steps of its preparation activity (screen 30). */
 export function lotConditions(s: DemoState, projectCode: string, lotCode: string): PrepStep[] {
   const lot = s.pilotLots.find((l) => l.projectCode === projectCode && l.lotCode === lotCode);
   if (!lot) return [];
-  const decision = s.formulaDecisions.find((d) => d.projectCode === projectCode);
-  const formulaOk = decision?.status === "Approuvée" && decision.formula === lot.formula && decision.choice === "retenir";
+  const decision = s.formulaDecisions.find((d) => d.projectCode === projectCode && d.formula === lot.formula);
+  const formulaOk = decision?.status === "Approuvée" && decision.choice === "retenir";
   const materialsOk = lot.materials.every((m) => m.verified);
   const reservation = s.events.find(
     (e) => e.kind === "reservation" && e.resourceIds.includes(lot.equipment) && e.projectCode === projectCode && e.lotCode === lotCode,

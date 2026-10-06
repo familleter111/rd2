@@ -1,11 +1,11 @@
 "use client";
 
-import { Check, CircleCheck, Clock, FileText, Info, MessageSquare, Paperclip, Send, X } from "lucide-react";
+import { Check, CircleCheck, Clock, Copy, FileText, Info, MessageSquare, Package, Paperclip, Scale, Send, X } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { useGuideNav } from "@/components/guide/guide-mark";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, LinkButton } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field, Radio, Textarea } from "@/components/ui/field";
 import { Menu } from "@/components/ui/menu";
@@ -14,7 +14,7 @@ import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
 import { formatDateTime, formatNumeric } from "@/lib/format";
 import { advanceTo, useGuideTarget } from "@/lib/guide";
-import { pendingTests, testsForFormula } from "@/lib/selectors";
+import { decisionFor, decisionLocked, pendingTests, projectDecisions, testsForFormula } from "@/lib/selectors";
 import { labActions, useDemo } from "@/lib/store";
 import type { CircuitStatus, DecisionChoice, Project, Tone } from "@/lib/types";
 import { CRITERION_ICONS } from "./formula-bits";
@@ -71,20 +71,24 @@ const CHOICES: { value: DecisionChoice; label: (f: string) => string; detail: st
 /** Screen 21 — the reviewer of the circuit examines and approves the formula decision. */
 export function DecisionReviewModal({
   project,
+  formula,
   open,
   onClose,
   onEdit,
 }: {
   project: Project;
+  /** Formula whose decision is examined; by default the decision waiting for an opinion. */
+  formula?: string;
   open: boolean;
   onClose: () => void;
-  /** Reopens the project manager's decision form (after a correction request). */
-  onEdit: () => void;
+  /** Reopens the project manager's decision form (correction request, or new decision on the formula). */
+  onEdit: (formula?: string) => void;
 }) {
   const state = useDemo();
   const go = useGuideNav();
   const guideApprove = useGuideTarget(22);
-  const decision = state.formulaDecisions.find((d) => d.projectCode === project.code);
+  const all = projectDecisions(state, project.code);
+  const decision = (formula ? decisionFor(state, project.code, formula) : undefined) ?? all.find((d) => d.status === "Soumise") ?? all.find((d) => d.status !== "Brouillon") ?? all[0];
   const [attachments, setAttachments] = useState<string[]>(decision?.attachments ?? []);
   const [correcting, setCorrecting] = useState(false);
   const [reason, setReason] = useState("");
@@ -101,7 +105,7 @@ export function DecisionReviewModal({
           description="La décision doit d'abord être préparée et soumise pour avis par le chef de projet (écran « Décision sur une formule »)."
           action={
             <div className="flex flex-wrap justify-center gap-3">
-              <Button variant="outline" onClick={onEdit}>
+              <Button variant="outline" onClick={() => onEdit(formula)}>
                 Préparer la décision
               </Button>
               <Button
@@ -132,19 +136,29 @@ export function DecisionReviewModal({
   const reviewer = step === 3 ? "Pharmacien responsable" : "Responsable développement";
   const pilot = state.lots.find((l) => l.projectCode === project.code && l.type === "Pilote" && l.formula === decision.formula);
 
+  const retain = decision.choice === "retenir";
+  /** « Poursuivre » / « revoir » approved: the work goes on, then a new decision is prepared. */
+  const toFollowUp = decision.status === "Approuvée" && !decisionLocked(decision);
+
   const approve = () => {
     if (step === 2) {
-      labActions.reviewDecision(project.code);
+      labActions.reviewDecision(project.code, decision.formula);
       toast.show({ title: "Avis favorable enregistré", description: "La décision est transmise au pharmacien responsable pour approbation finale." });
       return;
     }
-    labActions.approveDecision(project.code);
+    labActions.approveDecision(project.code, decision.formula);
     toast.show({
       title: "Décision approuvée",
-      description: pilot ? `La formule ${decision.formula} est retenue : la préparation du lot pilote ${pilot.code} est autorisée.` : "La décision est approuvée.",
+      description: retain
+        ? pilot
+          ? `La formule ${decision.formula} est retenue : la préparation du lot pilote ${pilot.code} est autorisée.`
+          : `La formule ${decision.formula} est retenue.`
+        : decision.choice === "revoir"
+          ? `Hypothèses à revoir pour ${decision.formula} : créez une nouvelle version ou un nouveau lot d'essai, puis préparez une nouvelle décision.`
+          : `Essais à poursuivre sur ${decision.formula} : une nouvelle décision pourra être préparée ensuite.`,
     });
     if (guideApprove) go(22);
-    else onClose();
+    else if (retain) onClose();
   };
 
   const sendCorrection = () => {
@@ -152,7 +166,7 @@ export function DecisionReviewModal({
       setReasonError("Précisez le motif de la correction (10 caractères minimum).");
       return;
     }
-    labActions.requestDecisionCorrection(project.code, reason.trim());
+    labActions.requestDecisionCorrection(project.code, reason.trim(), decision.formula);
     toast.show({ title: "Correction demandée", description: "La décision est renvoyée au chef de projet.", tone: "info" });
     setCorrecting(false);
     onClose();
@@ -191,11 +205,32 @@ export function DecisionReviewModal({
               <CircleCheck className="h-5 w-5 shrink-0 fill-success-500 text-white" aria-hidden />
               <div>
                 <p className="font-semibold text-success-700">Décision approuvée{decision.approvedAt ? ` le ${formatDateTime(decision.approvedAt)}` : ""}</p>
-                {pilot && (
+                {retain && pilot && (
                   <Link href={`/projets/${project.slug}/lots/${pilot.code.toLowerCase()}`} className="font-semibold text-brand-700 hover:underline">
                     Voir la préparation du lot pilote {pilot.code}
                   </Link>
                 )}
+              </div>
+            </div>
+          )}
+          {toFollowUp && (
+            <div className="rounded-xl border border-brand-100 bg-brand-50/70 p-4 text-sm">
+              <p className="font-semibold text-ink-900">Et maintenant ?</p>
+              <p className="mt-0.5 text-ink-700">
+                {decision.choice === "revoir"
+                  ? `La formule ${decision.formula} est à améliorer. Créez une nouvelle version (ou un nouveau lot d'essai), réalisez ses essais, puis préparez la décision de la formule concernée.`
+                  : `Complétez les essais de la formule ${decision.formula}, puis préparez une nouvelle décision.`}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <LinkButton href={`/projets/${project.slug}/formules/nouvelle?parent=${decision.formula}`} variant="outline" size="sm" icon={<Copy className="h-4 w-4" />}>
+                  Nouvelle version de formule
+                </LinkButton>
+                <LinkButton href={`/projets/${project.slug}/formules/lots?creer=1&formule=${decision.formula}`} variant="outline" size="sm" icon={<Package className="h-4 w-4" />}>
+                  Créer un lot d&apos;essai
+                </LinkButton>
+                <Button size="sm" icon={<Scale className="h-4 w-4" />} onClick={() => onEdit(decision.formula)}>
+                  Préparer une nouvelle décision
+                </Button>
               </div>
             </div>
           )}
@@ -206,7 +241,7 @@ export function DecisionReviewModal({
                 <p className="font-semibold text-danger-700">Correction demandée</p>
                 <p className="text-ink-700">{decision.correction}</p>
               </div>
-              <Button size="sm" variant="outline" onClick={onEdit}>
+              <Button size="sm" variant="outline" onClick={() => onEdit(decision.formula)}>
                 Reprendre la décision
               </Button>
             </div>
@@ -332,7 +367,7 @@ export function DecisionReviewModal({
                 size="lg"
                 icon={<Check className="h-5 w-5" />}
                 onClick={approve}
-                disabled={step === 3 && pending.length > 0}
+                disabled={retain && step === 3 && pending.length > 0}
                 guide={step === 3 ? 22 : undefined}
                 className="flex-1 sm:flex-none"
               >
@@ -348,8 +383,8 @@ export function DecisionReviewModal({
               <h3 className="font-bold text-ink-900">
                 Résultats des essais — {decision.formula} ({lot})
               </h3>
-              <Badge tone={pending.length ? "warn" : "info"} dot>
-                {pending.length ? "Essais en cours" : "Essais terminés"}
+              <Badge tone={!tests.length ? "neutral" : pending.length ? "warn" : "info"} dot>
+                {!tests.length ? "Aucun essai" : pending.length ? "Essais en cours" : "Essais terminés"}
               </Badge>
             </div>
             <table className="mt-3 w-full text-left text-sm">
@@ -380,6 +415,13 @@ export function DecisionReviewModal({
                     </tr>
                   );
                 })}
+                {tests.length === 0 && (
+                  <tr>
+                    <td colSpan={2} className="px-3 py-4 text-center text-ink-500">
+                      Aucun résultat d&apos;essai enregistré pour la formule {decision.formula}.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </section>
@@ -392,9 +434,11 @@ export function DecisionReviewModal({
           {examining && (
             <p className="flex items-start gap-3 rounded-xl bg-brand-50 p-4 text-sm text-ink-700">
               <Info className="h-5 w-5 shrink-0 fill-brand-600 text-white" aria-hidden />
-              {step === 3
-                ? `L'approbation autorise la préparation du lot pilote${pilot ? ` ${pilot.code}` : ""}.`
-                : `Examen en cours par le ${reviewer.toLowerCase()} ; l'approbation finale revient au pharmacien responsable.`}
+              {step !== 3
+                ? `Examen en cours par le ${reviewer.toLowerCase()} ; l'approbation finale revient au pharmacien responsable.`
+                : retain
+                  ? `L'approbation autorise la préparation du lot pilote${pilot ? ` ${pilot.code}` : ""}.`
+                  : "Une fois cette décision approuvée, les essais se poursuivent et une nouvelle décision pourra être préparée."}
             </p>
           )}
         </div>

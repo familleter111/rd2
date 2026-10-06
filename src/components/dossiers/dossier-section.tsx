@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  CircleAlert,
   CircleCheck,
   ChevronDown,
   ChevronRight,
@@ -32,7 +33,7 @@ import { ScreenRef } from "@/components/ui/page";
 import { Tabs } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
-import { findSection, proofInfo, sectionIssues } from "@/lib/dossier-selectors";
+import { findSection, proofInfo, sectionIssues, unapprovedProofs } from "@/lib/dossier-selectors";
 import { formatDateTime, formatNumeric } from "@/lib/format";
 import { useGuideTarget } from "@/lib/guide";
 import { dossierActions } from "@/lib/store";
@@ -223,6 +224,7 @@ export function DossierSectionView({ slug, sectionId }: { slug: string; sectionI
   }
   const { module: mod, section } = found;
   const issues = sectionIssues(state, dossier, section);
+  const pendingProofs = unapprovedProofs(state, dossier, section);
   const editable = section.status === "À compléter" || section.status === "À évaluer";
   const label = section.status === "À compléter" ? "Brouillon" : section.status;
   const tone = section.status === "Approuvée" ? "success" : section.status === "En revue" ? "info" : "neutral";
@@ -459,11 +461,16 @@ export function DossierSectionView({ slug, sectionId }: { slug: string; sectionI
           </ol>
           {section.status === "En revue" && (
             <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-brand-100 bg-brand-50/70 px-4 py-3 text-sm text-ink-700">
-              <span className="flex-1">Démonstration : simulez la revue de la section par Qualité.</span>
+              <span className="flex-1">
+                {pendingProofs.length
+                  ? `Qualité ne peut pas approuver la section tant que ${pendingProofs.length > 1 ? "les preuves" : "la preuve"} ${pendingProofs.map((p) => `« ${p.label} »`).join(", ")} ${pendingProofs.length > 1 ? "ne sont pas approuvées" : "n'est pas approuvée"}.`
+                  : "Simulez la revue de la section par Qualité."}
+              </span>
               <Button
                 variant="outline"
                 size="sm"
                 icon={<SquareCheck className="h-4 w-4" />}
+                disabled={pendingProofs.length > 0}
                 onClick={() => {
                   dossierActions.approveSection(project.code, section.id);
                   toast.show({ title: "Section approuvée", description: `${section.code} ${section.title}` });
@@ -517,9 +524,25 @@ export function DossierSectionView({ slug, sectionId }: { slug: string; sectionI
           <Button size="lg" icon={<Send className="h-5 w-5" />} onClick={submit} disabled={!editable || issues.length > 0} guide={50} className="disabled:bg-slate-300">
             {editable ? "Soumettre la section" : "Section soumise"}
           </Button>
-          {editable && (
-            <p className="text-sm text-ink-500">
-              {issues.length ? `La section doit être complète avant soumission : ${issues[0]}` : "La section est complète : elle peut être soumise pour revue."}
+          {editable && issues.length > 0 && (
+            <div className="min-w-0 flex-1 text-sm text-ink-600">
+              <p className="font-medium text-ink-800">Avant de soumettre la section, il reste à :</p>
+              <ul className="list-disc pl-5">
+                {issues.map((issue) => (
+                  <li key={issue}>{issue.replace(/\.$/, "")}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {editable && issues.length === 0 && (
+            <p className="min-w-0 flex-1 text-sm text-ink-600">
+              La section est complète : elle peut être soumise pour revue.
+              {pendingProofs.length > 0 && (
+                <span className="mt-0.5 flex items-start gap-1.5 text-warn-700">
+                  <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+                  {pendingProofs.length > 1 ? "Preuves encore en brouillon" : "Preuve encore en brouillon"} ({pendingProofs.map((p) => p.label).join(", ")}) : à faire approuver avant l&apos;approbation de la section par Qualité.
+                </span>
+              )}
             </p>
           )}
           {!editable && (

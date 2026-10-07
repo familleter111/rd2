@@ -129,6 +129,7 @@ export function sectionFeed(p: Project, feed: string): Feed {
   const gaps: string[] = [];
   const lines: FeedLine[] = [];
   const add = (text: string, source: string) => lines.push({ text, source });
+  const written = (f: string) => Boolean(v.sections.find((x) => x.feed === f)?.content.trim());
   switch (feed) {
     case "admin": {
       lines.push(...dataLines(p, ["name", "dci", "form", "dosage", "route", "holder", "country"], gaps));
@@ -230,7 +231,7 @@ export function sectionFeed(p: Project, feed: string): Feed {
     case "m1-rcp": {
       const docs = (p.cadrage?.documents ?? []).filter((d) => /rcp|notice|étiquet|etiquet/i.test(d.type));
       docs.forEach((d) => add(`${d.type} : ${d.name} (v${d.version})`, `Document du projet reçu le ${formatDateTime(d.receivedAt)}`));
-      gaps.push("Projets de RCP, de notice et d'étiquetage du médicament développé : références et versions à renseigner");
+      if (!written("m1-rcp")) gaps.push("Projets de RCP, de notice et d'étiquetage du médicament développé : références et versions à renseigner");
       return { lines, gaps, href: `${base}/dossier` };
     }
     case "m2-intro": {
@@ -281,7 +282,7 @@ export function sectionFeed(p: Project, feed: string): Feed {
     case "rd-princeps": {
       lines.push(...dataLines(p, ["name", "dosage", "form", "holder", "country"], gaps));
       (p.princeps?.trials ?? []).forEach((t) => add(`Essai demandé sur le princeps : ${t.title} — ${t.objective}`, `Fiche princeps · responsable : ${t.owner}`));
-      gaps.push("Lot et provenance du princeps utilisé pour la comparaison : à renseigner");
+      if (!written("rd-princeps")) gaps.push("Lot et provenance du princeps utilisé pour la comparaison : à renseigner");
       return { lines, gaps, href: `${base}/princeps` };
     }
     case "rd-comparaison": {

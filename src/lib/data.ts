@@ -3,6 +3,7 @@
  * People are anonymised by role, exactly like the mock-ups.
  * `createSeed()` returns fresh objects so the demo can be reset at any time.
  */
+import { withParacetamolDemo } from "./demo-paracetamol";
 import { DEFAULT_FILTERS } from "./catalog";
 import { dossiers, enrichDocuments, notificationSettings, roles, templates, transfers } from "./data-dossier";
 import {
@@ -1326,7 +1327,7 @@ export function createEmpty(): DemoState {
   };
 }
 
-export function createSeed(): DemoState {
+function baseSeed(): DemoState {
   return {
     demo: true,
     projects: projects(),
@@ -1395,3 +1396,6 @@ export function createSeed(): DemoState {
     draftBannerDismissed: false,
   };
 }
+
+/** Demonstration dataset: the fictitious projects of the guided tour and a paracetamol project carried to the end of the pathway. */
+export const createSeed = (): DemoState => withParacetamolDemo(baseSeed());

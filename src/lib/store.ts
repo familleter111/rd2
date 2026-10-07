@@ -60,6 +60,35 @@ function loadSaved(): DemoState | null {
   }
 }
 
+/** The user's workspace, kept aside while the demonstration is loaded. */
+const BACKUP_KEY = "cipa-rd-workspace-backup-v1";
+function stash(s: DemoState) {
+  try {
+    window.localStorage.setItem(BACKUP_KEY, JSON.stringify(s));
+  } catch {
+    // Storage full or blocked: nothing is set aside.
+  }
+}
+function unstash(): DemoState | null {
+  try {
+    const raw = window.localStorage.getItem(BACKUP_KEY);
+    if (!raw) return null;
+    window.localStorage.removeItem(BACKUP_KEY);
+    const saved = JSON.parse(raw) as Partial<DemoState>;
+    return Array.isArray(saved.projects) ? { ...createEmpty(), ...saved, demo: false } : null;
+  } catch {
+    return null;
+  }
+}
+/** True when a workspace is waiting to be restored on leaving the demonstration. */
+export const hasWorkspaceBackup = () => {
+  try {
+    return typeof window !== "undefined" && window.localStorage.getItem(BACKUP_KEY) !== null;
+  } catch {
+    return false;
+  }
+};
+
 const initialState: DemoState = createEmpty();
 let state: DemoState = loadSaved() ?? initialState;
 const listeners = new Set<() => void>();
@@ -136,13 +165,14 @@ export const actions = {
   reset() {
     commit(state.demo ? createSeed() : createEmpty());
   },
-  /** Loads the fictitious demonstration dataset (and its guided tour). */
+  /** Loads the demonstration dataset (and its guided tour). The user's own workspace is set aside, not lost. */
   loadDemo() {
+    if (!state.demo) stash(state);
     commit(createSeed());
   },
-  /** Leaves the demonstration: blank workspace. */
+  /** Leaves the demonstration: back to the workspace set aside when it was loaded, or a blank one. */
   clearAll() {
-    commit(createEmpty());
+    commit(unstash() ?? createEmpty());
   },
 
   /* Configuration — bookable resources */

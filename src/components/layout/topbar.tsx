@@ -261,7 +261,7 @@ function EnvironmentMenu() {
         open={confirm === "demo"}
         onClose={() => setConfirm(null)}
         title="Charger la démonstration ?"
-        message="Vos projets et vos données seront remplacés par un jeu de données fictif, avec le parcours guidé des écrans. Vous pourrez quitter la démonstration pour revenir à un espace vierge."
+        message="La démonstration s'affiche à la place de vos projets : un jeu de données fictif avec le parcours guidé, et un projet Paracétamol 500 mg mené jusqu'au dossier. Vos projets et vos données sont mis de côté et reviennent tels quels quand vous quittez la démonstration."
         confirmLabel="Charger la démonstration"
         onConfirm={() => {
           actions.loadDemo();
@@ -273,12 +273,12 @@ function EnvironmentMenu() {
         open={confirm === "quit"}
         onClose={() => setConfirm(null)}
         title="Quitter la démonstration ?"
-        message="Les données fictives seront retirées : l'espace R&D revient à un état vierge, sans projet ni donnée."
+        message="Les données de démonstration seront retirées et vous retrouvez vos projets et vos données tels que vous les aviez laissés (ou un espace vierge s'il n'y en avait pas)."
         confirmLabel="Quitter la démonstration"
         onConfirm={() => {
           actions.clearAll();
           router.push("/vue-ensemble");
-          toast.show({ title: "Démonstration quittée", description: "L'espace R&D est vierge, prêt à être configuré.", tone: "info" });
+          toast.show({ title: "Démonstration quittée", description: "Vous retrouvez votre espace de travail.", tone: "info" });
         }}
       />
     </div>

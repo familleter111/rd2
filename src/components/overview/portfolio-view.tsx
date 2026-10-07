@@ -10,6 +10,7 @@ import {
   FolderSearch,
   Goal,
   ListChecks,
+  Map as MapIcon,
   Plus,
   Settings,
   Target,
@@ -20,7 +21,7 @@ import {
 import Link from "next/link";
 import { useState } from "react";
 import { ProductVisual } from "@/components/product-visual";
-import { PhaseIcon, StageBadge } from "@/components/project-bits";
+import { JourneyStrip, PhaseIcon, StageBadge } from "@/components/project-bits";
 import { Badge, IconTile } from "@/components/ui/badge";
 import { Button, LinkButton } from "@/components/ui/button";
 import { Card, CardHeader, InfoPair } from "@/components/ui/card";
@@ -336,6 +337,14 @@ export function PortfolioView({ openFilters = false }: { openFilters?: boolean }
           <ShortcutsCard />
         </aside>
       </div>
+
+      <Card className="mt-6 flex flex-col gap-4 p-5 xl:flex-row xl:items-center">
+        <div className="flex shrink-0 items-center gap-3 xl:w-44">
+          <MapIcon className="h-7 w-7 text-ink-800" strokeWidth={1.6} aria-hidden />
+          <h2 className="text-lg font-bold text-ink-900">Parcours R&amp;D</h2>
+        </div>
+        <JourneyStrip className="flex-1" />
+      </Card>
 
       {isFiltered(state.filters) || filtersOpen || openFilters ? <ScreenRef n={4} label="Filtres et vue enregistrée" /> : <ScreenRef n={1} label="Portefeuille" />}
     </>

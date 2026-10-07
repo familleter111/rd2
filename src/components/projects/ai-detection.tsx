@@ -20,6 +20,7 @@ import {
   Link2,
   ListChecks,
   Loader2,
+  RefreshCw,
   Settings,
   Sparkles,
   TriangleAlert,
@@ -153,13 +154,13 @@ export function applyDetection(draft: ProjectDraft, ai: AiState): ProjectDraft {
     ...draft,
     ...AI_PREFILL,
     // The document of the reference product analysed in the form wins over the project documents.
-    referenceProduct: draft.referenceDocs?.length ? draft.referenceProduct : AI_PREFILL.referenceProduct,
+    referenceProduct: draft.referenceDoc ? draft.referenceProduct : AI_PREFILL.referenceProduct,
     countries: [...AI_PREFILL.countries],
     template: TEMPLATE_BY_FAMILY[AI_PREFILL.family],
     dosage: dosage.value,
     dosageUnit: "mg",
     ai: {
-      fields: draft.referenceDocs?.length ? fields : { ...fields, referenceProduct },
+      fields: draft.referenceDoc ? fields : { ...fields, referenceProduct },
       activities: activitiesOf(ai).map((a) => ({ title: a.title, detail: a.detail })),
       prerequisites: AI_MISSING.map((m) => m.name),
       dosageReason: dosage.reason.trim(),
@@ -381,16 +382,15 @@ export function DocumentsStart({
 /* Produit de référence — notice ou RCP analysé par l'IA               */
 /* ------------------------------------------------------------------ */
 
-const REFERENCE_ACCEPTED = ["pdf", "docx", "xlsx"];
+const REFERENCE_ACCEPTED = ["pdf", "docx"];
 
 /** A value changed by hand loses its "Issu des documents" tag. */
 const untagReference = (d: ProjectDraft) =>
   d.ai && { ...d.ai, fields: Object.fromEntries(Object.entries(d.ai.fields).filter(([k]) => k !== "referenceProduct")) };
 
 /**
- * "Produit de référence": the leaflet, the SmPC or any other document of the product (one or several
- * files) is dropped and read by the AI analysis, which finds the product name and its data. The
- * analysis is simulated (lib/data-ai.ts).
+ * "Produit de référence": the leaflet (or the most detailed document, the SmPC) is dropped and read by
+ * the AI analysis, which finds the product name and its data. The analysis is simulated (lib/data-ai.ts).
  */
 export function ReferenceProductField({
   draft,
@@ -405,178 +405,125 @@ export function ReferenceProductField({
   aside?: ReactNode;
   className?: string;
 }) {
-  const [pending, setPending] = useState<{ name: string; size: string }[]>([]);
-  const [rejected, setRejected] = useState<string[]>([]);
+  const [pending, setPending] = useState<{ name: string; size: string } | null>(null);
+  const [rejected, setRejected] = useState<string | null>(null);
   const [over, setOver] = useState(false);
-  const docs = draft.referenceDocs ?? [];
+  const doc = draft.referenceDoc;
   const none = draft.referenceProduct === NO_REFERENCE_PRODUCT;
 
   useEffect(() => {
-    if (!pending.length) return;
+    if (!pending) return;
     const timer = window.setTimeout(() => {
-      updateDraft((d) => {
-        const known = d.referenceDocs ?? [];
-        const added = pending.filter((f) => !known.some((k) => k.name === f.name)).map((f) => analyseReferenceDocument(f, d));
-        return {
-          ...d,
-          // The name found in the first document is kept when other files are added.
-          referenceProduct: known.length && d.referenceProduct ? d.referenceProduct : referenceNameFromFile(pending[0].name),
-          referenceDocs: [...known, ...added],
-          ai: untagReference(d),
-        };
-      });
-      setPending([]);
+      updateDraft((d) => ({ ...d, referenceProduct: referenceNameFromFile(pending.name), referenceDoc: analyseReferenceDocument(pending, d), ai: untagReference(d) }));
+      setPending(null);
     }, 1800);
     return () => window.clearTimeout(timer);
   }, [pending, updateDraft]);
 
-  const addFiles = (list: FileList | null) => {
-    if (!list?.length) return;
-    const accepted: { name: string; size: string }[] = [];
-    const refused: string[] = [];
-    Array.from(list).forEach((f) => {
-      const ext = f.name.split(".").pop()?.toLowerCase() ?? "";
-      if (!REFERENCE_ACCEPTED.includes(ext)) refused.push(`${f.name} : format non accepté (PDF, DOCX ou XLSX).`);
-      else if (f.size > MAX_SIZE) refused.push(`${f.name} : fichier supérieur à 10 Mo.`);
-      else if (![...docs, ...pending, ...accepted].some((x) => x.name === f.name)) accepted.push({ name: f.name, size: formatFileSize(f.size) });
-    });
-    setRejected(refused);
-    if (accepted.length) setPending((p) => [...p, ...accepted]);
+  const addFile = (list: FileList | null) => {
+    const file = list?.[0];
+    if (!file) return;
+    const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+    if (!REFERENCE_ACCEPTED.includes(ext)) return setRejected(`${file.name} : format non accepté (PDF ou DOCX).`);
+    if (file.size > MAX_SIZE) return setRejected(`${file.name} : fichier supérieur à 10 Mo.`);
+    setRejected(null);
+    updateDraft((d) => ({ ...d, referenceProduct: "", referenceDoc: undefined, ai: untagReference(d) }));
+    setPending({ name: file.name, size: formatFileSize(file.size) });
   };
 
-  const remove = (name: string) =>
-    updateDraft((d) => {
-      const rest = (d.referenceDocs ?? []).filter((x) => x.name !== name);
-      return { ...d, referenceProduct: rest.length ? d.referenceProduct : "", referenceDocs: rest, ai: untagReference(d) };
-    });
-
-  const input = (
-    <input type="file" multiple accept=".pdf,.docx,.xlsx" className="sr-only" onChange={(e) => (addFiles(e.target.files), (e.target.value = ""))} />
-  );
-  const drop = {
-    onDragOver: (e: DragEvent) => {
-      e.preventDefault();
-      if (!none) setOver(true);
-    },
-    onDragLeave: () => setOver(false),
-    onDrop: (e: DragEvent) => {
-      e.preventDefault();
-      setOver(false);
-      if (!none) addFiles(e.dataTransfer.files);
-    },
+  const remove = () => {
+    setPending(null);
+    updateDraft((d) => ({ ...d, referenceProduct: "", referenceDoc: undefined, ai: untagReference(d) }));
   };
+
+  const input = <input type="file" accept=".pdf,.docx" className="sr-only" onChange={(e) => (addFile(e.target.files), (e.target.value = ""))} />;
 
   return (
     <Field
       label="Produit de référence"
       required
-      error={rejected.length ? rejected.join(" ") : error}
+      error={rejected ?? error}
       aside={aside}
-      info="Déposez la notice du produit de référence (le papier fourni dans la boîte du médicament) ou, mieux, son document le plus détaillé (RCP). Vous pouvez ajouter plusieurs fichiers."
+      info="Déposez la notice du produit de référence (le papier fourni dans la boîte du médicament) ou, mieux, son document le plus détaillé (RCP)."
       className={className}
     >
       <div id="field-referenceProduct" tabIndex={-1} className="rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-brand-100">
-        {docs.length > 0 || pending.length > 0 ? (
+        {pending ? (
+          <div className="flex items-center gap-3 rounded-xl border border-brand-200 bg-brand-50/60 px-4 py-3" role="status">
+            <FileTypeIcon name={pending.name} />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-semibold text-ink-900">{pending.name}</span>
+              <span className="flex items-center gap-1.5 text-[13px] text-ink-600">
+                <Sparkles className="h-3.5 w-3.5 text-violet-500" aria-hidden />
+                Analyse IA en cours : recherche du nom du produit et de ses données…
+              </span>
+            </span>
+            <Loader2 className="h-5 w-5 animate-spin text-brand-600" aria-hidden />
+            <Button variant="secondary" size="sm" onClick={() => setPending(null)}>
+              Annuler
+            </Button>
+          </div>
+        ) : doc ? (
           <div className="rounded-xl border border-line">
-            <ul className="divide-y divide-line">
-              {docs.map((doc) => (
-                <li key={doc.name} className="flex flex-wrap items-center gap-3 px-4 py-3">
-                  <FileTypeIcon name={doc.name} />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-semibold text-ink-900">{doc.name}</span>
-                    <span className="block text-[13px] text-ink-500">
-                      {doc.kind} • {doc.size}
-                    </span>
-                  </span>
-                  <span className="flex items-center gap-1.5 text-sm text-success-700">
-                    <CircleCheck className="h-[18px] w-[18px] fill-success-500 text-white" aria-hidden />
-                    Analyse terminée
-                  </span>
-                  <button
-                    type="button"
-                    aria-label={`Retirer ${doc.name}`}
-                    onClick={() => remove(doc.name)}
-                    className="cursor-pointer rounded p-1 text-brand-700 hover:bg-danger-50 hover:text-danger-600"
-                  >
-                    <X className="h-[18px] w-[18px]" />
-                  </button>
-                </li>
-              ))}
-              {pending.map((file) => (
-                <li key={file.name} className="flex items-center gap-3 bg-brand-50/60 px-4 py-3" role="status">
-                  <FileTypeIcon name={file.name} />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-semibold text-ink-900">{file.name}</span>
-                    <span className="flex items-center gap-1.5 text-[13px] text-ink-600">
-                      <Sparkles className="h-3.5 w-3.5 text-violet-500" aria-hidden />
-                      Analyse IA en cours : recherche du nom du produit et de ses données…
-                    </span>
-                  </span>
-                  <Loader2 className="h-5 w-5 animate-spin text-brand-600" aria-hidden />
-                </li>
-              ))}
-            </ul>
-            <div className="flex flex-wrap items-center gap-3 border-t border-line px-4 py-3">
-              <label
-                {...drop}
-                className={cn(
-                  "inline-flex h-9 cursor-pointer items-center gap-2 rounded-lg border bg-white px-3 text-sm font-semibold text-ink-800 hover:border-brand-300 hover:text-brand-700",
-                  over ? "border-brand-500 bg-brand-50" : "border-line-strong",
-                )}
-              >
-                <CloudUpload className="h-4 w-4" aria-hidden />
-                Ajouter d&apos;autres fichiers
+            <div className="flex flex-wrap items-center gap-3 px-4 py-3">
+              <FileTypeIcon name={doc.name} />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-semibold text-ink-900">{doc.name}</span>
+                <span className="block text-[13px] text-ink-500">
+                  {doc.kind} • {doc.size}
+                </span>
+              </span>
+              <span className="flex items-center gap-1.5 text-sm text-success-700">
+                <CircleCheck className="h-[18px] w-[18px] fill-success-500 text-white" aria-hidden />
+                Analyse terminée
+              </span>
+              <label className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-lg border border-line-strong bg-white px-3 text-sm font-semibold text-ink-800 hover:border-brand-300 hover:text-brand-700">
+                <RefreshCw className="h-4 w-4" aria-hidden />
+                Remplacer
                 {input}
               </label>
-              <span className="flex-1 text-[13px] text-ink-500">PDF, DOCX, XLSX • 10 Mo max par fichier</span>
-              {pending.length > 0 && (
-                <Button variant="secondary" size="sm" onClick={() => setPending([])}>
-                  Annuler l&apos;analyse
-                </Button>
-              )}
+              <button type="button" aria-label={`Retirer ${doc.name}`} onClick={remove} className="cursor-pointer rounded p-1 text-brand-700 hover:bg-danger-50 hover:text-danger-600">
+                <X className="h-[18px] w-[18px]" />
+              </button>
             </div>
-            {docs.length > 0 && (
-              <div className="grid gap-x-6 gap-y-4 border-t border-line bg-subtle/60 px-4 py-4 md:grid-cols-2">
-                <div>
-                  <label htmlFor="field-referenceName" className="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-ink-800">
-                    <Sparkles className="h-4 w-4 text-violet-500" aria-hidden />
-                    Nom du produit détecté
-                  </label>
-                  <Input
-                    id="field-referenceName"
-                    placeholder="Saisir le nom du produit de référence"
-                    value={draft.referenceProduct}
-                    invalid={Boolean(error)}
-                    onChange={(e) => updateDraft((d) => ({ ...d, referenceProduct: e.target.value }))}
-                  />
-                  <p className="mt-1.5 text-[13px] text-ink-500">Vérifiez le nom et corrigez-le si besoin.</p>
-                </div>
-                <div>
-                  <p className="mb-1.5 text-sm font-semibold text-ink-800">Données détectées dans {plural(docs.length, "le document", "les documents")}</p>
-                  <dl className="grid grid-cols-[170px_1fr] gap-x-3 gap-y-1 text-sm">
-                    {docs[0].data.map((row) => (
-                      <div key={row.label} className="contents">
-                        <dt className="text-ink-600">{row.label}</dt>
-                        <dd className="text-ink-900">{row.value}</dd>
-                      </div>
-                    ))}
-                  </dl>
-                </div>
-                <div className="md:col-span-2">
-                  <p className="mb-1.5 text-sm font-semibold text-ink-800">Rubriques repérées</p>
-                  <ul className="flex flex-wrap gap-1.5">
-                    {[...new Set(docs.flatMap((d) => d.sections))].map((s) => (
-                      <li key={s} className="rounded-md bg-white px-2 py-1 text-[13px] text-ink-700 ring-1 ring-inset ring-line">
-                        {s}
-                      </li>
-                    ))}
-                  </ul>
-                  <p className="mt-2 text-[13px] text-ink-500">
-                    {plural(docs.length, "Le document sera ajouté", "Les documents seront ajoutés")} aux documents du projet (catégorie Références).
-                  </p>
-                </div>
+            <div className="grid gap-x-6 gap-y-4 border-t border-line bg-subtle/60 px-4 py-4 md:grid-cols-2">
+              <div>
+                <label htmlFor="field-referenceName" className="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-ink-800">
+                  <Sparkles className="h-4 w-4 text-violet-500" aria-hidden />
+                  Nom du produit détecté
+                </label>
+                <Input
+                  id="field-referenceName"
+                  placeholder="Saisir le nom du produit de référence"
+                  value={draft.referenceProduct}
+                  invalid={Boolean(error)}
+                  onChange={(e) => updateDraft((d) => ({ ...d, referenceProduct: e.target.value }))}
+                />
+                <p className="mt-1.5 text-[13px] text-ink-500">Vérifiez le nom et corrigez-le si besoin.</p>
               </div>
-            )}
+              <div>
+                <p className="mb-1.5 text-sm font-semibold text-ink-800">Données détectées dans le document</p>
+                <dl className="grid grid-cols-[170px_1fr] gap-x-3 gap-y-1 text-sm">
+                  {doc.data.map((row) => (
+                    <div key={row.label} className="contents">
+                      <dt className="text-ink-600">{row.label}</dt>
+                      <dd className="text-ink-900">{row.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+              <div className="md:col-span-2">
+                <p className="mb-1.5 text-sm font-semibold text-ink-800">Rubriques repérées</p>
+                <ul className="flex flex-wrap gap-1.5">
+                  {doc.sections.map((s) => (
+                    <li key={s} className="rounded-md bg-white px-2 py-1 text-[13px] text-ink-700 ring-1 ring-inset ring-line">
+                      {s}
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-2 text-[13px] text-ink-500">Le document sera ajouté aux documents du projet (catégorie Références).</p>
+              </div>
+            </div>
           </div>
         ) : (
           <>
@@ -589,7 +536,16 @@ export function ReferenceProductField({
               />
             )}
             <label
-              {...drop}
+              onDragOver={(e: DragEvent) => {
+                e.preventDefault();
+                if (!none) setOver(true);
+              }}
+              onDragLeave={() => setOver(false)}
+              onDrop={(e: DragEvent) => {
+                e.preventDefault();
+                setOver(false);
+                if (!none) addFile(e.dataTransfer.files);
+              }}
               className={cn(
                 "flex items-center gap-4 rounded-xl border-2 border-dashed px-5 py-4 transition-colors",
                 none
@@ -605,7 +561,7 @@ export function ReferenceProductField({
               <span className="min-w-0 flex-1">
                 <span className="block font-semibold text-ink-900">Déposer la notice ou le RCP du produit de référence</span>
                 <span className="block text-sm text-ink-600">
-                  La notice fournie dans la boîte du médicament, ou le document le plus détaillé (RCP). Un ou plusieurs fichiers : PDF, DOCX, XLSX • 10 Mo max par fichier
+                  La notice fournie dans la boîte du médicament, ou le document le plus détaillé (RCP). PDF, DOCX • 10 Mo max
                 </span>
               </span>
               <span className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-sm font-semibold text-brand-700 ring-1 ring-inset ring-brand-200">
@@ -614,14 +570,16 @@ export function ReferenceProductField({
               </span>
               {!none && input}
             </label>
-            <p className="mt-2 text-[13px] text-ink-500">L&apos;IA détecte le nom du produit et les données des documents ; vous les vérifiez avant de continuer.</p>
-            <Checkbox
-              className="mt-3"
-              checked={none}
-              onChange={(v) => updateDraft((d) => ({ ...d, referenceProduct: v ? NO_REFERENCE_PRODUCT : "", ai: untagReference(d) }))}
-              label="Aucun produit de référence (développement innovant)"
-            />
+            <p className="mt-2 text-[13px] text-ink-500">L&apos;IA détecte le nom du produit et les données du document ; vous les vérifiez avant de continuer.</p>
           </>
+        )}
+        {!pending && !doc && (
+          <Checkbox
+            className="mt-3"
+            checked={none}
+            onChange={(v) => updateDraft((d) => ({ ...d, referenceProduct: v ? NO_REFERENCE_PRODUCT : "", ai: untagReference(d) }))}
+            label="Aucun produit de référence (développement innovant)"
+          />
         )}
       </div>
     </Field>

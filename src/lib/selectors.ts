@@ -132,11 +132,10 @@ export function projectFormulas(s: DemoState, projectCode: string) {
 export function testsForFormula(s: DemoState, projectCode: string, formula: string): TestResult[] {
   const all = s.tests.filter((t) => t.projectCode === projectCode && t.formula === formula);
   if (!all.length) return [];
-  // Most recent lot: by date, then by order of creation (two lots made the same day).
   const lotDates = new Map<string, string>();
   all.forEach((t) => {
-    const index = s.lots.findIndex((l) => l.projectCode === projectCode && l.code === t.lotCode);
-    lotDates.set(t.lotCode, index < 0 ? "0000" : `${s.lots[index].createdAt}#${String(index).padStart(6, "0")}`);
+    const lot = s.lots.find((l) => l.projectCode === projectCode && l.code === t.lotCode);
+    lotDates.set(t.lotCode, lot?.createdAt ?? "0000");
   });
   const latestLot = [...lotDates.entries()].sort((a, b) => b[1].localeCompare(a[1]))[0][0];
   return all.filter((t) => t.lotCode === latestLot);

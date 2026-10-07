@@ -1,9 +1,12 @@
 import {
   ChartNoAxesColumn,
   ChevronRight,
+  CircleCheck,
+  Clock,
   Compass,
   FileText,
   FlaskConical,
+  LoaderCircle,
   Network,
   Settings,
   TriangleAlert,
@@ -47,8 +50,8 @@ const STEP_ICONS: Record<(typeof JOURNEY_STEPS)[number]["icon"], LucideIcon> = {
 };
 
 /**
- * The 4-step R&D pathway. Without `current`, steps are informational;
- * with `current`, each step shows its status: "Terminé", "En cours" or "À venir" (project view).
+ * The 4-step R&D pathway. Without `current`, steps are informational (portfolio);
+ * with `current`, completed / in-progress / upcoming states are shown (project view).
  */
 export function JourneyStrip({ current, className }: { current?: number; className?: string }) {
   return (
@@ -78,8 +81,12 @@ export function JourneyStrip({ current, className }: { current?: number; classNa
                 <span className="block font-semibold text-ink-900">{step.title}</span>
                 <span className="block text-[13px] leading-snug text-ink-500">{step.detail}</span>
               </span>
-              {current !== undefined && (
-                <Badge tone={done ? "success" : active ? "info" : "neutral"}>{done ? "Terminé" : active ? "En cours" : "À venir"}</Badge>
+              {done && <CircleCheck className="h-6 w-6 shrink-0 fill-success-500 text-white" aria-label="Étape terminée" />}
+              {active && (
+                <LoaderCircle className="h-6 w-6 shrink-0 animate-spin-slow text-brand-500" aria-label="Étape en cours" />
+              )}
+              {current !== undefined && !done && !active && (
+                <Clock className="h-6 w-6 shrink-0 text-ink-400" strokeWidth={1.6} aria-label="Étape à venir" />
               )}
             </div>
             {n < JOURNEY_STEPS.length && (

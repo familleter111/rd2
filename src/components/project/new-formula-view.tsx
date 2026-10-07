@@ -16,7 +16,7 @@ import { cn } from "@/lib/cn";
 import { findProject, projectFormulas } from "@/lib/selectors";
 import { actions, useDemo } from "@/lib/store";
 import type { Component } from "@/lib/types";
-import { PerKilogramNote, compositionTotal, unitLabelFor } from "./formula-bits";
+import { compositionTotal } from "./formula-bits";
 import { ProjectTabs } from "./project-frame";
 
 let rowSeq = 0;
@@ -59,8 +59,7 @@ export function NewFormulaView({ slug, parentCode }: { slug: string; parentCode?
     return null;
   });
   const errors = {
-    // The first version of a formula modifies nothing: no reason is asked.
-    motif: parent && !motif.trim() ? "Décrivez le motif de cette nouvelle version." : null,
+    motif: !motif.trim() ? "Décrivez le motif de cette nouvelle version." : null,
     rows: rowErrors.some(Boolean) ? "Corrigez les composants signalés." : !activeRows.length ? "Ajoutez au moins un principe actif." : null,
   };
 
@@ -77,7 +76,7 @@ export function NewFormulaView({ slug, parentCode }: { slug: string; parentCode?
       parent: parent || undefined,
       composition: rows.map((r) => ({ ...r, name: r.name.trim(), qty: r.qty.trim() })),
       process: process.filter((p) => p.trim()),
-      motif: parent ? motif.trim() : "",
+      motif: motif.trim(),
       sources,
     });
     toast.show({ title: `Formule ${code} enregistrée`, description: `Brouillon créé${parent ? ` à partir de ${parent}` : ""}. ${parent ? `${parent} reste inchangée.` : ""}` });
@@ -238,7 +237,6 @@ export function NewFormulaView({ slug, parentCode }: { slug: string; parentCode?
                   <span>Compléter les quantités pour vérifier le total de la formule.</span>
                 )}
               </div>
-              <PerKilogramNote rows={rows} unitLabel={unitLabelFor(project.form)} className="mt-3" />
             </>
           ) : (
             <div className="mt-4">
@@ -267,23 +265,21 @@ export function NewFormulaView({ slug, parentCode }: { slug: string; parentCode?
         </Card>
 
         <Card className="h-fit p-5">
-          {parent && (
-            <Field label="Motif de modification" required htmlFor="nf-motif" error={submitted ? errors.motif : null}>
-              <Textarea
-                id="nf-motif"
-                rows={4}
-                maxLength={500}
-                value={motif}
-                invalid={submitted && Boolean(errors.motif)}
-                placeholder="Décrire le motif de cette nouvelle version (ex. optimisation, remplacement d'excipient, etc.)."
-                onChange={(e) => setMotif(e.target.value)}
-              />
-            </Field>
-          )}
+          <Field label="Motif de modification" required htmlFor="nf-motif" error={submitted ? errors.motif : null}>
+            <Textarea
+              id="nf-motif"
+              rows={4}
+              maxLength={500}
+              value={motif}
+              invalid={submitted && Boolean(errors.motif)}
+              placeholder="Décrire le motif de cette nouvelle version (ex. optimisation, remplacement d'excipient, etc.)."
+              onChange={(e) => setMotif(e.target.value)}
+            />
+          </Field>
 
-          <div className={parent ? "mt-4" : undefined}>
+          <div className="mt-4">
             <p className="text-[15px] font-semibold text-ink-800">Sources associées</p>
-            <p className="text-sm text-ink-500">Lier les documents ou références justifiant cette {parent ? "modification" : "formule"}.</p>
+            <p className="text-sm text-ink-500">Lier les documents ou références justifiant cette modification.</p>
             <Menu
               label="Ajouter une source"
               align="left"

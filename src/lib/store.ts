@@ -39,8 +39,6 @@ import type {
 let state: DemoState = createEmpty();
 const initialState = state;
 const listeners = new Set<() => void>();
-/** The user's own data, set aside while the demonstration is displayed. */
-let workspace: DemoState | null = null;
 
 function subscribe(listener: () => void) {
   listeners.add(listener);
@@ -96,15 +94,13 @@ export const actions = {
   reset() {
     commit(state.demo ? createSeed() : createEmpty());
   },
-  /** Loads the fictitious demonstration dataset (and its guided tour); the user's own workspace is kept aside. */
+  /** Loads the fictitious demonstration dataset (and its guided tour). */
   loadDemo() {
-    if (!state.demo) workspace = state;
     commit(createSeed());
   },
-  /** Leaves the demonstration: back to the user's workspace as it was (blank if there was none). */
+  /** Leaves the demonstration: blank workspace. */
   clearAll() {
-    commit(workspace ?? createEmpty());
-    workspace = null;
+    commit(createEmpty());
   },
 
   /* Configuration — bookable resources */
@@ -323,19 +319,20 @@ export const actions = {
       fileType: (f.name.split(".").pop()?.toUpperCase() as ProjectDocument["fileType"]) ?? "PDF",
       versions: [{ version: 1, date: stamp(), author: chef, note: "Pièce initiale du projet" }],
     }));
-    for (const ref of draft.referenceDocs ?? []) {
+    if (draft.referenceDoc) {
+      const ref = draft.referenceDoc;
       documents.push({
         id: uid("doc"),
         projectCode: code,
         category: "Références",
-        name: draft.referenceDocs?.length === 1 ? `${ref.kind} — ${draft.referenceProduct.trim()}` : `${draft.referenceProduct.trim()} — ${ref.name.replace(/\.[^.]+$/, "")}`,
+        name: `${ref.kind} — ${draft.referenceProduct.trim()}`,
         type: `${ref.kind} du produit de référence`,
         version: 1,
         owner: chef,
         updatedAt: stamp(),
         status: "Brouillon",
         size: ref.size,
-        fileType: ref.name.toLowerCase().endsWith(".docx") ? "DOCX" : ref.name.toLowerCase().endsWith(".xlsx") ? "XLSX" : "PDF",
+        fileType: ref.name.toLowerCase().endsWith(".docx") ? "DOCX" : "PDF",
         versions: [{ version: 1, date: stamp(), author: chef, note: "Document du produit de référence analysé par l'IA à la création du projet" }],
       });
     }
@@ -801,13 +798,13 @@ export const actions = {
       revision: "0.1",
       status: "Brouillon",
       label: "Nouvelle version",
-      description: input.motif || "Formule initiale",
+      description: input.motif,
       parent: input.parent,
       createdAt: DEMO_TODAY,
       createdBy: "Chef de projet",
       composition: input.composition,
       process: input.process,
-      motif: input.motif || undefined,
+      motif: input.motif,
       sources: input.sources,
     };
     const s = { ...state, formulas: [...state.formulas, formula] };
@@ -819,7 +816,7 @@ export const actions = {
         object: "Formule",
         objectLabel: `${input.projectCode} • Formule ${code}`,
         type: "Création",
-        motif: input.motif || undefined,
+        motif: input.motif,
         description: `Brouillon de la formule ${code} enregistré (${input.composition.length} composants).`,
         icon: "flask",
         href: `/projets/${input.projectCode.toLowerCase()}/formules`,

@@ -109,13 +109,14 @@ function StepForm({ project, pilot, step, index }: { project: Project; pilot: Pi
                 ref={fileRef}
                 type="file"
                 accept=".jpg,.jpeg,.png,.pdf"
+                multiple
                 className="hidden"
                 onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    if (file.size > 10 * 1024 * 1024) toast.show({ title: "Fichier trop volumineux", description: "10 Mo maximum.", tone: "warn" });
-                    else set("proofs", [...draft.proofs, { name: file.name, size: formatFileSize(file.size) }]);
-                  }
+                  const files = Array.from(e.target.files ?? []);
+                  const tooBig = files.filter((file) => file.size > 10 * 1024 * 1024);
+                  const kept = files.filter((file) => file.size <= 10 * 1024 * 1024);
+                  if (tooBig.length) toast.show({ title: "Fichier trop volumineux", description: `10 Mo maximum : ${tooBig.map((x) => x.name).join(", ")}`, tone: "warn" });
+                  if (kept.length) set("proofs", [...draft.proofs, ...kept.map((file) => ({ name: file.name, size: formatFileSize(file.size) }))]);
                   e.target.value = "";
                 }}
               />

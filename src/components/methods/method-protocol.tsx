@@ -308,10 +308,11 @@ function ProtocolEditor({ method, protocol }: { method: Method; protocol: Method
             <input
               ref={fileRef}
               type="file"
+              multiple
               className="hidden"
               onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) setDraft((d) => ({ ...d, attachments: [...new Set([...d.attachments, file.name])] }));
+                const names = Array.from(e.target.files ?? []).map((file) => file.name);
+                if (names.length) setDraft((d) => ({ ...d, attachments: [...new Set([...d.attachments, ...names])] }));
                 e.target.value = "";
               }}
             />

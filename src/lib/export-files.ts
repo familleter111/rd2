@@ -107,6 +107,111 @@ export function buildPdf(lines: PdfLine[]): Blob {
 }
 
 /* ------------------------------------------------------------------ */
+/* Form PDF: header band, one box per field                            */
+/* ------------------------------------------------------------------ */
+
+export interface PdfFormSheet {
+  title: string;
+  /** "01 / Fiche de couverture". */
+  subtitle: string;
+  notes?: string[];
+  fields: { label: string; value: string }[];
+  closing?: string[];
+}
+
+/** Builds an A4 PDF laid out as a form: each sheet starts a page with a coloured band, each field is a labelled box. */
+export function buildFormPdf(sheets: PdfFormSheet[], options: { band: string; footer: string }): Blob {
+  const W = 595;
+  const H = 842;
+  const M = 40;
+  const inner = W - 2 * M;
+  const pages: string[] = [];
+  let ops: string[] = [];
+  let y = H;
+  const text = (t: string, x: number, at: number, size: number, bold = false, color = "0.04 0.10 0.22") => ops.push(`BT ${color} rg /${bold ? "F2" : "F1"} ${size} Tf ${x} ${at.toFixed(1)} Td (${winAnsi(t)}) Tj ET`);
+  const band = (sheet: PdfFormSheet, continued: boolean) => {
+    ops.push(`0.04 0.10 0.22 rg 0 ${H - 104} ${W} 104 re f`);
+    text(continued ? `${sheet.title} (suite)` : sheet.title, M, H - 46, 19, true, "1 1 1");
+    text(sheet.subtitle, M, H - 68, 10, false, "1 1 1");
+    text(options.band, M, H - 86, 7.5, false, "0.85 0.90 0.97");
+    y = H - 104 - 26;
+  };
+  const close = () => {
+    pages.push(ops.join("\n"));
+    ops = [];
+  };
+  const lineHeight = 12.5;
+  const perLine = Math.floor((inner - 16) / (9.5 * 0.5));
+  for (const sheet of sheets) {
+    if (ops.length) close();
+    band(sheet, false);
+    for (const note of sheet.notes ?? []) {
+      for (const chunk of wrap(note, Math.floor(inner / (8.5 * 0.5)))) {
+        text(chunk, M, y, 8.5, false, "0.33 0.40 0.52");
+        y -= 12;
+      }
+    }
+    if (sheet.notes?.length) y -= 8;
+    for (const field of sheet.fields) {
+      let lines = field.value.split("\n").flatMap((l) => (l.trim() ? wrap(l.trim(), perLine) : []));
+      let first = true;
+      // A long value continues in a new box on the next page.
+      do {
+        const room = Math.floor((y - M - 30 - 14 - 12) / lineHeight);
+        if (room < 2) {
+          close();
+          band(sheet, true);
+          continue;
+        }
+        const part = lines.slice(0, room);
+        lines = lines.slice(part.length);
+        const boxH = Math.max(30, part.length * lineHeight + 12);
+        text(first ? field.label : `${field.label} (suite)`, M, y, 10, true);
+        const top = y - 8;
+        ops.push(`0.975 0.98 0.99 rg 0.80 0.84 0.90 RG 0.6 w ${M} ${(top - boxH).toFixed(1)} ${inner} ${boxH.toFixed(1)} re B`);
+        part.forEach((l, i) => text(l, M + 8, top - 13 - i * lineHeight, 9.5));
+        y = top - boxH - 20;
+        first = false;
+      } while (lines.length);
+    }
+    for (const note of sheet.closing ?? []) {
+      if (y < M + 30) {
+        close();
+        band(sheet, true);
+      }
+      text(note, M, y, 8.5, false, "0.33 0.40 0.52");
+      y -= 12;
+    }
+  }
+  close();
+  const total = pages.length;
+  const withFooters = pages.map((content, i) => `${content}\nBT 0.33 0.40 0.52 rg /F1 7.5 Tf ${M} 24 Td (${winAnsi(options.footer)}) Tj ET\nBT 0.33 0.40 0.52 rg /F1 7.5 Tf ${W - M - 28} 24 Td (${i + 1} / ${total}) Tj ET`);
+
+  const objects: string[] = [];
+  const pageIds = withFooters.map((_, i) => 5 + i * 2);
+  objects[1] = "<< /Type /Catalog /Pages 2 0 R >>";
+  objects[2] = `<< /Type /Pages /Kids [${pageIds.map((id) => `${id} 0 R`).join(" ")}] /Count ${total} >>`;
+  objects[3] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>";
+  objects[4] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>";
+  withFooters.forEach((content, i) => {
+    const pageId = pageIds[i];
+    objects[pageId] = `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${pageId + 1} 0 R >>`;
+    objects[pageId + 1] = `<< /Length ${content.length} >>\nstream\n${content}\nendstream`;
+  });
+  let out = "%PDF-1.4\n%\xe2\xe3\xcf\xd3\n";
+  const offsets: number[] = [];
+  for (let id = 1; id < objects.length; id++) {
+    offsets[id] = out.length;
+    out += `${id} 0 obj\n${objects[id]}\nendobj\n`;
+  }
+  const xref = out.length;
+  out += `xref\n0 ${objects.length}\n0000000000 65535 f \n`;
+  for (let id = 1; id < objects.length; id++) out += `${String(offsets[id]).padStart(10, "0")} 00000 n \n`;
+  out += `trailer\n<< /Size ${objects.length} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+  return new Blob([toBytes(out)], { type: "application/pdf" });
+}
+
+/* ------------------------------------------------------------------ */
 /* ZIP (stored entries)                                                */
 /* ------------------------------------------------------------------ */
 

@@ -78,36 +78,42 @@ function ImportModal({
   lots: string[];
   onImported: (doc: ProjectDocument) => void;
 }) {
-  const [file, setFile] = useState<{ name: string; size: string; ext: string } | null>(null);
+  const [files, setFiles] = useState<{ name: string; size: string; ext: string }[]>([]);
+  const file = files[0] ?? null;
   const [name, setName] = useState("");
   const [cat, setCat] = useState<DocCategory>("Références");
   const [type, setType] = useState(DOC_TYPES[0]);
   const [lot, setLot] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const pick = (f: File | undefined) => {
-    if (!f) return;
-    const ext = f.name.split(".").pop()?.toLowerCase() ?? "";
-    if (!["pdf", "docx", "xlsx", "pptx"].includes(ext)) return setError("Format non accepté (PDF, DOCX, XLSX, PPTX).");
-    if (f.size > 10 * 1024 * 1024) return setError("Le fichier dépasse 10 Mo.");
+  const pick = (list: FileList | null) => {
+    const picked = Array.from(list ?? []);
+    if (!picked.length) return;
+    const ext = (f: File) => f.name.split(".").pop()?.toLowerCase() ?? "";
+    if (picked.some((f) => !["pdf", "docx", "xlsx", "pptx"].includes(ext(f)))) return setError("Format non accepté (PDF, DOCX, XLSX, PPTX).");
+    if (picked.some((f) => f.size > 10 * 1024 * 1024)) return setError("Un fichier dépasse 10 Mo.");
     setError(null);
-    setFile({ name: f.name, size: formatFileSize(f.size), ext });
-    if (!name) setName(f.name.replace(/\.[^.]+$/, ""));
+    setFiles(picked.map((f) => ({ name: f.name, size: formatFileSize(f.size), ext: ext(f) })));
+    if (!name) setName(picked[0].name.replace(/\.[^.]+$/, ""));
   };
 
   const submit = () => {
     if (!file) return setError("Sélectionnez un fichier à ajouter.");
     if (!name.trim()) return setError("Donnez un nom au document.");
-    const doc = actions.addDocument({
-      projectCode,
-      category: cat,
-      name: name.trim(),
-      type,
-      size: file.size,
-      fileType: file.ext.toUpperCase() as ProjectDocument["fileType"],
-      lot: lot || undefined,
-    });
-    toast.show({ title: "Document ajouté", description: `${doc.name} — v1 (brouillon).` });
+    // The form names the first file; the others keep the name of their file.
+    const docs = files.map((f, i) =>
+      actions.addDocument({
+        projectCode,
+        category: cat,
+        name: i === 0 ? name.trim() : f.name.replace(/\.[^.]+$/, ""),
+        type,
+        size: f.size,
+        fileType: f.ext.toUpperCase() as ProjectDocument["fileType"],
+        lot: lot || undefined,
+      }),
+    );
+    const doc = docs[0];
+    toast.show({ title: docs.length > 1 ? `${docs.length} documents ajoutés` : "Document ajouté", description: docs.length > 1 ? docs.map((d) => d.name).join(", ") : `${doc.name} — v1 (brouillon).` });
     onImported(doc);
     onClose();
   };
@@ -129,9 +135,9 @@ function ImportModal({
     >
       <label className="flex cursor-pointer flex-col items-center rounded-xl border-2 border-dashed border-brand-200 bg-subtle px-6 py-6 text-center hover:border-brand-300">
         <CloudUpload className="h-9 w-9 text-brand-500" strokeWidth={1.5} aria-hidden />
-        <span className="mt-2 font-semibold text-ink-900">{file ? file.name : "Choisir un fichier"}</span>
+        <span className="mt-2 font-semibold text-ink-900">{files.length > 1 ? `${files.length} fichiers : ${files.map((f) => f.name).join(", ")}` : file ? file.name : "Choisir un ou plusieurs fichiers"}</span>
         <span className="text-[13px] text-ink-500">{file ? file.size : "PDF, DOCX, XLSX, PPTX • 10 Mo max"}</span>
-        <input type="file" accept=".pdf,.docx,.xlsx,.pptx" className="sr-only" onChange={(e) => pick(e.target.files?.[0])} />
+        <input type="file" multiple accept=".pdf,.docx,.xlsx,.pptx" className="sr-only" onChange={(e) => pick(e.target.files)} />
       </label>
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
         <Field label="Nom du document" required htmlFor="imp-name" className="sm:col-span-2">

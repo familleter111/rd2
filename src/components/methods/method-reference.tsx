@@ -161,10 +161,11 @@ function ReferenceForm({ method }: { method: Method }) {
               <input
                 ref={fileRef}
                 type="file"
+                multiple
                 className="hidden"
                 onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) setSourceName(file.name);
+                  const names = Array.from(e.target.files ?? []).map((file) => file.name);
+                  if (names.length) setSourceName(names.join(", "));
                   e.target.value = "";
                 }}
               />

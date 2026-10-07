@@ -1,6 +1,7 @@
 "use client";
 
-import { Bell, Check, ChevronDown, Database, ListOrdered, LogOut, PlayCircle, RotateCcw, Search, X } from "lucide-react";
+import { ExcelSyncDialog } from "./excel-sync-control";
+import { Bell, Check, ChevronDown, Database, FileSpreadsheet, ListOrdered, LogOut, PlayCircle, RotateCcw, Search, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState, type FormEvent } from "react";
@@ -146,6 +147,7 @@ function EnvironmentMenu() {
   const { demo } = useDemo();
   const ref = useDismissable<HTMLDivElement>(open, () => setOpen(false));
   const label = demo ? "Démonstration" : "Espace de travail";
+  const [excel, setExcel] = useState(false);
   const ask = (kind: "reset" | "demo" | "quit") => {
     setOpen(false);
     setConfirm(kind);
@@ -184,6 +186,18 @@ function EnvironmentMenu() {
               </span>
             </div>
             <div className="my-1.5 border-t border-line" />
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                setExcel(true);
+              }}
+              className={menuItem}
+            >
+              <FileSpreadsheet className="h-4 w-4 text-ink-500" aria-hidden />
+              Enregistrement Excel automatique
+            </button>
             {demo ? (
               <>
                 <button
@@ -222,6 +236,7 @@ function EnvironmentMenu() {
           </motion.div>
         )}
       </AnimatePresence>
+      <ExcelSyncDialog open={excel} onClose={() => setExcel(false)} />
       <ConfirmDialog
         open={confirm === "reset"}
         onClose={() => setConfirm(null)}

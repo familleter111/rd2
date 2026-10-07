@@ -1,12 +1,21 @@
 /**
- * In-memory store.
+ * Store saved in the browser.
  *
  * A tiny external store read through `useSyncExternalStore`: state survives
- * client-side navigation, resets on reload. It starts blank (`createEmpty()`);
+ * client-side navigation and, through `localStorage`, reloads and restarts of the
+ * site on the same browser. It starts blank (`createEmpty()`);
  * the demonstration dataset is loaded on request (menu "Espace de travail").
  * Actions are plain functions so they can return created identifiers synchronously.
  */
 import { useSyncExternalStore } from "react";
+import { bioequivalence } from "./bioequivalence";
+import { cadrage } from "./cadrage";
+import { feasibility } from "./feasibility";
+import { formulation } from "./formulation";
+import { princeps } from "./princeps";
+import { quality } from "./quality";
+import { stability } from "./stability";
+import { validation } from "./validation";
 import { FAMILY_LABEL, PREREQUISITE_TEMPLATES, TEAM_ROLES, kindForForm } from "./catalog";
 import { createEmpty, createSeed, type DemoState } from "./data";
 import { DEMO_TODAY, addDays } from "./format";
@@ -36,9 +45,35 @@ import type {
   TestResult,
 } from "./types";
 
-let state: DemoState = createEmpty();
-const initialState = state;
+/** Browser storage key; bump the suffix when a saved state can no longer be read by the code. */
+const STORAGE_KEY = "cipa-rd-state-v1";
+
+/** State saved in this browser, completed with the defaults of the collections added since. */
+function loadSaved(): DemoState | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const saved = raw ? (JSON.parse(raw) as Partial<DemoState>) : null;
+    return saved && Array.isArray(saved.projects) ? { ...createEmpty(), ...saved } : null;
+  } catch {
+    return null;
+  }
+}
+
+const initialState: DemoState = createEmpty();
+let state: DemoState = loadSaved() ?? initialState;
 const listeners = new Set<() => void>();
+
+let saveTimer: ReturnType<typeof setTimeout> | undefined;
+function save() {
+  saveTimer = undefined;
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // Storage full or blocked: the session goes on in memory.
+  }
+}
+if (typeof window !== "undefined") window.addEventListener("pagehide", () => saveTimer !== undefined && save());
 
 function subscribe(listener: () => void) {
   listeners.add(listener);
@@ -58,6 +93,10 @@ function getServerSnapshot() {
 function commit(next: DemoState) {
   state = next;
   listeners.forEach((l) => l());
+  if (typeof window !== "undefined") {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(save, 150);
+  }
 }
 
 export function useDemo() {
@@ -67,6 +106,9 @@ export function useDemo() {
 export function getDemoState() {
   return state;
 }
+
+/** Called after every change of the state (automatic Excel recording). */
+export const subscribeDemo = subscribe;
 
 /* ------------------------------------------------------------------ */
 /* Helpers                                                             */
@@ -1135,6 +1177,33 @@ type DossierBound = {
 export const dossierActions = Object.fromEntries(
   Object.entries(dossier).map(([key, fn]) => [key, (...args: unknown[]) => commit((fn as (s: DemoState, ...a: unknown[]) => DemoState)(state, ...args))]),
 ) as DossierBound;
+
+type CadrageReducers = typeof cadrage;
+type CadrageBound = {
+  [K in keyof CadrageReducers]: CadrageReducers[K] extends (s: DemoState, ...args: infer A) => DemoState ? (...args: A) => void : never;
+};
+
+/** Store-bound reducers of the project cadrage (étape 0): `cadrageActions.confirm("GN-01", ["dci"])`. */
+export const cadrageActions = Object.fromEntries(
+  Object.entries(cadrage).map(([key, fn]) => [key, (...args: unknown[]) => commit((fn as (s: DemoState, ...a: unknown[]) => DemoState)(state, ...args))]),
+) as CadrageBound;
+
+type BoundReducers<R> = { [K in keyof R]: R[K] extends (s: DemoState, ...args: infer A) => DemoState ? (...args: A) => void : never };
+const bind = <R extends Record<string, unknown>>(reducers: R) =>
+  Object.fromEntries(Object.entries(reducers).map(([key, fn]) => [key, (...args: unknown[]) => commit((fn as (s: DemoState, ...a: unknown[]) => DemoState)(state, ...args))])) as BoundReducers<R>;
+
+/** Store-bound reducers of étape 1 (faisabilité, gate G1) and étape 2 (fiche princeps, gate G2). */
+export const feasibilityActions = bind(feasibility);
+export const princepsActions = bind(princeps);
+/** Étape 3 (formulation, gate G3). */
+export const formulationActions = bind(formulation);
+/** Étape 4 (analytique, qualité, lot pilote) and étape 5 (stabilité). */
+export const qualityActions = bind(quality);
+export const stabilityActions = bind(stability);
+/** Étape 6 (stratégie de bioéquivalence). */
+export const bioequivalenceActions = bind(bioequivalence);
+/** Étape 7 (dossier de validation, gates G4 and G5). */
+export const validationActions = bind(validation);
 
 /** Applies an arbitrary state transition (used by the guided tour). */
 export function applyState(transform: (s: DemoState) => DemoState) {

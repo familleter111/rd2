@@ -20,6 +20,14 @@ import { actions, useDemo } from "@/lib/store";
 import type { Project } from "@/lib/types";
 
 const SECTION_LABELS: Record<string, string> = {
+  cadrage: "Cadrage",
+  faisabilite: "Faisabilité",
+  formulation: "Formulation",
+  qualite: "Qualité & lot pilote",
+  stabilite: "Stabilité",
+  bioequivalence: "Bioéquivalence",
+  dossier: "Dossier de validation",
+  princeps: "Fiche princeps",
   prerequis: "Prérequis",
   formules: "Formules & lots",
   essais: "Essais",
@@ -44,8 +52,29 @@ const SUB_LABELS: Record<string, string> = {
 
 /** Project tabs rendered by each project page (so pages can add their own actions). */
 export function ProjectTabs({ slug, actions: tabActions }: { slug: string; actions?: ReactNode }) {
+  const state = useDemo();
   const base = `/projets/${slug}`;
   const cs = slug === "cs-01";
+  // Projects created with the decision-support pathway follow its steps; earlier projects keep their tabs.
+  if (findProject(state, slug)?.cadrage) {
+    return (
+      <LinkTabs
+        className="mt-5"
+        actions={tabActions}
+        items={[
+          { href: `${base}/cadrage`, label: "Cadrage" },
+          { href: `${base}/faisabilite`, label: "Faisabilité" },
+          { href: `${base}/princeps`, label: "Princeps" },
+          { href: `${base}/formulation`, label: "Formulation" },
+          { href: `${base}/qualite`, label: "Qualité & lot pilote" },
+          { href: `${base}/stabilite`, label: "Stabilité" },
+          { href: `${base}/bioequivalence`, label: "Bioéquivalence" },
+          { href: `${base}/dossier`, label: "Dossier" },
+          { href: `${base}/historique`, label: "Historique" },
+        ]}
+      />
+    );
+  }
   return (
     <LinkTabs
       className="mt-5"
@@ -188,7 +217,7 @@ export function ProjectFrame({ slug, children }: { slug: string; children: React
         <EmptyState
           icon={FolderX}
           title="Projet introuvable"
-          description={`Aucun projet ne correspond au code « ${slug.toUpperCase()} ». Il a peut-être été créé dans une autre session.`}
+          description={`Aucun projet ne correspond au code « ${slug.toUpperCase()} ». Il a peut-être été créé dans un autre navigateur, ou supprimé.`}
           action={<LinkButton href="/projets">Retour aux projets</LinkButton>}
         />
       </Card>

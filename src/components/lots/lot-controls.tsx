@@ -152,10 +152,11 @@ function ControlForm({ project, pilot, control }: { project: Project; pilot: Pil
           <input
             ref={fileRef}
             type="file"
+            multiple
             className="hidden"
             onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) setAttachments((l) => [...l, { name: file.name, size: formatFileSize(file.size) }]);
+              const files = Array.from(e.target.files ?? []).map((file) => ({ name: file.name, size: formatFileSize(file.size) }));
+              if (files.length) setAttachments((l) => [...l, ...files]);
               e.target.value = "";
             }}
           />

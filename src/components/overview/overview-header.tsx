@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/ui/page";
 import { LinkTabs } from "@/components/ui/tabs";
 
 const TABS = [
-  { href: "/vue-ensemble", label: "Portefeuille", guide: 4 },
+  { href: "/vue-ensemble", label: "Synthèse", guide: 4 },
   { href: "/vue-ensemble/priorites", label: "Mes priorités", guide: 2 },
   { href: "/vue-ensemble/revues", label: "Revues", guide: 3 },
 ];

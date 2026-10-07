@@ -128,10 +128,10 @@ function ResultEntry({ method, analysis }: { method: Method; analysis: Analysis 
       <input
         ref={fileRef}
         type="file"
+        multiple
         className="hidden"
         onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) addFile(file.name);
+          for (const file of Array.from(e.target.files ?? [])) addFile(file.name);
           e.target.value = "";
         }}
       />

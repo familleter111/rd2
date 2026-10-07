@@ -149,10 +149,11 @@ function DeclareForm({ project, pilot, onCancel }: { project: Project; pilot: Pi
                 <input
                   ref={fileRef}
                   type="file"
+                  multiple
                   className="hidden"
                   onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) set("attachments", [...draft.attachments, { name: file.name, kind: file.type.startsWith("image/") ? "Image" : "Document", size: formatFileSize(file.size) }]);
+                    const files = Array.from(e.target.files ?? []);
+                    if (files.length) set("attachments", [...draft.attachments, ...files.map((file) => ({ name: file.name, kind: file.type.startsWith("image/") ? ("Image" as const) : ("Document" as const), size: formatFileSize(file.size) }))]);
                     e.target.value = "";
                   }}
                 />

@@ -68,22 +68,27 @@ export function AddDossierDocumentModal({
   const [sectionId, setSectionId] = useState(requirement?.sectionId ?? "developpement");
   const [name, setName] = useState(requirement?.docName ?? "");
   const [type, setType] = useState(requirement?.docType ?? DOC_TYPES[0]);
-  const [file, setFile] = useState<{ name: string; size: string } | null>(null);
+  const [files, setFiles] = useState<{ name: string; size: string }[]>([]);
+  const file = files[0] ?? null;
+  const setFile = (f: { name: string; size: string }) => setFiles([f]);
   const [attempted, setAttempted] = useState(false);
   const exampleFile = { name: `${(name || "document").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, "_")}_v1.pdf`, size: "1,4 Mo" };
 
   const submit = () => {
     setAttempted(true);
     if (!file || !name.trim()) return;
-    dossierActions.addDossierDocument(dossier.projectCode, {
-      sectionId,
-      name: name.trim(),
-      type,
-      file: file.name,
-      size: file.size,
-      requirementId: requirement && requirement.sectionId === sectionId ? requirement.id : undefined,
-    });
-    toast.show({ title: "Document ajouté au dossier", description: `${name.trim()} — en revue, lié à la section.` });
+    // The form names the first file and answers the requirement; the others keep the name of their file.
+    files.forEach((f, i) =>
+      dossierActions.addDossierDocument(dossier.projectCode, {
+        sectionId,
+        name: i === 0 ? name.trim() : f.name.replace(/\.[^.]+$/, ""),
+        type,
+        file: f.name,
+        size: f.size,
+        requirementId: i === 0 && requirement && requirement.sectionId === sectionId ? requirement.id : undefined,
+      }),
+    );
+    toast.show({ title: files.length > 1 ? `${files.length} documents ajoutés au dossier` : "Document ajouté au dossier", description: `${files.length > 1 ? files.map((f) => f.name).join(", ") : name.trim()} — en revue, lié à la section.` });
     onClose();
   };
 
@@ -127,11 +132,12 @@ export function AddDossierDocumentModal({
               </span>
               <input
                 type="file"
+                multiple
                 accept=".pdf,.docx"
                 className="sr-only"
                 onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) setFile({ name: f.name, size: formatFileSize(f.size) });
+                  const picked = Array.from(e.target.files ?? []).map((f) => ({ name: f.name, size: formatFileSize(f.size) }));
+                  if (picked.length) setFiles(picked);
                 }}
               />
             </label>

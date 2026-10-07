@@ -234,7 +234,7 @@ export const JOURNEY_STEPS = [
   { n: "01", title: "Cadrer", detail: "Faisabilité et prérequis", icon: "doc" },
   { n: "02", title: "Développer", detail: "Galénique et analytique", icon: "flask" },
   { n: "03", title: "Confirmer", detail: "Lot pilote, contrôles et stabilité", icon: "settings" },
-  { n: "04", title: "Déposer & transférer", detail: "CTD, réserves et transfert", icon: "doc" },
+  { n: "04", title: "Préparer & faire valider le dossier", detail: "Complétude, cohérence et revue interne", icon: "doc" },
 ] as const;
 
 export const DEFAULT_FILTERS: OverviewFilters = {

@@ -61,6 +61,22 @@ export interface Project {
   closeReason?: string;
   /** Scoping sheet written during the "Lancer le cadrage" activity. */
   scope?: ProjectScope;
+  /** Étape 0 of the decision-support pathway: sourced identity, market scope, variants, first documents. */
+  cadrage?: ProjectCadrage;
+  /** Étape 1: evaluation, equipment needs, patents and the G1 decisions. */
+  feasibility?: Feasibility;
+  /** Étape 2: characteristics of the reference product beyond its identity, trials and validated versions. */
+  princeps?: PrincepsSheet;
+  /** Étape 3: formulation options, target criteria, trials and the G3 decision. */
+  formulation?: Formulation;
+  /** Étape 4: methods, specifications, impurities, raw materials, pilot lot and controls. */
+  quality?: QualityFile;
+  /** Étape 5: stability plan, results and approved conclusion. */
+  stability?: StabilityFile;
+  /** Étape 6: bioequivalence strategy (study or waiver argument), approved by two functions. */
+  bioequivalence?: BeFile;
+  /** Étape 7: gate G4, sections, review and frozen versions of the validation dossier. */
+  validation?: ValidationFile;
 }
 
 export interface ProjectScope {
@@ -73,6 +89,502 @@ export interface ProjectScope {
   savedAt: string;
   /** Set when the scoping activity is validated. */
   validatedAt?: string;
+}
+
+/* ------------------------------------------------------------------ */
+/* Cadrage (étape 0): sourced data, documents, variants, gate G0       */
+/* ------------------------------------------------------------------ */
+
+/** State of an extracted or entered value. OCR confidence and scientific soundness are not merged into it. */
+export type DataStatus = "Extraite à confirmer" | "Confirmée" | "Corrigée" | "Contradictoire" | "Non documentée";
+
+/** The three objects a value can describe: they are never mixed. */
+export type CadrageEntity = "Produit de référence" | "Principe actif" | "Produit développé";
+
+/** Where a value was read: document (or connected source), place in it and supporting excerpt. */
+export interface DataSource {
+  document: string;
+  location: string;
+  excerpt: string;
+}
+
+export interface DataRevision {
+  at: string;
+  author: string;
+  action: "Extraction" | "Saisie" | "Confirmation" | "Correction" | "Résolution";
+  value: string;
+  note?: string;
+}
+
+export interface CadrageDatum {
+  key: string;
+  label: string;
+  entity: CadrageEntity;
+  /** Identity values: they must be confirmed before the project is created. */
+  critical: boolean;
+  value: string;
+  /** Value as it was first read, kept when the value is corrected. */
+  originalValue?: string;
+  status: DataStatus;
+  /** Missing for a value typed by hand: the proof is still to be attached. */
+  source?: DataSource;
+  /** The competing values of a contradiction, each with its own context. */
+  alternatives?: { value: string; source: DataSource }[];
+  history: DataRevision[];
+  /** Set on the characteristics of the reference product sheet (étape 2). */
+  nature?: DataNature;
+  /** Section of the reference product sheet ("Propriétés", "Composition"…). */
+  group?: string;
+}
+
+export interface CadrageDocument {
+  id: string;
+  name: string;
+  size: string;
+  /** "RCP du princeps", "Notice du princeps"… */
+  type: string;
+  version: number;
+  receivedAt: string;
+  /** False when the automatic reading could not be applied: the file is kept as a proof to read. */
+  readable: boolean;
+  note?: string;
+}
+
+/** Derived from the document and the values read in it (never stored). */
+export type CadrageDocState = "Reçu" | "À revoir" | "Exploitable";
+
+export interface ExpectedDocument {
+  type: string;
+  why: string;
+  /** Gate that needs the document. */
+  neededFor: "G0 — Cadrage" | "G1 — Faisabilité";
+}
+
+export interface DosageVariant {
+  id: string;
+  dosage: string;
+  unit: string;
+  /** Same dosage as the confirmed reference product. */
+  reference: boolean;
+}
+
+export interface GateDecision {
+  status: "Attendue" | "Approuvée";
+  decidedAt?: string;
+  decidedBy?: string;
+  justification?: string;
+}
+
+export interface ProjectCadrage {
+  /** Entry of the connected source the identity was taken from, when one was selected. */
+  candidateId?: string;
+  reference: { name: string; holder: string; country: string; sourceLabel: string };
+  data: CadrageDatum[];
+  markets: string[];
+  procedure: string;
+  variants: DosageVariant[];
+  startDate: string;
+  targetDate: string;
+  documents: CadrageDocument[];
+  expected: ExpectedDocument[];
+  g0: GateDecision;
+}
+
+/* ------------------------------------------------------------------ */
+/* Étape 1 — Faisabilité (gate G1)                                     */
+/* ------------------------------------------------------------------ */
+
+export type CriterionStatus = "Non évalué" | "Établi" | "À compléter" | "Bloquant";
+
+/** Evaluation of one criterion, once a person has taken it over from the system proposal. */
+export interface FeasibilityAnswer {
+  key: string;
+  status: CriterionStatus;
+  note: string;
+  /** Document or resource the evaluation relies on. */
+  proof: string;
+  updatedAt: string;
+  by: string;
+}
+
+export interface EquipmentNeed {
+  id: string;
+  name: string;
+  use: "Analytique" | "Fabrication";
+}
+
+/** A patent document to examine: listing it is never a freedom-to-operate conclusion. */
+export interface PatentEntry {
+  id: string;
+  reference: string;
+  territory: string;
+  expiry: string;
+  question: string;
+}
+
+export type FeasibilityChoice = "Lancer" | "Compléter" | "Différer" | "Arrêter";
+
+export interface FeasibilityDecision {
+  choice: FeasibilityChoice;
+  justification: string;
+  /** Assumptions the committee retained. */
+  hypotheses: string;
+  decidedAt: string;
+  decidedBy: string;
+  /** Score and open points at the time of the decision. */
+  score: number;
+  open: number;
+}
+
+export interface Feasibility {
+  answers: FeasibilityAnswer[];
+  /** Undefined until edited: the needs proposed for the dosage form apply. */
+  equipment?: EquipmentNeed[];
+  patents: PatentEntry[];
+  /** Most recent first. */
+  decisions: FeasibilityDecision[];
+}
+
+/* ------------------------------------------------------------------ */
+/* Étape 2 — Compréhension du princeps (gate G2)                       */
+/* ------------------------------------------------------------------ */
+
+/** What a value is: a sourced fact, a measurement, an assumption or a system proposal — never mixed up. */
+export type DataNature = "Fait sourcé" | "Résultat mesuré" | "Hypothèse" | "Proposition IA";
+
+/** Experiment asked to lift an unknown of the reference product. */
+export interface PrincepsTrial {
+  id: string;
+  datumKey: string;
+  title: string;
+  objective: string;
+  owner: string;
+  createdAt: string;
+}
+
+export interface PrincepsVersion {
+  n: number;
+  at: string;
+  by: string;
+  scope: "Complète" | "Partielle";
+  strategy: string;
+  note: string;
+  /** Labels of the characteristics that were still unknown, assumed or contradictory. */
+  provisional: string[];
+  /** Fingerprint of the sheet when it was validated (a later change asks for a re-evaluation). */
+  signature: string;
+}
+
+export interface PrincepsSheet {
+  data: CadrageDatum[];
+  trials: PrincepsTrial[];
+  /** Most recent first. */
+  versions: PrincepsVersion[];
+}
+
+/* ------------------------------------------------------------------ */
+/* Étape 3 — Formulation et boucle expérimentale (gate G3)             */
+/* ------------------------------------------------------------------ */
+
+export interface FormComponent {
+  name: string;
+  role: string;
+  /** Experimental parameter to approve — empty while it is not defined, never read from a leaflet. */
+  qty: string;
+  unit: string;
+}
+
+export type OptionStatus = "Proposée" | "À tester" | "Écartée" | "Retenue";
+
+/** A formulation option ("piste"). A change of composition creates a new version; earlier ones stay. */
+export interface FormulaOption {
+  id: string;
+  /** Letter of the option ("A", "B"…), shared by its versions. */
+  code: string;
+  version: number;
+  title: string;
+  process: string;
+  components: FormComponent[];
+  rationale: string;
+  uncertainties: string;
+  risks: string;
+  origin: "Proposition du système" | "Saisie";
+  status: OptionStatus;
+  /** Why this version replaces the previous one. */
+  changeReason?: string;
+  createdAt: string;
+  by: string;
+}
+
+/** Target characteristic the trials are compared with (value measured or documented on the reference product). */
+export interface TargetCriterion {
+  id: string;
+  label: string;
+  unit: string;
+  method: string;
+  reference: string;
+  referenceSource: string;
+}
+
+export interface TrialResult {
+  criterionId: string;
+  value: string;
+  unit: string;
+  method: string;
+}
+
+export interface FormTrial {
+  id: string;
+  code: string;
+  optionId: string;
+  lot: string;
+  date: string;
+  results: TrialResult[];
+  note: string;
+  /** Critical data and their link to the trial / lot / formula were checked by a person. */
+  verified: boolean;
+  verifiedBy?: string;
+  verifiedAt?: string;
+}
+
+export interface Formulation {
+  options: FormulaOption[];
+  criteria: TargetCriterion[];
+  trials: FormTrial[];
+  decision?: { optionId: string; justification: string; decidedAt: string; decidedBy: string };
+}
+
+/* ------------------------------------------------------------------ */
+/* Étape 4 — Analytique, qualité, impuretés et lot pilote              */
+/* ------------------------------------------------------------------ */
+
+export interface QMethod {
+  id: string;
+  name: string;
+  kind: "Méthode référencée" | "Adaptation" | "Nouvelle méthode";
+  reference: string;
+  needs: string;
+  status: "À évaluer" | "Vérification en cours" | "Utilisable" | "Non utilisable";
+}
+
+export interface QSpec {
+  id: string;
+  test: string;
+  method: string;
+  /** Numeric limits; empty when the limit is not numeric or not known yet (never invented). */
+  min: string;
+  max: string;
+  unit: string;
+  /** Where the limit comes from (pharmacopoeia, reference product, development data…). */
+  origin: string;
+  approved: boolean;
+  approvedBy?: string;
+}
+
+/** Reported in the sources, searched at the lab and actually observed are three different things. */
+export interface QImpurity {
+  id: string;
+  name: string;
+  reported: boolean;
+  searched: boolean;
+  observed: string;
+}
+
+export interface QMaterial {
+  id: string;
+  name: string;
+  supplierLot: string;
+  coa: boolean;
+  sds: boolean;
+  control: "Non prélevé" | "En contrôle" | "Résultats revus";
+  /** A certificate received is never a release decision: a person decides. */
+  decision: "En attente" | "Utilisable" | "Refusée";
+}
+
+export interface QPilot {
+  lot: string;
+  batchRecord: boolean;
+  equipmentChecked: boolean;
+  authorizedAt?: string;
+  authorizedBy?: string;
+  status: "À préparer" | "Autorisé" | "Fabriqué" | "Revu";
+  deviations: string;
+  reviewedAt?: string;
+}
+
+export interface QControl {
+  id: string;
+  specId: string;
+  lot: string;
+  sample: string;
+  value: string;
+  date: string;
+  /** Opened when the result is out of the approved limit; the initial result is never removed. */
+  investigation?: { note: string; closedAt?: string };
+}
+
+export interface QualityFile {
+  methods: QMethod[];
+  specs: QSpec[];
+  impurities: QImpurity[];
+  materials: QMaterial[];
+  pilot: QPilot;
+  controls: QControl[];
+}
+
+/* ------------------------------------------------------------------ */
+/* Étape 5 — Stabilité                                                 */
+/* ------------------------------------------------------------------ */
+
+export interface StabilityPoint {
+  /** Months from T0. */
+  month: number;
+  /** Needed for the dossier version in preparation (a later point does not block it). */
+  required: boolean;
+}
+
+export type StabilityCellStatus = "Reçu" | "Approuvé" | "À investiguer";
+
+export interface StabilityEntry {
+  id: string;
+  lot: string;
+  condition: string;
+  month: number;
+  specId: string;
+  value: string;
+  status: StabilityCellStatus;
+  note: string;
+  enteredAt: string;
+}
+
+export interface StabilityFile {
+  /** Versioned reference applied, chosen for the market and the procedure (never a universal rule). */
+  referential: string;
+  packaging: string;
+  lots: string[];
+  conditions: string[];
+  points: StabilityPoint[];
+  /** Specifications followed in the study. */
+  specIds: string[];
+  approvedAt?: string;
+  approvedBy?: string;
+  entries: StabilityEntry[];
+  /** `partial`: approved while required time points were still missing, with the progress at that moment. */
+  conclusion?: { text: string; at: string; by: string; partial?: boolean; progress?: string };
+  /** Comment being written, kept until the conclusion is approved. */
+  conclusionDraft?: string;
+  /** Comment on how one analysis evolves over time, by "specId|lot|condition". */
+  evolutionNotes?: Record<string, string>;
+}
+
+/* ------------------------------------------------------------------ */
+/* Étape 6 — Stratégie de bioéquivalence / dispense éventuelle         */
+/* ------------------------------------------------------------------ */
+
+export type BeOrientation = "Étude à préparer" | "Dispense à examiner" | "Données insuffisantes";
+
+/** One criterion of a waiver argument: its reference, the proof at hand and what is still missing. */
+export interface BeCriterion {
+  id: string;
+  label: string;
+  /** Text and section of the reference the criterion comes from. */
+  source: string;
+  evidence: string;
+  missing: string;
+  state: "À documenter" | "Preuve disponible" | "Non satisfait";
+  origin: "Proposition du système" | "Saisie";
+}
+
+/** Elements handed over to the specialist / CRO; the sizing is theirs, by a verifiable method. */
+export interface BeStudy {
+  test: string;
+  reference: string;
+  lots: string;
+  design: string;
+  /** Variability, expected ratio, power… each with where it comes from. */
+  hypotheses: string;
+  available: string;
+  open: string;
+  partner: string;
+  /** Result of the sizing and who reviewed it — never computed from the name of the molecule. */
+  sizing: string;
+}
+
+export interface BeApproval {
+  by: string;
+  at: string;
+}
+
+export interface BeFile {
+  /** Versioned references retained for the market (never applied by default). */
+  referential: string;
+  orientation?: BeOrientation;
+  rationale: string;
+  limits: string;
+  criteria: BeCriterion[];
+  study: BeStudy;
+  scientific?: BeApproval;
+  regulatory?: BeApproval;
+  /** Study report or waiver argument attached once the strategy is approved. */
+  deliverable?: { kind: string; name: string; at: string };
+  /** Every document attached; absent on files saved before several documents were allowed. */
+  documents?: { name: string; at: string }[];
+  /** Validation of the study (or of the waiver argument): it closes the step and opens the dossier. */
+  validated?: { by: string; at: string; conclusion: string };
+}
+
+/* ------------------------------------------------------------------ */
+/* Étape 7 — Dossier de validation (gates G4 and G5)                   */
+/* ------------------------------------------------------------------ */
+
+export type ValidationState = "En constitution" | "Incomplet" | "Prêt pour revue" | "En revue" | "À corriger" | "Prêt pour validation interne";
+
+export interface ValidationSection {
+  id: string;
+  /** Which project data feed the section ("identite", "formule", "stabilite"…); "libre" for a section added by hand. */
+  feed: string;
+  module: string;
+  title: string;
+  applicable: boolean;
+  /** Reason of the non-applicability and who approved it. */
+  naReason: string;
+  naApprovedBy?: string;
+  /** Narrative draft, generated from approved data then edited. */
+  content: string;
+  review: "À revoir" | "Approuvée" | "À corriger";
+  comment: string;
+}
+
+/** Frozen picture of a version: it is never modified afterwards. */
+export interface ValidationSnapshot {
+  version: number;
+  at: string;
+  by: string;
+  scope: string;
+  sections: { module: string; title: string; status: string; content: string }[];
+  checks: { label: string; ok: boolean; detail: string }[];
+  decisions: string[];
+}
+
+export interface ValidationFile {
+  /** `conditional`: decided while a requirement was still missing — the justification states the conditions. */
+  g4?: { choice: "Préparer le dossier" | "Compléter"; justification: string; at: string; by: string; conditional?: boolean };
+  /** Cover sheet of the dossier: applicant, manufacturers, type of application, dossier code… by field key. */
+  cover?: Record<string, string>;
+  /** Review before filing: document index, regulatory and quality reviews, internal decision, approver. */
+  preDeposit?: Record<string, string>;
+  /** Gaps and checks handled on the page with a justification, by key. They stay visible as such. */
+  overrides?: Record<string, { by: string; at: string; reason: string; details?: { label: string; value: string }[] }>;
+  market: string;
+  procedure: string;
+  variants: string;
+  version: number;
+  sections: ValidationSection[];
+  reviewStartedAt?: string;
+  /** Most recent first. */
+  snapshots: ValidationSnapshot[];
+  transmittedAt?: string;
+  transmittedBy?: string;
 }
 
 export type PrerequisiteCategory = "Documents" | "Matières" | "Ressources";
@@ -188,6 +700,8 @@ export interface Activity {
    */
   kind?: "preparation-lot" | "correction" | "reservation" | "standard" | "cadrage" | "plan-galenique" | "plan-analytique";
   href?: string;
+  /** Task derived from the cadrage of the project (kept in sync with it, see `lib/cadrage.ts`). */
+  cadrageTask?: string;
 }
 
 export type PriorityGroup = "urgent" | "examiner" | "preparer";

@@ -582,13 +582,12 @@ export function ActivityDetail({ id }: { id: string }) {
       <input
         ref={fileRef}
         type="file"
+        multiple
         className="hidden"
         onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) {
-            labActions.addActivityDocument(activity.id, { name: file.name, type: "Pièce jointe" });
-            toast.show({ title: "Document ajouté", description: file.name });
-          }
+          const files = Array.from(e.target.files ?? []);
+          for (const file of files) labActions.addActivityDocument(activity.id, { name: file.name, type: "Pièce jointe" });
+          if (files.length) toast.show({ title: files.length > 1 ? `${files.length} documents ajoutés` : "Document ajouté", description: files.map((x) => x.name).join(", ") });
           e.target.value = "";
         }}
       />

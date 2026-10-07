@@ -252,10 +252,11 @@ function ProtocolForm({ study, protocol, onSchedule }: { study: StabilityStudy; 
             <input
               ref={fileRef}
               type="file"
+              multiple
               className="hidden"
               onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) set("documents", [...draft.documents, { id: `d-${Date.now().toString(36)}`, name: file.name, date: DEMO_TODAY }]);
+                const files = Array.from(e.target.files ?? []);
+                if (files.length) set("documents", [...draft.documents, ...files.map((file, i) => ({ id: `d-${Date.now().toString(36)}-${i}`, name: file.name, date: DEMO_TODAY }))]);
                 e.target.value = "";
               }}
             />

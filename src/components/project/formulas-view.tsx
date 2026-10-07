@@ -18,7 +18,7 @@ import { formatLong, formatNumber, plural } from "@/lib/format";
 import { findProject, projectFormulas, testsForFormula } from "@/lib/selectors";
 import { actions, useDemo } from "@/lib/store";
 import type { Formula, Project } from "@/lib/types";
-import { CompositionTable, FormulaStatusBadge, TestStatusText } from "./formula-bits";
+import { CompositionTable, FormulaStatusBadge, PerKilogramNote, TestStatusText, unitLabelFor } from "./formula-bits";
 import { FormulaSubTabs, ProjectTabs } from "./project-frame";
 
 function FormulaCard({
@@ -169,6 +169,7 @@ function FormulaDrawer({ formula, project, onClose }: { formula: Formula | null;
             <div className="mt-2 rounded-xl border border-line p-3">
               {formula.composition.length ? <CompositionTable rows={formula.composition} /> : <p className="text-sm text-ink-500">Composition non renseignée.</p>}
             </div>
+            <PerKilogramNote rows={formula.composition} unitLabel={unitLabelFor(project.form)} className="mt-3" />
           </section>
           {formula.process.length > 0 && (
             <section>

@@ -32,7 +32,27 @@ export function kindForForm(form: string): ProductKind {
   return "solution";
 }
 
-export const DOSAGE_UNITS = ["mg", "g", "mg/mL", "%", "UI"];
+const CODE_PREFIX: Record<string, string> = {
+  Comprimé: "CS",
+  Gélule: "GL",
+  "Poudre orale": "PO",
+  "Solution buvable": "SB",
+  "Solution injectable": "SL",
+  Sirop: "SR",
+  "Suspension buvable": "SU",
+  Crème: "CR",
+  Pommade: "PM",
+  Gel: "GE",
+};
+
+/** Code proposed for a new project: prefix of the form and first free number ("CS-02"). */
+export function nextProjectCode(form: string, existingCodes: string[]) {
+  const prefix = CODE_PREFIX[form] ?? "PR";
+  const used = existingCodes.filter((c) => c.startsWith(`${prefix}-`)).map((c) => Number(c.slice(prefix.length + 1)) || 0);
+  return `${prefix}-${String(Math.max(0, ...used) + 1).padStart(2, "0")}`;
+}
+
+export const DOSAGE_UNITS =["mg", "g", "mg/mL", "%", "UI"];
 
 export const COUNTRIES = ["Maroc", "Tunisie", "Algérie", "Sénégal", "Côte d'Ivoire", "France", "Belgique"];
 

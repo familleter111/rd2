@@ -323,20 +323,19 @@ export const actions = {
       fileType: (f.name.split(".").pop()?.toUpperCase() as ProjectDocument["fileType"]) ?? "PDF",
       versions: [{ version: 1, date: stamp(), author: chef, note: "Pièce initiale du projet" }],
     }));
-    if (draft.referenceDoc) {
-      const ref = draft.referenceDoc;
+    for (const ref of draft.referenceDocs ?? []) {
       documents.push({
         id: uid("doc"),
         projectCode: code,
         category: "Références",
-        name: `${ref.kind} — ${draft.referenceProduct.trim()}`,
+        name: draft.referenceDocs?.length === 1 ? `${ref.kind} — ${draft.referenceProduct.trim()}` : `${draft.referenceProduct.trim()} — ${ref.name.replace(/\.[^.]+$/, "")}`,
         type: `${ref.kind} du produit de référence`,
         version: 1,
         owner: chef,
         updatedAt: stamp(),
         status: "Brouillon",
         size: ref.size,
-        fileType: ref.name.toLowerCase().endsWith(".docx") ? "DOCX" : "PDF",
+        fileType: ref.name.toLowerCase().endsWith(".docx") ? "DOCX" : ref.name.toLowerCase().endsWith(".xlsx") ? "XLSX" : "PDF",
         versions: [{ version: 1, date: stamp(), author: chef, note: "Document du produit de référence analysé par l'IA à la création du projet" }],
       });
     }
@@ -802,13 +801,13 @@ export const actions = {
       revision: "0.1",
       status: "Brouillon",
       label: "Nouvelle version",
-      description: input.motif,
+      description: input.motif || "Formule initiale",
       parent: input.parent,
       createdAt: DEMO_TODAY,
       createdBy: "Chef de projet",
       composition: input.composition,
       process: input.process,
-      motif: input.motif,
+      motif: input.motif || undefined,
       sources: input.sources,
     };
     const s = { ...state, formulas: [...state.formulas, formula] };
@@ -820,7 +819,7 @@ export const actions = {
         object: "Formule",
         objectLabel: `${input.projectCode} • Formule ${code}`,
         type: "Création",
-        motif: input.motif,
+        motif: input.motif || undefined,
         description: `Brouillon de la formule ${code} enregistré (${input.composition.length} composants).`,
         icon: "flask",
         href: `/projets/${input.projectCode.toLowerCase()}/formules`,

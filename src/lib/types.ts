@@ -959,8 +959,8 @@ export interface ProjectDraft {
   dosageUnit: string;
   countries: string[];
   referenceProduct: string;
-  /** Leaflet or SmPC of the reference product, read by the AI analysis (step 1). */
-  referenceDoc?: ReferenceDoc;
+  /** Documents of the reference product (leaflet, SmPC…), read by the AI analysis (step 1). */
+  referenceDocs?: ReferenceDoc[];
   files: { name: string; size: string }[];
   template: string;
   galenic: boolean;

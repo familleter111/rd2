@@ -25,7 +25,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { Badge, IconTile } from "@/components/ui/badge";
 import { Button, LinkButton } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -44,6 +44,7 @@ import {
   PREREQUISITE_TEMPLATES,
   TEAM_ROLES,
   TEMPLATE_BY_FAMILY,
+  nextProjectCode,
 } from "@/lib/catalog";
 import type { DemoState } from "@/lib/data";
 import { AI_EXTRACTS, type AiStage } from "@/lib/data-ai";
@@ -126,7 +127,20 @@ function demoDraft(): ProjectDraft {
   };
 }
 
+/** Keeps the generated code in step with the form, unless it was changed by hand. */
+function syncCode(prev: ProjectDraft, next: ProjectDraft, existingCodes: string[]): ProjectDraft {
+  if (prev.form === next.form || next.code !== prev.code) return next;
+  if (prev.code && prev.code !== nextProjectCode(prev.form, existingCodes)) return next;
+  return { ...next, code: nextProjectCode(next.form, existingCodes) };
+}
+
 function initialDraft(state: DemoState, source: WizardSource): { draft: ProjectDraft; notice?: string } {
+  const result = sourceDraft(state, source);
+  if (result.draft.code) return result;
+  return { ...result, draft: { ...result.draft, code: nextProjectCode(result.draft.form, state.projects.map((p) => p.code)) } };
+}
+
+function sourceDraft(state: DemoState, source: WizardSource): { draft: ProjectDraft; notice?: string } {
   if (source.kind === "ia") {
     return { draft: aiDraft(emptyDraft("Sèche"), source.stage), notice: "Déposez vos documents, puis lancez la détection IA." };
   }
@@ -190,7 +204,7 @@ function validateProduct(d: ProjectDraft, existingCodes: string[]): Errors {
   else if (!(Number(d.dosage.replace(",", ".")) > 0)) e.dosage = "Le dosage doit être un nombre positif.";
   if (!d.countries.length) e.countries = "Sélectionnez au moins un pays.";
   if (!d.referenceProduct.trim()) {
-    e.referenceProduct = d.referenceDoc
+    e.referenceProduct = d.referenceDocs?.length
       ? "Renseignez le nom du produit de référence."
       : "Ajoutez la notice ou le RCP du produit de référence, ou indiquez qu'il n'y en a pas.";
   }
@@ -323,7 +337,7 @@ function ProductStep({
         )}
         <h2 className="text-xl font-bold text-ink-900">Informations produit</h2>
         <div className="mt-5 grid gap-5 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_minmax(0,2fr)]">
-          <Field label="Code projet" required htmlFor="field-code" error={errors.code} info="2 lettres, un tiret et 2 chiffres. Le code doit être unique.">
+          <Field label="Code projet" required htmlFor="field-code" error={errors.code} info="Généré automatiquement à partir de la forme (2 lettres, un tiret et 2 chiffres). Vous pouvez le modifier ; il doit rester unique.">
             <Input id="field-code" placeholder="Ex. CS-01" value={draft.code} invalid={Boolean(errors.code)} onChange={(e) => set("code", e.target.value.toUpperCase())} />
           </Field>
           <Field label="Nom du projet" required htmlFor="field-name" error={errors.name} aside={tag("name")}>
@@ -715,7 +729,8 @@ function ReviewStep({ draft, goTo }: { draft: ProjectDraft; goTo: (step: 1 | 2) 
   const studies = OPTIONAL_STUDIES.filter((s) => draft.studies.includes(s.key)).map((s) => s.title);
   const activities = 1 + (draft.galenic ? 1 : 0) + (draft.analytic ? 1 : 0) + (draft.ai?.activities.length ?? 0);
   const prerequisites = prerequisiteCount(draft);
-  const documents = draft.files.length + (draft.referenceDoc ? 1 : 0);
+  const referenceDocs = draft.referenceDocs ?? [];
+  const documents = draft.files.length + referenceDocs.length;
   return (
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
       <div className="space-y-5">
@@ -729,7 +744,7 @@ function ReviewStep({ draft, goTo }: { draft: ProjectDraft; goTo: (step: 1 | 2) 
             ["Famille / forme", `${draft.family} / ${draft.form}`],
             ["Dosage", `${draft.dosage} ${draft.dosageUnit}`],
             ["Pays cible", draft.countries.join(", ")],
-            ["Produit de référence", draft.referenceDoc ? `${draft.referenceProduct} — ${draft.referenceDoc.kind} : ${draft.referenceDoc.name} (analyse IA)` : draft.referenceProduct],
+            ["Produit de référence", referenceDocs.length ? `${draft.referenceProduct} — ${referenceDocs.map((d) => d.name).join(", ")} (analyse IA)` : draft.referenceProduct],
             ["Pièces initiales", draft.files.length ? draft.files.map((f) => f.name).join(", ") : "Aucune"],
             ...(draft.ai
               ? [["Détection IA", `${Object.keys(draft.ai.fields).length} champs repris des documents — dosage retenu : ${draft.dosage} ${draft.dosageUnit}`] as [string, string]]
@@ -768,7 +783,7 @@ function ReviewStep({ draft, goTo }: { draft: ProjectDraft; goTo: (step: 1 | 2) 
               label: `${activities} ${plural(activities, "activité")}`,
               detail: draft.ai ? `Cadrage, parcours et ${draft.ai.activities.length} activités proposées (brouillon)` : "Cadrage et planification des parcours",
             },
-            { icon: FileText, label: `${documents} ${plural(documents, "document")}`, detail: "Pièces initiales et document du produit de référence (catégorie Références)" },
+            { icon: FileText, label: `${documents} ${plural(documents, "document")}`, detail: "Pièces initiales et documents du produit de référence (catégorie Références)" },
           ].map((item) => (
             <li key={item.label} className="flex items-start gap-3 rounded-xl border border-line p-3">
               <IconTile icon={item.icon} size="sm" className="bg-brand-50 text-brand-600" />
@@ -808,7 +823,7 @@ export function NewProjectWizard({ source }: { source: WizardSource }) {
   const state = useDemo();
   const router = useRouter();
   const [{ draft: initial, notice }] = useState(() => initialDraft(state, source));
-  const [draft, setDraft] = useState<ProjectDraft>(initial);
+  const [draft, setDraftState] = useState<ProjectDraft>(initial);
   const [step, setStep] = useState<1 | 2 | 3>(
     source.kind === "draft" ? initial.step : source.kind === "demo" ? (source.variant === "parcours" ? 2 : source.variant === "verification" ? 3 : 1) : 1,
   );
@@ -817,7 +832,12 @@ export function NewProjectWizard({ source }: { source: WizardSource }) {
   const [preview, setPreview] = useState<string | null>(null);
   useDetectionProgress(ai, setAi);
 
-  const existingCodes = state.projects.map((p) => p.code);
+  const existingCodes = useMemo(() => state.projects.map((p) => p.code), [state.projects]);
+  const setDraft = useCallback(
+    (update: ProjectDraft | ((d: ProjectDraft) => ProjectDraft)) =>
+      setDraftState((prev) => syncCode(prev, typeof update === "function" ? update(prev) : update, existingCodes)),
+    [existingCodes],
+  );
   const productErrors = validateProduct(draft, existingCodes);
   const pathwayErrors = validatePathway(draft);
   const currentErrors = step === 1 ? productErrors : step === 2 ? pathwayErrors : {};

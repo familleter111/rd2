@@ -83,6 +83,61 @@ export function compositionTotal(rows: Component[]) {
   return { total, unit };
 }
 
+const fr = (value: number, digits = 1) => value.toLocaleString("fr-FR", { maximumFractionDigits: digits });
+
+/**
+ * What 1 kg of the formula gives: number of units and mass of each role (active substance,
+ * excipient, then the other roles). Needs a complete composition in mg, g or %.
+ */
+export function perKilogram(rows: Component[]) {
+  const total = compositionTotal(rows);
+  if (!total || total.total <= 0 || !["mg", "g", "%"].includes(total.unit)) return null;
+  const roles = [...new Set(["Principe actif", "Excipient", ...rows.map((r) => r.role)])];
+  const parts = roles
+    .map((role) => {
+      const sum = rows.filter((r) => r.role === role).reduce((a, r) => a + Number(r.qty.replace(",", ".")), 0);
+      return { role, grams: (sum / total.total) * 1000, share: (sum / total.total) * 100 };
+    })
+    .filter((p) => p.grams > 0);
+  // A composition in % has no unit mass: the number of units cannot be known.
+  const unitGrams = total.unit === "mg" ? total.total / 1000 : total.unit === "g" ? total.total : null;
+  return { units: unitGrams ? Math.floor(1000 / unitGrams) : null, parts };
+}
+
+/** Name of the units made from a formula ("comprimés", "gélules"…). */
+export const unitLabelFor = (form: string) => (form === "Comprimé" ? "comprimés" : form === "Gélule" ? "gélules" : "unités");
+
+/** Notice "Pour 1 kg de mélange": units obtained and mass of each role. */
+export function PerKilogramNote({ rows, unitLabel = "unités", className }: { rows: Component[]; unitLabel?: string; className?: string }) {
+  const result = perKilogram(rows);
+  if (!result) return null;
+  return (
+    <div className={cn("flex gap-3 rounded-xl border border-brand-100 bg-brand-50/70 px-4 py-3.5 text-[15px] text-ink-700", className)} role="note">
+      <Weight className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" aria-hidden />
+      <div className="min-w-0 flex-1">
+        <p>
+          Pour <strong className="text-ink-900">1 kg</strong> de mélange
+          {result.units !== null && (
+            <>
+              {" "}
+              : environ <strong className="text-ink-900">{fr(result.units, 0)} {unitLabel}</strong>
+            </>
+          )}
+        </p>
+        <ul className="mt-2 flex flex-wrap gap-2">
+          {result.parts.map((p) => (
+            <li key={p.role} className="rounded-md bg-white px-2.5 py-1 text-sm ring-1 ring-inset ring-brand-100">
+              <span className="text-ink-600">{p.role} : </span>
+              <strong className="text-ink-900">{fr(p.grams)} g</strong>
+              <span className="text-ink-500"> ({fr(p.share)} %)</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
 export function CompositionTable({ rows }: { rows: Component[] }) {
   const total = compositionTotal(rows);
   return (
